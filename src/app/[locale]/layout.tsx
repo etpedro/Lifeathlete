@@ -6,6 +6,8 @@ import { setRequestLocale } from "next-intl/server";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { routing } from "@/i18n/routing";
 import { APPLE_TOUCH_ICON, THEME_COLOR } from "../manifest";
+import "@/styles/tokens.css";
+import "@/styles/base.css";
 
 export const metadata: Metadata = {
   title: "Lifeathlete",

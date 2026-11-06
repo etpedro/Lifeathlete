@@ -1,0 +1,130 @@
+/*
+ * Lifeathlete design tokens: the single source of truth for color, spacing, radii, type
+ * and layout. Mood: a calm night by a lake; the dragonfly is the single point of color.
+ *
+ * DARK is the default. Systems in light mode get the equivalent warm "paper" variant
+ * (same hues, darkened for contrast). Colors are plain hex values on purpose:
+ * src/styles/contrast.test.ts parses this file and enforces WCAG contrast for both
+ * variants, and scripts/build-pwa.mjs inlines it into the offline pages.
+ */
+:root {
+  color-scheme: dark light;
+
+  /* Surfaces */
+  --color-bg: #0e1a18;
+  --color-surface: #14231f;
+  --color-surface-raised: #1a2c28;
+  --color-surface-hover: #213531;
+  --color-input-bg: #101e1b;
+  /* Faint decorative border (cards). State-conveying edges use --color-border-strong. */
+  --color-border: #263a35;
+  --color-border-strong: #62827a;
+  --color-track: #2a403a;
+
+  /* Text */
+  --color-text: #dfe9e3;
+  --color-text-muted: #9cb0a8;
+
+  /* Roles */
+  --color-primary: #7cc79b;
+  --color-primary-hover: #93d4ad;
+  --color-on-primary: #0c1a15;
+  --color-primary-soft: #183229;
+  --color-secondary: #a9aee8;
+  --color-secondary-soft: #1d2440;
+  --color-accent-gold: #e2c072;
+  --color-on-gold: #2a2006;
+  --color-gold-soft: #2b2716;
+  --color-danger: #ec9a91;
+  --color-danger-soft: #34201f;
+  --color-success: #7cc79b;
+  --color-focus: #9cc6f2;
+  --color-selection: #2c4a5e;
+
+  /* Mascot (the dragonfly) */
+  --mascot-body: #7cc79b;
+  --mascot-wing-a: #8cc7e6;
+  --mascot-wing-b: #a99ce8;
+  --mascot-eye: #0e1a18;
+  --mascot-perch: #9c8466;
+  --mascot-glow: rgba(140, 199, 230, 0.35);
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+
+  /* Radii */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-pill: 999px;
+
+  /* Type */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --leading: 1.5;
+  --leading-tight: 1.25;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: clamp(1.0625rem, 1rem + 0.25vw, 1.125rem);
+  --text-xl: clamp(1.25rem, 1.15rem + 0.45vw, 1.4rem);
+  --text-2xl: clamp(1.5rem, 1.3rem + 0.9vw, 1.875rem);
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* Layout */
+  --layout-content: 40rem;
+  --layout-narrow: 26rem;
+  --gutter: 1rem;
+  --touch-target: 44px;
+  --nav-height: 60px;
+  --nav-clearance: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+  --border-width: 1px;
+  --focus-ring: 3px solid var(--color-focus);
+  --duration: 160ms;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #f3efe6;
+    --color-surface: #faf7f0;
+    --color-surface-raised: #fffdf8;
+    --color-surface-hover: #efeadf;
+    --color-input-bg: #fffdf8;
+    --color-border: #e0d9cb;
+    --color-border-strong: #857f70;
+    --color-track: #e4ddcf;
+
+    --color-text: #1c2a26;
+    --color-text-muted: #4f5f59;
+
+    --color-primary: #2b6b4a;
+    --color-primary-hover: #235a3e;
+    --color-on-primary: #f8f5ee;
+    --color-primary-soft: #e3eee5;
+    --color-secondary: #4b52a6;
+    --color-secondary-soft: #e8e8f5;
+    --color-accent-gold: #7f5d0e;
+    --color-on-gold: #fffaf0;
+    --color-gold-soft: #f5ecd6;
+    --color-danger: #a3352c;
+    --color-danger-soft: #f7e6e1;
+    --color-success: #2b6b4a;
+    --color-focus: #2f5fb8;
+    --color-selection: #cfe0f5;
+
+    --mascot-body: #2f7a52;
+    --mascot-wing-a: #3d8fbf;
+    --mascot-wing-b: #7a62c9;
+    --mascot-eye: #fffdf8;
+    --mascot-perch: #8b6b4a;
+    --mascot-glow: rgba(61, 143, 191, 0);
+  }
+}

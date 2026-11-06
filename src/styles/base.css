@@ -1,0 +1,160 @@
+/*
+ * Base element styles built on tokens.css. Every selector is wrapped in :where() so it has
+ * zero specificity: any CSS module class overrides it without fighting.
+ */
+:where(*, *::before, *::after) {
+  box-sizing: border-box;
+}
+
+:where(html) {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--color-bg);
+}
+
+:where(body) {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading);
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;
+}
+
+:where(h1, h2, h3, h4) {
+  margin: 0;
+  line-height: var(--leading-tight);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+:where(h1) {
+  font-size: var(--text-2xl);
+}
+:where(h2) {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+}
+:where(h3) {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+
+:where(p) {
+  margin: 0;
+}
+
+:where(a) {
+  color: var(--color-primary);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+:where(a:hover) {
+  color: var(--color-primary-hover);
+}
+
+:where(strong, b) {
+  font-weight: var(--weight-semibold);
+}
+
+/* Buttons: the neutral ("secondary") look; modules add the primary / ghost / danger variants. */
+:where(button) {
+  font: inherit;
+  line-height: var(--leading-tight);
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  cursor: pointer;
+  transition:
+    background-color var(--duration) ease,
+    border-color var(--duration) ease,
+    color var(--duration) ease;
+}
+:where(button:hover:not(:disabled)) {
+  background: var(--color-surface-hover);
+}
+:where(button:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+:where(button[aria-busy="true"]) {
+  cursor: progress;
+}
+
+:where(input:not([type="radio"], [type="checkbox"]), select, textarea) {
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-input-bg);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  max-width: 100%;
+}
+:where(input[aria-invalid="true"], select[aria-invalid="true"]) {
+  border-color: var(--color-danger);
+  border-width: 2px;
+}
+:where(input[type="radio"], input[type="checkbox"]) {
+  accent-color: var(--color-primary);
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  flex: none;
+}
+
+:where(label) {
+  cursor: pointer;
+}
+
+:where(fieldset) {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+:where(legend) {
+  padding: 0;
+  font-weight: var(--weight-medium);
+}
+
+:where(ul, ol) {
+  margin: 0;
+}
+
+:where(progress) {
+  accent-color: var(--color-primary);
+}
+
+/* One focus ring for every interactive element, visible on both themes (contrast-tested). */
+:where(:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+:where(:focus:not(:focus-visible)) {
+  outline: none;
+}
+
+::selection {
+  background: var(--color-selection);
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

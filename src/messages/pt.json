@@ -247,6 +247,11 @@
       "notFound": "Este hábito já não existe. Atualiza a página.",
       "pillarRequired": "Escolhe um pilar.",
       "save": "Não foi possível guardar. Tenta novamente."
+    },
+    "signOut": {
+      "button": "Terminar sessão",
+      "working": "A terminar sessão…",
+      "failed": "Não foi possível terminar a sessão. Verifica a ligação e tenta novamente."
     }
   },
   "pillars": {
@@ -306,5 +311,11 @@
       "days": "dias",
       "wheel": "Roda da Vida"
     }
+  },
+  "offline": {
+    "title": "Sem ligação · Lifeathlete",
+    "heading": "Estás sem ligação",
+    "body": "Não foi possível abrir esta página sem rede. Os registos que fizeres no ecrã Hoje ficam guardados e são enviados quando a ligação voltar.",
+    "retry": "Tentar novamente"
   }
 }

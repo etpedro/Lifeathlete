@@ -247,6 +247,11 @@
       "notFound": "This habit no longer exists. Refresh the page.",
       "pillarRequired": "Choose a pillar.",
       "save": "We couldn't save. Please try again."
+    },
+    "signOut": {
+      "button": "Sign out",
+      "working": "Signing out…",
+      "failed": "We couldn't sign you out. Check your connection and try again."
     }
   },
   "pillars": {
@@ -306,5 +311,11 @@
       "days": "days",
       "wheel": "Wheel of Life"
     }
+  },
+  "offline": {
+    "title": "Offline · Lifeathlete",
+    "heading": "You're offline",
+    "body": "This page can't be opened without a connection. Check-ins you make on the Today screen are saved and sent when you're back online.",
+    "retry": "Try again"
   }
 }

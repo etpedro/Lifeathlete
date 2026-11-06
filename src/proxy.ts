@@ -3,6 +3,7 @@ import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "./i18n/routing";
 import { proxyRedirect } from "./lib/auth/access";
+import { OFFLINE_OPT_IN_HEADER, OFFLINE_OPT_IN_VALUE, isOfflinePagePath } from "./lib/pwa/cache-rules";
 import { getSupabaseEnv } from "./lib/supabase/env";
 
 const handleI18nRouting = createMiddleware(routing);
@@ -16,6 +17,7 @@ type CookieToSet = { name: string; value: string; options: Parameters<NextRespon
  * 2. Signed-out users on protected paths go to /{locale}/login.
  * 3. Otherwise next-intl handles locale routing. Onboarding redirects happen in the
  *    server layouts, not here.
+ * 4. The Hoje screen is marked as the only page the service worker may keep for offline use.
  */
 export default async function proxy(request: NextRequest) {
   const { url, anonKey } = getSupabaseEnv();
@@ -43,6 +45,10 @@ export default async function proxy(request: NextRequest) {
 
   pendingCookies.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
   Object.entries(pendingHeaders).forEach(([key, value]) => response.headers.set(key, value));
+  // Only when the session did not change on this request (no refreshed auth cookies).
+  if (!target && pendingCookies.length === 0 && isOfflinePagePath(request.nextUrl.pathname)) {
+    response.headers.set(OFFLINE_OPT_IN_HEADER, OFFLINE_OPT_IN_VALUE);
+  }
   return response;
 }
 

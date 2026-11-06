@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "build:pwa": "node scripts/build-pwa.mjs",
+    "prebuild": "node scripts/build-pwa.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

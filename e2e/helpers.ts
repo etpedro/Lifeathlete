@@ -3,13 +3,15 @@ import pt from "../src/messages/pt.json";
 
 type PillarSlug = keyof typeof pt.pillars;
 
-/** Signs up a fresh account and finishes onboarding with `pillars`, landing on /pt/today. */
-export async function signUpAndOnboard(page: Page, pillars: PillarSlug[]): Promise<void> {
+export const E2E_PASSWORD = "correct-horse-battery-staple";
+
+/** Signs up a fresh account and finishes onboarding with `pillars`, landing on /pt/today. Returns the account email. */
+export async function signUpAndOnboard(page: Page, pillars: PillarSlug[]): Promise<string> {
   const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
   await page.goto("/pt/login");
   await page.getByRole("button", { name: pt.onboarding.login.toSignUp }).click();
   await page.getByLabel(pt.onboarding.login.email).fill(email);
-  await page.getByLabel(pt.onboarding.login.password).fill("correct-horse-battery-staple");
+  await page.getByLabel(pt.onboarding.login.password).fill(E2E_PASSWORD);
   await page.getByRole("button", { name: pt.onboarding.login.signUp, exact: true }).click();
   await expect(page).toHaveURL(/\/pt\/onboarding$/);
 
@@ -19,4 +21,5 @@ export async function signUpAndOnboard(page: Page, pillars: PillarSlug[]): Promi
   await page.getByRole("button", { name: pt.common.next }).click();
   await page.getByRole("button", { name: pt.common.finish }).click();
   await expect(page).toHaveURL(/\/pt\/today$/);
+  return email;
 }

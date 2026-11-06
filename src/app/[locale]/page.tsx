@@ -1,6 +1,7 @@
-import { useTranslations } from "next-intl";
+import { redirect } from "next/navigation";
 
-export default function Home() {
-  const t = useTranslations("common");
-  return <main>{t("appName")}</main>;
+/** `/{locale}` has no screen of its own: go to Today (the guards handle login/onboarding). */
+export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  redirect(`/${locale}/today`);
 }

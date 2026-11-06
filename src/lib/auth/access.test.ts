@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pageRedirect, proxyRedirect, splitLocale } from "./access";
+import { callbackRedirect, pageRedirect, proxyRedirect, splitLocale } from "./access";
 
 describe("splitLocale", () => {
   it.each([
@@ -65,5 +65,17 @@ describe("pageRedirect", () => {
     expect(pageRedirect("login", "pt", anon)).toBeNull();
     expect(pageRedirect("login", "en", fresh)).toBe("/en/onboarding");
     expect(pageRedirect("login", "en", done)).toBe("/en/today");
+  });
+});
+
+describe("callbackRedirect", () => {
+  it("goes to Today on success (the app layout bounces to onboarding if needed)", () => {
+    expect(callbackRedirect("en", true)).toBe("/en/today");
+  });
+  it("goes back to login with an error flag on failure", () => {
+    expect(callbackRedirect("pt", false)).toBe("/pt/login?error=oauth");
+  });
+  it("falls back to the default locale for an unknown one", () => {
+    expect(callbackRedirect("fr", true)).toBe("/pt/today");
   });
 });

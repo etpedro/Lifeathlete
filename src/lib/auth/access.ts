@@ -41,3 +41,9 @@ export function pageRedirect(area: Area, locale: Locale, state: AccessState): st
   if (!state.onboarded) return area === "onboarding" ? null : to("/onboarding");
   return area === "app" ? null : to("/today");
 }
+
+/** Where the auth callback sends the user after exchanging the code. */
+export function callbackRedirect(localeParam: string, ok: boolean): string {
+  const locale = routing.locales.find((l) => l === localeParam) ?? routing.defaultLocale;
+  return ok ? `/${locale}/today` : `/${locale}/login?error=oauth`;
+}

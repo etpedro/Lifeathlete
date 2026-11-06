@@ -6,10 +6,67 @@
     "cancel": "Cancel",
     "back": "Back",
     "next": "Next",
-    "language": "Language"
+    "language": "Language",
+    "finish": "Finish",
+    "languages": {
+      "pt": "Português",
+      "en": "English"
+    },
+    "errors": {
+      "invalidCredentials": "Wrong email or password.",
+      "userExists": "An account with this email already exists. Try signing in.",
+      "weakPassword": "That password is too weak. Use at least 8 characters.",
+      "emailNotConfirmed": "Please confirm your email before signing in.",
+      "rateLimited": "Too many attempts. Wait a moment and try again.",
+      "invalidEmail": "Check your email and password.",
+      "generic": "Something went wrong. Please try again.",
+      "oauth": "We couldn't sign you in with that provider. Please try again.",
+      "loadCatalog": "We couldn't load the pillars. Check your connection and try again.",
+      "saveOnboarding": "We couldn't save your choices. Please try again.",
+      "retry": "Try again"
+    }
   },
   "onboarding": {
-    "title": "Welcome to Lifeathlete"
+    "title": "Welcome to Lifeathlete",
+    "stepOf": "Step {current} of {total}",
+    "login": {
+      "title": "Sign in to Lifeathlete",
+      "subtitle": "Care for your 10 pillars, one day at a time.",
+      "email": "Email",
+      "password": "Password",
+      "signIn": "Sign in",
+      "signUp": "Create account",
+      "toSignUp": "New here? Create an account",
+      "toSignIn": "Already have an account? Sign in",
+      "or": "or",
+      "google": "Continue with Google",
+      "apple": "Continue with Apple",
+      "checkEmail": "We sent you an email. Open the link to confirm your account.",
+      "submitting": "Sending…"
+    },
+    "language": {
+      "title": "Choose your language",
+      "description": "You can change it later in your Profile.",
+      "timezone": "Time zone",
+      "timezoneHint": "Detected automatically. Used to know when your day starts.",
+      "invalidTimezone": "Invalid time zone (example: Europe/Lisbon)."
+    },
+    "intro": {
+      "title": "The 10 pillars",
+      "description": "A balanced life rests on ten pillars. Every habit you complete strengthens one of them."
+    },
+    "choose": {
+      "title": "Choose your pillars",
+      "description": "You don't have to activate them all. Confirm the suggested habits for each pillar.",
+      "habits": "Suggested habits",
+      "none": "You haven't picked any pillar yet. You can continue and add habits later.",
+      "selected": "{count, plural, =0 {No habits selected} one {# habit selected} other {# habits selected}}"
+    },
+    "dragonfly": {
+      "title": "Meet the dragonfly",
+      "description": "This is your mascot. It grows with you as you keep your habits. Let's do your first check-in!",
+      "saving": "Saving…"
+    }
   },
   "today": {
     "title": "Today"

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { backfillDates, shiftDate, todayIn } from "./dates";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { backfillDates, reanchorDay, shiftDate, todayIn } from "./dates";
 
 describe("todayIn", () => {
   it("a 23:59 local tap in Lisbon on the spring-forward day belongs to that local date", () => {
@@ -44,5 +44,57 @@ describe("backfillDates", () => {
       { date: "2026-10-31", daysAgo: 1 },
       { date: "2026-10-30", daysAgo: 2 },
     ]);
+  });
+});
+
+describe("reanchorDay (midnight passes with the app open)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("moves the selection to the real today when the clock crosses local midnight (fake timers, Lisbon)", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-06T23:50:00Z")); // 23:50 in Lisbon (UTC+0 in November)
+    const opened = { today: todayIn("Europe/Lisbon"), selected: todayIn("Europe/Lisbon") };
+    expect(opened).toEqual({ today: "2026-11-06", selected: "2026-11-06" });
+
+    vi.advanceTimersByTime(20 * 60_000); // 00:10 local
+    expect(reanchorDay(opened, todayIn("Europe/Lisbon"))).toEqual({
+      today: "2026-11-07",
+      selected: "2026-11-07",
+      changed: true,
+      reload: true,
+    });
+  });
+
+  it("does nothing while the day has not changed", () => {
+    expect(reanchorDay({ today: "2026-11-06", selected: "2026-11-05" }, "2026-11-06")).toEqual({
+      today: "2026-11-06",
+      selected: "2026-11-05",
+      changed: false,
+      reload: false,
+    });
+  });
+
+  it("keeps a backfill day that is still inside the window", () => {
+    expect(reanchorDay({ today: "2026-11-06", selected: "2026-11-05" }, "2026-11-07")).toEqual({
+      today: "2026-11-07",
+      selected: "2026-11-05",
+      changed: true,
+      reload: false,
+    });
+  });
+
+  it("moves to today when the selected backfill day fell out of the window", () => {
+    expect(reanchorDay({ today: "2026-11-06", selected: "2026-11-04" }, "2026-11-07")).toMatchObject({
+      selected: "2026-11-07",
+      reload: true,
+    });
+  });
+
+  it("moves to today when the clock went back past the selected day", () => {
+    expect(reanchorDay({ today: "2026-11-07", selected: "2026-11-07" }, "2026-11-06")).toMatchObject({
+      today: "2026-11-06",
+      selected: "2026-11-06",
+      reload: true,
+    });
   });
 });

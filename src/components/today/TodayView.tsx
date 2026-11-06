@@ -24,7 +24,7 @@ export function TodayView(props: TodayControllerProps) {
     <main className={styles.screen}>
       <h1>{t("title")}</h1>
       <HeaderStats stats={c.stats} />
-      <DayStrip today={props.today} selected={c.date} onSelect={c.selectDate} />
+      <DayStrip today={c.today} selected={c.date} onSelect={c.selectDay} />
 
       {!c.online && (
         <p role="status" className={styles.notice}>

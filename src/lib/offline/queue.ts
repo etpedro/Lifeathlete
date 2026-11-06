@@ -12,6 +12,7 @@ export type FlushResult = { sent: number; dropped: number; kept: number };
 
 /** The small key-value API the queue needs (IndexedDB in the browser, memory in tests). */
 export interface KeyValueStore<V> {
+  get(key: string): Promise<V | undefined>;
   set(key: string, value: V): Promise<void>;
   /** Atomically deletes `key` when it exists and `shouldDelete(current)` is true. */
   deleteIf(key: string, shouldDelete: (current: V) => boolean): Promise<void>;
@@ -23,6 +24,10 @@ export const queueKey = (userHabitId: string, date: string) => `${userHabitId}:$
 export function createMemoryStore<V>(): KeyValueStore<V> {
   const map = new Map<string, V>();
   return {
+    async get(key) {
+      const value = map.get(key);
+      return value === undefined ? undefined : structuredClone(value);
+    },
     async set(key, value) {
       map.set(key, structuredClone(value));
     },
@@ -75,6 +80,11 @@ export function createIndexedDbStore<V>(
   }
 
   return {
+    get: (key) =>
+      tx("readonly", (s) => {
+        const req = s.get(key);
+        return () => req.result as V | undefined;
+      }),
     set: (key, value) =>
       tx("readwrite", (s) => {
         s.put(value, key);
@@ -123,9 +133,15 @@ export async function enqueueLog(item: QueuedLog, store: KeyValueStore<QueueEntr
   await store.set(queueKey(item.userHabitId, item.date), entry);
 }
 
-/** Queued items in insertion order. */
-export async function listQueued(store: KeyValueStore<QueueEntry> = defaultQueueStore()): Promise<QueueEntry[]> {
-  return (await store.entries()).map(([, v]) => v).sort((a, b) => a.seq - b.seq);
+/** Queued items in insertion order; only `userId`'s when given (the browser may be shared). */
+export async function listQueued(
+  store: KeyValueStore<QueueEntry> = defaultQueueStore(),
+  userId?: string,
+): Promise<QueueEntry[]> {
+  return (await store.entries())
+    .map(([, v]) => v)
+    .filter((v) => userId === undefined || v.userId === userId)
+    .sort((a, b) => a.seq - b.seq);
 }
 
 const RETRY_STATUSES = new Set([0, 401, 408, 429]);
@@ -145,24 +161,40 @@ export function isTransientError(error: unknown): boolean {
   return true; // unknown: keep the user's data and try again later
 }
 
+/** Name of the Web Lock that serializes flush passes across tabs (IndexedDB is shared by them). */
+export const FLUSH_LOCK_NAME = "lifeathlete-offline-flush";
+
+/** Runs `run` while holding the lock `name` (the shape of `navigator.locks.request`). */
+export type LockFn = <T>(name: string, run: () => Promise<T>) => Promise<T>;
+
+/** Web Locks when the browser has them; otherwise only the in-tab chain guards the passes. */
+const defaultLock: LockFn = (name, run) => {
+  const locks = typeof navigator === "undefined" ? undefined : navigator.locks;
+  return locks ? locks.request(name, run) : run();
+};
+
 /** Per store: the end of the pass chain, and a pass that is queued but not started yet. */
 type FlushSlot = { tail: Promise<unknown>; waiting: Promise<FlushResult> | null };
 const slots = new WeakMap<KeyValueStore<QueueEntry>, FlushSlot>();
 
 /**
- * Replays the queue in insertion order through logHabit. Success removes the item;
- * a transient failure keeps it and ends the pass; a permanent failure drops it and
- * counts it in `dropped` so the UI can tell the user. An item is only removed if it
- * was not replaced while being sent.
+ * Replays `userId`'s queued items in insertion order through logHabit. Items of other
+ * accounts (shared browser) are skipped: kept and not counted. Success removes the item;
+ * a transient failure keeps it and ends the pass; a permanent failure drops it and counts
+ * it in `dropped` so the UI can tell the user.
  *
- * Passes never overlap (no double send): calls made before a pass starts share it,
- * and calls made while a pass runs share ONE follow-up pass, so an item queued
- * during a pass is not left behind.
+ * No double send, no stale value: within a tab, calls made before a pass starts share it
+ * and calls made while it runs share ONE follow-up pass; across tabs, each pass holds the
+ * FLUSH_LOCK_NAME Web Lock; and each entry is re-read right before sending and skipped
+ * if it was replaced since the snapshot (its newer value goes in a later pass). An item
+ * is only removed if it was not replaced while being sent.
  */
 export function flushQueue(
   db: Db,
   today: string,
+  userId: string,
   store: KeyValueStore<QueueEntry> = defaultQueueStore(),
+  lock: LockFn = defaultLock,
 ): Promise<FlushResult> {
   let slot = slots.get(store);
   if (!slot) slots.set(store, (slot = { tail: Promise.resolve(), waiting: null }));
@@ -170,20 +202,23 @@ export function flushQueue(
   const s = slot;
   const pass = s.tail.then(() => {
     s.waiting = null; // started: later calls queue the next pass
-    return runFlush(db, today, store);
+    return lock(FLUSH_LOCK_NAME, () => runFlush(db, today, userId, store));
   });
   s.waiting = pass;
   s.tail = pass.catch(() => undefined);
   return pass;
 }
 
-async function runFlush(db: Db, today: string, store: KeyValueStore<QueueEntry>): Promise<FlushResult> {
-  const items = await listQueued(store);
+async function runFlush(db: Db, today: string, userId: string, store: KeyValueStore<QueueEntry>): Promise<FlushResult> {
+  const items = await listQueued(store, userId);
   if (items.length === 0) return { sent: 0, dropped: 0, kept: 0 };
   let sent = 0;
   let dropped = 0;
   for (const entry of items) {
+    const key = queueKey(entry.userHabitId, entry.date);
     const sameEntry = (current: QueueEntry) => current.seq === entry.seq;
+    const current = await store.get(key);
+    if (!current || !sameEntry(current)) continue; // replaced or sent by another tab since the snapshot
     try {
       await logHabit(db, entry, today);
       sent += 1;
@@ -191,8 +226,8 @@ async function runFlush(db: Db, today: string, store: KeyValueStore<QueueEntry>)
       if (isTransientError(error)) break;
       dropped += 1;
     }
-    await store.deleteIf(queueKey(entry.userHabitId, entry.date), sameEntry);
+    await store.deleteIf(key, sameEntry);
   }
-  const kept = (await store.entries()).length;
+  const kept = (await listQueued(store, userId)).length;
   return { sent, dropped, kept };
 }

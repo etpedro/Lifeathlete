@@ -1,5 +1,5 @@
 import { IDBFactory } from "fake-indexeddb";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DataError } from "@/lib/data/errors";
 import { LogValidationError } from "@/lib/data/today";
 import { createFakeDb, type Row } from "@/lib/data/testing/fake-db";
@@ -7,26 +7,28 @@ import {
   createIndexedDbStore,
   createMemoryStore,
   enqueueLog,
+  FLUSH_LOCK_NAME,
   flushQueue,
   isTransientError,
   listQueued,
   queueKey,
   type KeyValueStore,
+  type LockFn,
   type QueueEntry,
 } from "./queue";
 
 const USER = "user-1";
 const TODAY = "2026-11-06";
 
-function setup() {
+function setup(userId = USER) {
   return createFakeDb({
-    userId: USER,
+    userId,
     tables: { habit_logs: [] as Row[] },
     unique: [{ table: "habit_logs", collides: (a, b) => a.user_habit_id === b.user_habit_id && a.date === b.date }],
   });
 }
 
-const item = (userHabitId: string, value = 1, date = TODAY) => ({ userHabitId, userId: USER, date, value });
+const item = (userHabitId: string, value = 1, date = TODAY, userId = USER) => ({ userHabitId, userId, date, value });
 const rowsOf = (rows: Row[]) => rows.map((r) => ({ habit: r.user_habit_id, date: r.date, value: r.value }));
 
 describe("enqueueLog", () => {
@@ -58,7 +60,7 @@ describe("flushQueue", () => {
     const store = createMemoryStore<QueueEntry>();
     await enqueueLog(item("h1", 1), store);
     await enqueueLog(item("h2", 7, "2026-11-05"), store);
-    expect(await flushQueue(fake.db, TODAY, store)).toEqual({ sent: 2, dropped: 0, kept: 0 });
+    expect(await flushQueue(fake.db, TODAY, USER, store)).toEqual({ sent: 2, dropped: 0, kept: 0 });
     expect(fake.writes.map((w) => (w.payload as Row).user_habit_id)).toEqual(["h1", "h2"]);
     expect(fake.writes.every((w) => (w.payload as Row).source === "manual")).toBe(true);
     expect(rowsOf(fake.tables.habit_logs)).toEqual([
@@ -74,7 +76,7 @@ describe("flushQueue", () => {
     await enqueueLog(item("h1", 1), store);
     await enqueueLog(item("h1", 0), store);
     await enqueueLog(item("h1", 1), store);
-    expect(await flushQueue(fake.db, TODAY, store)).toEqual({ sent: 1, dropped: 0, kept: 0 });
+    expect(await flushQueue(fake.db, TODAY, USER, store)).toEqual({ sent: 1, dropped: 0, kept: 0 });
     expect(rowsOf(fake.tables.habit_logs)).toEqual([{ habit: "h1", date: TODAY, value: 1 }]);
   });
 
@@ -85,10 +87,10 @@ describe("flushQueue", () => {
       await enqueueLog(item("h1"), store);
       await enqueueLog(item("h2"), store);
       fake.failNext("habit_logs", "upsert", { code: "", message: "TypeError: Failed to fetch" }, status);
-      expect(await flushQueue(fake.db, TODAY, store), `status ${status}`).toEqual({ sent: 0, dropped: 0, kept: 2 });
+      expect(await flushQueue(fake.db, TODAY, USER, store), `status ${status}`).toEqual({ sent: 0, dropped: 0, kept: 2 });
       expect(fake.writes).toHaveLength(1); // stopped after the first failure
       // next pass succeeds
-      expect(await flushQueue(fake.db, TODAY, store)).toEqual({ sent: 2, dropped: 0, kept: 0 });
+      expect(await flushQueue(fake.db, TODAY, USER, store)).toEqual({ sent: 2, dropped: 0, kept: 0 });
     }
   });
 
@@ -97,7 +99,7 @@ describe("flushQueue", () => {
     const store = createMemoryStore<QueueEntry>();
     await enqueueLog(item("old", 1, "2026-11-03"), store);
     await enqueueLog(item("h1", 1), store);
-    expect(await flushQueue(fake.db, TODAY, store)).toEqual({ sent: 1, dropped: 1, kept: 0 });
+    expect(await flushQueue(fake.db, TODAY, USER, store)).toEqual({ sent: 1, dropped: 1, kept: 0 });
     expect(rowsOf(fake.tables.habit_logs)).toEqual([{ habit: "h1", date: TODAY, value: 1 }]);
     expect(await listQueued(store)).toEqual([]);
   });
@@ -108,7 +110,7 @@ describe("flushQueue", () => {
     await enqueueLog(item("h-other"), store);
     await enqueueLog(item("h1"), store);
     fake.failNext("habit_logs", "upsert", { code: "42501", message: "row-level security" }, 403);
-    expect(await flushQueue(fake.db, TODAY, store)).toEqual({ sent: 1, dropped: 1, kept: 0 });
+    expect(await flushQueue(fake.db, TODAY, USER, store)).toEqual({ sent: 1, dropped: 1, kept: 0 });
   });
 
   it("replaying the same item twice (crash after send, before removal) leaves exactly one row", async () => {
@@ -126,8 +128,8 @@ describe("flushQueue", () => {
       },
     };
     await enqueueLog(item("h1", 1), crashing);
-    expect(await flushQueue(fake.db, TODAY, crashing)).toMatchObject({ sent: 1, kept: 1 });
-    expect(await flushQueue(fake.db, TODAY, crashing)).toEqual({ sent: 1, dropped: 0, kept: 0 });
+    expect(await flushQueue(fake.db, TODAY, USER, crashing)).toMatchObject({ sent: 1, kept: 1 });
+    expect(await flushQueue(fake.db, TODAY, USER, crashing)).toEqual({ sent: 1, dropped: 0, kept: 0 });
     expect(fake.writes).toHaveLength(2); // sent twice...
     expect(rowsOf(fake.tables.habit_logs)).toEqual([{ habit: "h1", date: TODAY, value: 1 }]); // ...one row, one value
   });
@@ -137,7 +139,7 @@ describe("flushQueue", () => {
     const store = createMemoryStore<QueueEntry>();
     await enqueueLog(item("h1"), store);
     await enqueueLog(item("h2"), store);
-    const [a, b] = await Promise.all([flushQueue(fake.db, TODAY, store), flushQueue(fake.db, TODAY, store)]);
+    const [a, b] = await Promise.all([flushQueue(fake.db, TODAY, USER, store), flushQueue(fake.db, TODAY, USER, store)]);
     expect(fake.writes).toHaveLength(2);
     expect(a).toEqual({ sent: 2, dropped: 0, kept: 0 });
     expect(b).toEqual(a);
@@ -163,11 +165,11 @@ describe("flushQueue", () => {
       },
     };
     await enqueueLog(item("h1"), gated);
-    const p1 = flushQueue(fake.db, TODAY, gated);
+    const p1 = flushQueue(fake.db, TODAY, USER, gated);
     await started;
     await enqueueLog(item("h2"), gated); // a tap while pass 1 runs
-    const p2 = flushQueue(fake.db, TODAY, gated);
-    const p3 = flushQueue(fake.db, TODAY, gated);
+    const p2 = flushQueue(fake.db, TODAY, USER, gated);
+    const p3 = flushQueue(fake.db, TODAY, USER, gated);
     expect(p3).toBe(p2); // requests during a pass share ONE follow-up pass
     release();
     expect(await p1).toEqual({ sent: 1, dropped: 0, kept: 1 });
@@ -195,19 +197,121 @@ describe("flushQueue", () => {
       },
     };
     await enqueueLog(item("h1", 1), gated);
-    const flushing = flushQueue(fake.db, TODAY, gated);
+    const flushing = flushQueue(fake.db, TODAY, USER, gated);
     await afterSend; // the tick (value 1) has been sent, not yet removed
     await enqueueLog(item("h1", 0), gated); // user un-ticks meanwhile
     release();
     expect(await flushing).toEqual({ sent: 1, dropped: 0, kept: 1 });
-    expect(await flushQueue(fake.db, TODAY, gated)).toEqual({ sent: 1, dropped: 0, kept: 0 });
+    expect(await flushQueue(fake.db, TODAY, USER, gated)).toEqual({ sent: 1, dropped: 0, kept: 0 });
     expect(rowsOf(fake.tables.habit_logs)).toEqual([{ habit: "h1", date: TODAY, value: 0 }]);
   });
 
   it("does nothing on an empty queue", async () => {
     const fake = setup();
-    expect(await flushQueue(fake.db, TODAY, createMemoryStore<QueueEntry>())).toEqual({ sent: 0, dropped: 0, kept: 0 });
+    expect(await flushQueue(fake.db, TODAY, USER, createMemoryStore<QueueEntry>())).toEqual({ sent: 0, dropped: 0, kept: 0 });
     expect(fake.calls).toHaveLength(0);
+  });
+});
+
+describe("flushQueue on a shared browser (several accounts)", () => {
+  const A = "user-a";
+  const B = "user-b";
+
+  it("skips (keeps, uncounted) another account's items; they sync when that account signs back in", async () => {
+    const store = createMemoryStore<QueueEntry>();
+    await enqueueLog(item("a1", 1, TODAY, A), store);
+    await enqueueLog(item("a2", 4, TODAY, A), store);
+    await enqueueLog(item("b1", 1, TODAY, B), store);
+
+    const asB = setup(B);
+    expect(await flushQueue(asB.db, TODAY, B, store)).toEqual({ sent: 1, dropped: 0, kept: 0 });
+    expect(asB.writes.map((w) => (w.payload as Row).user_habit_id)).toEqual(["b1"]);
+    expect((await listQueued(store, A)).map((q) => q.userHabitId)).toEqual(["a1", "a2"]); // untouched
+    expect(await listQueued(store, B)).toEqual([]);
+
+    const asA = setup(A);
+    expect(await flushQueue(asA.db, TODAY, A, store)).toEqual({ sent: 2, dropped: 0, kept: 0 });
+    expect(await listQueued(store)).toEqual([]);
+  });
+});
+
+describe("flushQueue across tabs", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("re-reads each entry right before sending and skips it if a concurrent writer replaced it", async () => {
+    const fake = setup();
+    const memory = createMemoryStore<QueueEntry>();
+    let replaceAfterSnapshot = true;
+    const racing: KeyValueStore<QueueEntry> = {
+      ...memory,
+      async entries() {
+        const snapshot = await memory.entries();
+        if (replaceAfterSnapshot) {
+          replaceAfterSnapshot = false;
+          await enqueueLog(item("x", 0), memory); // another tab un-ticks X after our snapshot
+        }
+        return snapshot;
+      },
+    };
+    await enqueueLog(item("x", 1), racing);
+    expect(await flushQueue(fake.db, TODAY, USER, racing)).toEqual({ sent: 0, dropped: 0, kept: 1 });
+    expect(fake.writes).toHaveLength(0); // the stale X=1 was never sent
+    expect(await flushQueue(fake.db, TODAY, USER, racing)).toEqual({ sent: 1, dropped: 0, kept: 0 });
+    expect(rowsOf(fake.tables.habit_logs)).toEqual([{ habit: "x", date: TODAY, value: 0 }]);
+  });
+
+  it("runs each pass inside the cross-tab lock", async () => {
+    const fake = setup();
+    const store = createMemoryStore<QueueEntry>();
+    await enqueueLog(item("h1"), store);
+    const names: string[] = [];
+    const lock: LockFn = async (name, run) => {
+      names.push(name);
+      expect(fake.writes).toHaveLength(0); // nothing is sent before the lock is held
+      return run();
+    };
+    expect(await flushQueue(fake.db, TODAY, USER, store, lock)).toEqual({ sent: 1, dropped: 0, kept: 0 });
+    expect(names).toEqual([FLUSH_LOCK_NAME]);
+    expect(FLUSH_LOCK_NAME).toBe("lifeathlete-offline-flush");
+  });
+
+  it("two tabs flushing the same IndexedDB at once never send an item twice nor a stale value", async () => {
+    const fake = setup();
+    const shared = createMemoryStore<QueueEntry>();
+    const tab1: KeyValueStore<QueueEntry> = { ...shared }; // distinct objects: no shared in-tab guard
+    const tab2: KeyValueStore<QueueEntry> = { ...shared };
+    let tail: Promise<unknown> = Promise.resolve();
+    const mutex: LockFn = (_name, run) => {
+      const next = tail.then(run);
+      tail = next.catch(() => undefined);
+      return next;
+    };
+    await enqueueLog(item("x", 1), shared);
+    await enqueueLog(item("y", 1), shared);
+    const [r1, r2] = await Promise.all([
+      flushQueue(fake.db, TODAY, USER, tab1, mutex),
+      flushQueue(fake.db, TODAY, USER, tab2, mutex),
+    ]);
+    expect(r1.sent + r2.sent).toBe(2);
+    expect(fake.writes).toHaveLength(2);
+  });
+
+  it("uses navigator.locks when available", async () => {
+    const request = vi.fn((_name: string, run: () => Promise<unknown>) => run());
+    vi.stubGlobal("navigator", { locks: { request } });
+    const fake = setup();
+    const store = createMemoryStore<QueueEntry>();
+    await enqueueLog(item("h1"), store);
+    expect(await flushQueue(fake.db, TODAY, USER, store)).toMatchObject({ sent: 1 });
+    expect(request).toHaveBeenCalledWith(FLUSH_LOCK_NAME, expect.any(Function));
+  });
+
+  it("falls back to the in-tab guard without Web Locks", async () => {
+    vi.stubGlobal("navigator", {});
+    const fake = setup();
+    const store = createMemoryStore<QueueEntry>();
+    await enqueueLog(item("h1"), store);
+    expect(await flushQueue(fake.db, TODAY, USER, store)).toMatchObject({ sent: 1 });
   });
 });
 
@@ -253,7 +357,7 @@ describe("createIndexedDbStore", () => {
     const fake = setup();
     const store = createIndexedDbStore<QueueEntry>({ factory: new IDBFactory() });
     await enqueueLog(item("h1", 1), store);
-    expect(await flushQueue(fake.db, TODAY, store)).toEqual({ sent: 1, dropped: 0, kept: 0 });
+    expect(await flushQueue(fake.db, TODAY, USER, store)).toEqual({ sent: 1, dropped: 0, kept: 0 });
     expect(await listQueued(store)).toEqual([]);
   });
 });

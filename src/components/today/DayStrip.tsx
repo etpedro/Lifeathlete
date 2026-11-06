@@ -4,9 +4,12 @@ import styles from "./today.module.css";
 
 const LABELS = ["today", "yesterday", "twoDaysAgo"] as const;
 
-type Props = { today: string; selected: string; onSelect: (date: string) => void };
+type Props = { today: string; selected: string; onSelect: (daysAgo: number) => void };
 
-/** Today, yesterday and 2 days ago: the only days that can be filled in. */
+/**
+ * Today, yesterday and 2 days ago: the only days that can be filled in. Emits days-ago,
+ * so the controller resolves it against the real current day (midnight may have passed).
+ */
 export function DayStrip({ today, selected, onSelect }: Props) {
   const t = useTranslations("today.days");
   return (
@@ -17,7 +20,7 @@ export function DayStrip({ today, selected, onSelect }: Props) {
           type="button"
           className={styles.target}
           aria-pressed={date === selected}
-          onClick={() => onSelect(date)}
+          onClick={() => onSelect(daysAgo)}
         >
           <time dateTime={date}>{t(LABELS[daysAgo] ?? "today")}</time>
         </button>

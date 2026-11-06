@@ -29,3 +29,21 @@ export function backfillDates(today: string): { date: string; daysAgo: number }[
     daysAgo,
   }));
 }
+
+export type DayAnchor = { today: string; selected: string };
+
+/**
+ * Re-anchors the day strip when the local date changed while the app was open
+ * (midnight, timezone or clock change). A selection that was "today", or that left the
+ * backfill window, moves to the real today; `reload` says the shown day changed.
+ */
+export function reanchorDay(
+  anchor: DayAnchor,
+  freshToday: string,
+): DayAnchor & { changed: boolean; reload: boolean } {
+  if (freshToday === anchor.today) return { ...anchor, changed: false, reload: false };
+  const age = dayNumber(freshToday) - dayNumber(anchor.selected);
+  const keep = anchor.selected !== anchor.today && age >= 0 && age <= ENGINE_CONFIG.backfillDays;
+  const selected = keep ? anchor.selected : freshToday;
+  return { today: freshToday, selected, changed: true, reload: selected !== anchor.selected };
+}

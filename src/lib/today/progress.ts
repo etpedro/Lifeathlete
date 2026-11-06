@@ -1,4 +1,4 @@
-import { MANUAL_SOURCE, type LogInput, type TodayData, type TodayHabit } from "@/lib/data/today";
+import { MANUAL_SOURCE, NO_LOG_SOURCE, type LogInput, type TodayData, type TodayHabit } from "@/lib/data/today";
 
 type ProgressHabit = Pick<TodayHabit, "kind" | "target" | "value">;
 
@@ -65,4 +65,27 @@ export function overlayQueued(
     pendingIds.add(q.userHabitId);
   }
   return { data: out, pendingIds };
+}
+
+/** `data`'s pillars and habits with every value reset to 0 and no log source. */
+export function blankDay(data: TodayData): TodayData {
+  return {
+    pillars: data.pillars.map((p) => ({
+      ...p,
+      habits: p.habits.map((h) => ({ ...h, value: 0, source: NO_LOG_SOURCE })),
+    })),
+  };
+}
+
+/**
+ * What to show when `date` could not be loaded (offline the next morning, or "yesterday"
+ * offline): the habits of the last day that did load, blank, with `date`'s queued values on
+ * top, so taps still work and are queued. Null when no day was ever loaded.
+ */
+export function fallbackDay(
+  lastGood: TodayData | null,
+  queued: readonly Pick<LogInput, "userHabitId" | "date" | "value">[],
+  date: string,
+): { data: TodayData; pendingIds: Set<string> } | null {
+  return lastGood ? overlayQueued(blankDay(lastGood), queued, date) : null;
 }

@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { TodayData, TodayHabit } from "@/lib/data/today";
-import { applyValue, habitProgress, isComplete, overlayQueued, progressPercent, remainingCount, valueStep } from "./progress";
+import {
+  applyValue,
+  blankDay,
+  fallbackDay,
+  habitProgress,
+  isComplete,
+  overlayQueued,
+  progressPercent,
+  remainingCount,
+  valueStep,
+} from "./progress";
 
 const check = (value: number): TodayHabit => ({ id: "c", title: "C", kind: "check", target: 1, value, source: "manual" });
 const val = (value: number, target: number): TodayHabit => ({ id: "v", title: "V", kind: "value", target, value, source: "manual" });
@@ -98,5 +108,43 @@ describe("overlayQueued", () => {
     const { data: out, pendingIds } = overlayQueued(data, [q("gone", "2026-11-06", 1)], "2026-11-06");
     expect(out).toEqual(data);
     expect(pendingIds.size).toBe(0);
+  });
+});
+
+describe("fallbackDay (a day that could not be loaded, e.g. offline the next morning)", () => {
+  const lastGood: TodayData = {
+    pillars: [
+      {
+        pillarId: "p1",
+        slug: "exercise",
+        habits: [
+          { id: "a", title: "Treino", kind: "check", target: 1, value: 1, source: "manual" },
+          { id: "b", title: "Caminhar", kind: "value", target: 30, value: 12, source: "strava" },
+        ],
+      },
+    ],
+  };
+
+  it("blankDay keeps the habit structure with values reset to 0 and no source", () => {
+    const blank = blankDay(lastGood);
+    expect(blank.pillars[0].habits.map((h) => [h.id, h.title, h.kind, h.target, h.value, h.source])).toEqual([
+      ["a", "Treino", "check", 1, 0, "none"],
+      ["b", "Caminhar", "value", 30, 0, "none"],
+    ]);
+    expect(lastGood.pillars[0].habits[0].value).toBe(1); // not mutated
+  });
+
+  it("shows the last loaded day's habits for the new date, with that date's queued values on top", () => {
+    const queued = [
+      { userHabitId: "b", date: "2026-11-07", value: 20 },
+      { userHabitId: "a", date: "2026-11-06", value: 0 }, // another day: ignored
+    ];
+    const out = fallbackDay(lastGood, queued, "2026-11-07");
+    expect(out?.data.pillars[0].habits.map((h) => h.value)).toEqual([0, 20]);
+    expect(out?.pendingIds).toEqual(new Set(["b"]));
+  });
+
+  it("is null when no day was ever loaded (the load error is shown instead)", () => {
+    expect(fallbackDay(null, [], "2026-11-07")).toBeNull();
   });
 });

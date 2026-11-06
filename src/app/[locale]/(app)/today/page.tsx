@@ -8,7 +8,6 @@ import {
   getProfileTimezone,
   getToday,
   type HeaderStats,
-  type TodayData,
 } from "@/lib/data/today";
 import { createClient } from "@/lib/supabase/server";
 import { todayIn } from "@/lib/today/dates";
@@ -29,9 +28,11 @@ export default async function TodayPage({ params }: { params: Promise<{ locale: 
 
   const timezone = await getProfileTimezone(db, user.id).catch(() => DEFAULT_TIMEZONE);
   const today = todayIn(timezone);
-  // A failed load is shown in the page (with a retry) instead of an error screen.
+  // A failed day load is thrown on purpose: Next answers with a non-200 error page
+  // (./error.tsx, localized, with a retry), which the service worker never stores, so a
+  // failed render can never replace a good offline copy of Hoje. Stats are not critical.
   const [data, stats] = await Promise.all([
-    getToday(db, today).catch((): TodayData | null => null),
+    getToday(db, today),
     getHeaderStats(db).catch((): HeaderStats => DEFAULT_HEADER_STATS),
   ]);
 

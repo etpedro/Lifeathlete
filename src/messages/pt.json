@@ -131,7 +131,10 @@
       "save": "Não foi possível guardar. Tenta de novo.",
       "outsideWindow": "Só podes preencher hoje e os 2 dias anteriores.",
       "dropped": "{count, plural, one {# registo feito sem rede não pôde ser enviado.} other {# registos feitos sem rede não puderam ser enviados.}}",
-      "stats": "Não foi possível atualizar as estatísticas agora. Tentamos de novo mais tarde."
+      "stats": "Não foi possível atualizar as estatísticas agora. Tentamos de novo mais tarde.",
+      "fallback": "Não foi possível carregar este dia (sem ligação?). Mostramos os teus hábitos: o que registares fica guardado e é enviado depois.",
+      "rolledOver": "Já é um novo dia: mostramos agora o dia de hoje. O último toque não foi registado; toca de novo.",
+      "page": "Não foi possível carregar o dia de hoje. Tenta de novo."
     }
   },
   "wheel": {

@@ -6,10 +6,17 @@ import { DayStrip } from "./DayStrip";
 import { HeaderStats } from "./HeaderStats";
 import { PillarGroup } from "./PillarGroup";
 import styles from "./today.module.css";
-import { useTodayController, type TodayControllerProps, type TodayNotice } from "./useTodayController";
+import { noticeRole, type TodayNotice } from "./notices";
+import { useTodayController, type TodayControllerProps } from "./useTodayController";
 import { XpToast } from "./XpToast";
 
-const NOTICE_KEYS = { save: "errors.save", load: "errors.load", outsideWindow: "errors.outsideWindow" } as const;
+const NOTICE_KEYS = {
+  save: "errors.save",
+  load: "errors.load",
+  fallback: "errors.fallback",
+  rolledOver: "errors.rolledOver",
+  outsideWindow: "errors.outsideWindow",
+} as const;
 
 /** The Today screen (spec §5): header stats, day picker, pillars with their habits. */
 export function TodayView(props: TodayControllerProps) {
@@ -37,9 +44,9 @@ export function TodayView(props: TodayControllerProps) {
         </p>
       )}
       {c.notice && (
-        <div role="alert" className={styles.notice}>
+        <div role={noticeRole(c.notice)} className={styles.notice}>
           <p>{noticeText(c.notice)}</p>
-          {c.notice.kind === "load" && (
+          {(c.notice.kind === "load" || c.notice.kind === "fallback") && (
             <button type="button" className={styles.target} onClick={c.retry}>
               {tCommon("errors.retry")}
             </button>

@@ -27,14 +27,11 @@ import {
   type AchievementWatcher,
   type StatsFeedback,
 } from "@/lib/today/feedback";
-import { applyValue, overlayQueued } from "@/lib/today/progress";
+import { applyValue, fallbackDay, overlayQueued } from "@/lib/today/progress";
 import { createStatsRefresher, type StatsRefresher } from "@/lib/today/stats-refresh";
+import type { TodayNotice } from "./notices";
 
-export type TodayNotice =
-  | { kind: "save" }
-  | { kind: "load" }
-  | { kind: "outsideWindow" }
-  | { kind: "dropped"; count: number };
+export type { TodayNotice } from "./notices";
 
 type View = { date: string; data: TodayData | null; pendingIds: Set<string> };
 
@@ -78,6 +75,10 @@ export function useTodayController({ userId, timezone, today, initialData, initi
   const statsRef = useRef(initialStats);
   const dateRef = useRef(today);
   const todayRef = useRef(today);
+  /** The last day that loaded: its habits are reused (blank) when a later load fails. */
+  const lastGoodRef = useRef<TodayData | null>(initialData);
+  /** The shown day is a fallback (not the server's data): reload it when back online. */
+  const fallbackRef = useRef(false);
   const directWrites = useRef<Promise<void>>(Promise.resolve());
 
   const db = useCallback(() => (dbRef.current ??= createClient()), []);
@@ -112,16 +113,30 @@ export function useTodayController({ userId, timezone, today, initialData, initi
     [db, achievements],
   );
 
-  /** Re-reads a day from the server and shows still-queued values on top. */
+  /**
+   * Re-reads a day from the server and shows still-queued values on top. When that fails
+   * (offline the next morning, "yesterday" offline, a transient error), the last loaded
+   * day's habits are shown blank with the queued values, so taps keep working and queue.
+   */
   const reload = useCallback(
     async (date: string) => {
+      const queuedFor = () => listQueued(undefined, userId).catch(() => []);
       try {
         const fresh = await getToday(db(), date);
-        const queued = await listQueued(undefined, userId).catch(() => []);
-        const { data, pendingIds } = overlayQueued(fresh, queued, date);
-        if (dateRef.current === date) setView({ date, data, pendingIds });
+        lastGoodRef.current = fresh;
+        const { data, pendingIds } = overlayQueued(fresh, await queuedFor(), date);
+        if (dateRef.current !== date) return;
+        fallbackRef.current = false;
+        setView({ date, data, pendingIds });
+        setNotice((n) => (n?.kind === "fallback" ? null : n));
       } catch {
-        if (dateRef.current === date) setNotice({ kind: "load" });
+        if (dateRef.current !== date) return;
+        const fallback = fallbackDay(lastGoodRef.current, await queuedFor(), date);
+        if (dateRef.current !== date) return;
+        if (!fallback) return setNotice({ kind: "load" });
+        fallbackRef.current = true;
+        setView({ date, ...fallback });
+        setNotice({ kind: "fallback" });
       }
     },
     [db, userId],
@@ -161,7 +176,7 @@ export function useTodayController({ userId, timezone, today, initialData, initi
       const result = await flushQueue(db(), todayIn(timezone), userId);
       if (result.sent > 0) recalc();
       if (result.dropped > 0) setNotice({ kind: "dropped", count: result.dropped });
-      if (result.sent > 0 || result.dropped > 0) await reload(dateRef.current);
+      if (result.sent > 0 || result.dropped > 0 || fallbackRef.current) await reload(dateRef.current);
       else await showPending(); // e.g. a transient failure kept the item
     } catch {
       // IndexedDB unavailable: nothing was queued on this device.
@@ -226,9 +241,9 @@ export function useTodayController({ userId, timezone, today, initialData, initi
    */
   const setValue = useCallback(
     (habit: TodayHabit, value: number) => {
-      // The day rolled over and the shown day moved (it was "today"): drop this tap so it
-      // never lands on the previous day; the real today is reloaded and shown instead.
-      if (checkDay()) return;
+      // The day rolled over and the shown day moved (it was "today"): this tap is not saved
+      // (it must never land on the previous day); the real today is shown with a notice.
+      if (checkDay()) return setNotice({ kind: "rolledOver" });
       // The habit's target travels with the log (snapshot): check habits carry 1.
       const input: LogInput = { userHabitId: habit.id, userId, date: dateRef.current, value, target: habit.target };
       try {

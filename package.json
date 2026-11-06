@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:db": "bash supabase/tests/run.sh",
     "test:e2e": "playwright test",
-    "test:e2e:pwa": "playwright test -c playwright.pwa.config.ts"
+    "test:e2e:pwa": "playwright test -c playwright.pwa.config.ts pwa.spec.ts",
+    "test:e2e:landing": "playwright test -c playwright.pwa.config.ts landing.spec.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

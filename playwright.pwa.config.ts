@@ -2,11 +2,12 @@ import { defineConfig } from "@playwright/test";
 import base from "./playwright.config";
 
 /**
- * PWA e2e (e2e/pwa.spec.ts) against a PRODUCTION build: the service worker is only
- * registered by `next build && next start`. Run with `npm run test:e2e:pwa`.
+ * E2E against a PRODUCTION build: the PWA (e2e/pwa.spec.ts; the service worker is only
+ * registered by `next build && next start`) and the static landing page
+ * (e2e/landing.spec.ts). Run with `npm run test:e2e:pwa` / `npm run test:e2e:landing`.
  *
  * Without E2E_SUPABASE=1 the server gets placeholder Supabase settings pointing at a dead
- * local port (not secrets): the tested pages (/pt/login, manifest, offline pages) need no
+ * local port (not secrets): the tested pages (landing, /pt/login, manifest, offline pages) need no
  * backend. With E2E_SUPABASE=1 the real NEXT_PUBLIC_SUPABASE_* from the environment are used
  * and the signed-in offline Hoje scenario runs too.
  */
@@ -17,7 +18,7 @@ const placeholderEnv: Record<string, string> = process.env.E2E_SUPABASE
 
 export default defineConfig({
   ...base,
-  testMatch: "pwa.spec.ts",
+  testMatch: ["pwa.spec.ts", "landing.spec.ts"],
   testIgnore: [],
   fullyParallel: false,
   workers: 1,

@@ -12,8 +12,9 @@ const executablePath = existsSync(PREINSTALLED_CHROMIUM) ? PREINSTALLED_CHROMIUM
  */
 export default defineConfig({
   testDir: "e2e",
-  // Service workers only run in production builds: see playwright.pwa.config.ts.
-  testIgnore: "pwa.spec.ts",
+  // Service workers only run in production builds, and the landing page is static: both
+  // run against `next build && next start` (playwright.pwa.config.ts).
+  testIgnore: ["pwa.spec.ts", "landing.spec.ts"],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

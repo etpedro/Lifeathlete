@@ -4,7 +4,7 @@ import { routing } from "@/i18n/routing";
 import { BrandMark } from "./BrandMark";
 import styles from "./footer.module.css";
 
-/** Product name, a one-line summary and the PT/EN switch (plain links to /pt and /en). */
+/** Product name, a one-line summary and the PT/EN switch (plain links to /pt and /en, not prefetched). */
 export function LandingFooter() {
   const t = useTranslations("landing.footer");
   const tCommon = useTranslations("common");
@@ -26,6 +26,7 @@ export function LandingFooter() {
                   locale={locale}
                   lang={locale}
                   hrefLang={locale}
+                  prefetch={false}
                   className={styles.language}
                   aria-current={locale === current ? "page" : undefined}
                 >

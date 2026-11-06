@@ -211,6 +211,32 @@ begin
   update public.user_habits set deleted_at = now(), active = false where id = 'a1a1a1a1-0000-0000-0000-000000000001';
   assert (select count(*) from public.habit_logs where user_habit_id = 'a1a1a1a1-0000-0000-0000-000000000001') = 2,
     'soft-deleting a habit keeps its logs';
+
+  -- one active habit per (user, template) (0006, onboarding idempotency)
+  insert into public.user_habits(user_id, template_id, pillar_id, title, kind)
+    select auth.uid(), t.id, t.pillar_id, 'Tpl', t.kind from public.habit_templates t where t.slug = 'workout';
+  assert pg_temp.fails($f$insert into public.user_habits(user_id, template_id, pillar_id, title, kind)
+      select auth.uid(), t.id, t.pillar_id, 'Tpl again', t.kind from public.habit_templates t where t.slug = 'workout'$f$, '23505'),
+    'duplicate active (user_id, template_id) must violate unique';
+  insert into public.user_habits(user_id, pillar_id, title, kind)
+    select auth.uid(), id, 'Custom', 'check' from public.pillars where slug = 'reading';
+  insert into public.user_habits(user_id, pillar_id, title, kind)
+    select auth.uid(), id, 'Custom', 'check' from public.pillars where slug = 'reading';
+  assert (select count(*) from public.user_habits where title = 'Custom' and template_id is null) = 2,
+    'custom habits (template_id null) are not constrained';
+  update public.user_habits set deleted_at = now(), active = false
+   where template_id = (select id from public.habit_templates where slug = 'workout');
+  insert into public.user_habits(user_id, template_id, pillar_id, title, kind)
+    select auth.uid(), t.id, t.pillar_id, 'Tpl re-added', t.kind from public.habit_templates t where t.slug = 'workout';
+  assert (select count(*) from public.user_habits
+           where template_id = (select id from public.habit_templates where slug = 'workout')) = 2,
+    'a template can be re-added after its habit is soft-deleted';
+  -- the index is partial, so ON CONFLICT (user_id, template_id) cannot infer it (42P10);
+  -- this is why the data layer does select-then-insert instead of a PostgREST upsert
+  assert pg_temp.fails($f$insert into public.user_habits(user_id, template_id, pillar_id, title, kind)
+      select auth.uid(), t.id, t.pillar_id, 'x', t.kind from public.habit_templates t where t.slug = 'workout'
+      on conflict (user_id, template_id) do nothing$f$, '42P10'),
+    'partial unique index is not usable as an ON CONFLICT target without its predicate';
 end $$;
 
 -- ---------- user B sees nothing of A ----------

@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { SignOutButton } from "@/components/profile/SignOutButton";
 import styles from "@/components/profile/profile.module.css";
 
 /** Profile (spec §5): a minimal hub for now; other sections are added to the link list. */
@@ -17,6 +18,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
           </Link>
         </li>
       </ul>
+      <SignOutButton locale={locale} />
     </main>
   );
 }

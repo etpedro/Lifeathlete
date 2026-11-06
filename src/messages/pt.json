@@ -24,6 +24,13 @@
       "loadCatalog": "Não foi possível carregar os pilares. Verifica a ligação e tenta de novo.",
       "saveOnboarding": "Não foi possível guardar as tuas escolhas. Tenta de novo.",
       "retry": "Tentar de novo"
+    },
+    "nav": {
+      "label": "Navegação principal",
+      "today": "Hoje",
+      "wheel": "Roda",
+      "achievements": "Conquistas",
+      "profile": "Perfil"
     }
   },
   "onboarding": {
@@ -126,10 +133,70 @@
     }
   },
   "wheel": {
-    "title": "Roda da Vida"
+    "title": "Roda da Vida",
+    "intro": "Como andam os teus 10 pilares nos últimos 30 dias.",
+    "empty": "Ainda não há dados na tua roda.",
+    "emptyHint": "Marca o teu primeiro hábito em Hoje e a roda começa a ganhar forma.",
+    "chartLabel": "Roda da Vida: {summary}",
+    "summaryItem": "{pillar} {value}%",
+    "tableCaption": "Pontuação por pilar (0 a 100)",
+    "pillarHeader": "Pilar",
+    "valueHeader": "Pontuação",
+    "value": "{value}%",
+    "loadError": "Não foi possível carregar a tua roda. Tenta novamente mais tarde.",
+    "strongest": {
+      "title": "O teu pilar mais forte",
+      "body": "{pillar} está a brilhar com {value}%. Continua assim."
+    },
+    "weakest": {
+      "title": "Um pilar à espera de carinho",
+      "body": "{pillar} está nos {value}%. Sem pressa, um pequeno passo chega."
+    },
+    "suggestion": {
+      "exercise": "Que tal uma caminhada curta hoje? Cada passo conta.",
+      "nutrition": "Experimenta acrescentar um prato colorido à tua refeição.",
+      "nature": "Dez minutos ao ar livre já fazem diferença.",
+      "gratitude": "Escreve uma coisa boa que aconteceu hoje.",
+      "screens": "Um intervalo pequeno longe do ecrã sabe bem.",
+      "lightness": "Faz uma pausa para algo leve e que te dê prazer.",
+      "meditation": "Respira fundo durante dois minutos, sem pressa.",
+      "active-lifestyle": "Levanta-te e alonga-te um pouco entre tarefas.",
+      "reading": "Lê uma página, só uma, e vê como corre.",
+      "family": "Manda uma mensagem a alguém da tua família."
+    }
   },
   "achievements": {
-    "title": "Conquistas"
+    "title": "Conquistas",
+    "level": "Nível {level}",
+    "tierLabel": "Categoria",
+    "tier": {
+      "1": "Iniciante",
+      "2": "Curioso",
+      "3": "Praticante",
+      "4": "Atleta",
+      "5": "Atleta da Vida"
+    },
+    "xpLabel": "Experiência",
+    "xp": "{into} / {next} XP para o próximo nível",
+    "streakCurrent": "Sequência atual",
+    "streakBest": "Melhor sequência",
+    "days": "{count, plural, one {# dia} other {# dias}}",
+    "mascotLabel": "A tua libelinha",
+    "mascotDescription": "Libelinha em fase {stage} de 5, aspeto {variant}.",
+    "variant": {
+      "dim": "suave",
+      "normal": "equilibrado",
+      "bright": "radiante"
+    },
+    "resting": "A libelinha está a descansar — volta quando quiseres.",
+    "restingDescription": "Fase {stage} de 5, a descansar.",
+    "medals": "Medalhas",
+    "unlocked": "Desbloqueada",
+    "unlockedOn": "Desbloqueada a {date}",
+    "locked": "Por desbloquear",
+    "progress": "{current} de {target} dias",
+    "pillar": "Pilar: {pillar}",
+    "loadError": "Não foi possível carregar as tuas conquistas. Tenta novamente mais tarde."
   },
   "profile": {
     "title": "Perfil",

@@ -1,0 +1,27 @@
+/* Wheel screen. Colors have a non-color twin (numbers, text values). */
+.screen { max-width: 40rem; margin: 0 auto; padding: 1rem; display: grid; gap: 1rem; }
+.chart { width: 100%; max-width: 26rem; margin: 0 auto; display: block; }
+.grid { fill: none; stroke: #c7ccd1; stroke-width: 1; }
+.axis { stroke: #dfe3e6; stroke-width: 1; }
+.area { fill: rgba(46, 147, 60, 0.28); stroke: #1e6b2a; stroke-width: 2; stroke-linejoin: round; }
+.dot { fill: #1e6b2a; }
+.axisLabel { font-size: 11px; font-weight: 700; fill: #1f2933; }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.25rem 1rem; }
+.legend li { display: flex; gap: 0.5rem; min-height: 1.75rem; align-items: center; }
+.legendNum { font-weight: 700; min-width: 1.5rem; }
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+.barRow { display: grid; gap: 0.25rem; }
+.barTrack { height: 0.75rem; border-radius: 0.5rem; background: #e6e9ec; overflow: hidden; }
+.barFill { height: 100%; background: #2e933c; }
+.callout { border: 1px solid #e1e4e8; border-radius: 0.75rem; padding: 0.75rem 1rem; }
+.callout h2 { font-size: 1rem; margin: 0 0 0.25rem; }
+.callout p { margin: 0.25rem 0; }
+.hint { color: #52606d; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.empty { text-align: center; padding: 2rem 1rem; }
+@media (prefers-color-scheme: dark) {
+  .grid { stroke: #4b5563; } .axis { stroke: #374151; } .axisLabel { fill: #e5e7eb; }
+  .area { fill: rgba(94, 200, 110, 0.3); stroke: #7fdc8c; } .dot { fill: #7fdc8c; }
+  .barTrack { background: #374151; } .barFill { background: #5ec86e; }
+  .callout { border-color: #374151; } .hint { color: #9aa5b1; }
+}

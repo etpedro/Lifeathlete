@@ -24,6 +24,13 @@
       "loadCatalog": "We couldn't load the pillars. Check your connection and try again.",
       "saveOnboarding": "We couldn't save your choices. Please try again.",
       "retry": "Try again"
+    },
+    "nav": {
+      "label": "Main navigation",
+      "today": "Today",
+      "wheel": "Wheel",
+      "achievements": "Achievements",
+      "profile": "Profile"
     }
   },
   "onboarding": {
@@ -126,10 +133,70 @@
     }
   },
   "wheel": {
-    "title": "Wheel of Life"
+    "title": "Wheel of Life",
+    "intro": "How your 10 pillars are doing over the last 30 days.",
+    "empty": "There is no data on your wheel yet.",
+    "emptyHint": "Check off your first habit in Today and the wheel starts to take shape.",
+    "chartLabel": "Wheel of Life: {summary}",
+    "summaryItem": "{pillar} {value}%",
+    "tableCaption": "Score per pillar (0 to 100)",
+    "pillarHeader": "Pillar",
+    "valueHeader": "Score",
+    "value": "{value}%",
+    "loadError": "We couldn't load your wheel. Please try again later.",
+    "strongest": {
+      "title": "Your strongest pillar",
+      "body": "{pillar} is shining at {value}%. Keep it up."
+    },
+    "weakest": {
+      "title": "A pillar waiting for some care",
+      "body": "{pillar} is at {value}%. No rush, one small step is enough."
+    },
+    "suggestion": {
+      "exercise": "How about a short walk today? Every step counts.",
+      "nutrition": "Try adding one colourful dish to your meal.",
+      "nature": "Ten minutes outdoors already makes a difference.",
+      "gratitude": "Write down one good thing that happened today.",
+      "screens": "A small break away from the screen feels good.",
+      "lightness": "Take a moment for something light you enjoy.",
+      "meditation": "Breathe deeply for two minutes, no rush.",
+      "active-lifestyle": "Stand up and stretch a little between tasks.",
+      "reading": "Read one page, just one, and see how it goes.",
+      "family": "Send a message to someone in your family."
+    }
   },
   "achievements": {
-    "title": "Achievements"
+    "title": "Achievements",
+    "level": "Level {level}",
+    "tierLabel": "Tier",
+    "tier": {
+      "1": "Beginner",
+      "2": "Curious",
+      "3": "Practitioner",
+      "4": "Athlete",
+      "5": "Life Athlete"
+    },
+    "xpLabel": "Experience",
+    "xp": "{into} / {next} XP to the next level",
+    "streakCurrent": "Current streak",
+    "streakBest": "Best streak",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "mascotLabel": "Your dragonfly",
+    "mascotDescription": "Dragonfly at stage {stage} of 5, {variant} look.",
+    "variant": {
+      "dim": "soft",
+      "normal": "balanced",
+      "bright": "radiant"
+    },
+    "resting": "The dragonfly is resting — come back whenever you like.",
+    "restingDescription": "Stage {stage} of 5, resting.",
+    "medals": "Medals",
+    "unlocked": "Unlocked",
+    "unlockedOn": "Unlocked on {date}",
+    "locked": "Not unlocked yet",
+    "progress": "{current} of {target} days",
+    "pillar": "Pillar: {pillar}",
+    "loadError": "We couldn't load your achievements. Please try again later."
   },
   "profile": {
     "title": "Profile",

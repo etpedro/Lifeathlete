@@ -1,6 +1,7 @@
 // Pure redirect rules for authentication and onboarding. No framework imports, so
 // they are unit-tested and shared by the proxy, the server layouts and the pages.
 import { routing } from "@/i18n/routing";
+import { isPwaLaunch } from "@/lib/pwa/cache-rules";
 import { RESET_NEXT } from "./password-reset";
 
 export type Locale = (typeof routing.locales)[number];
@@ -20,8 +21,9 @@ export function splitLocale(pathname: string): { locale: Locale; rest: string } 
   return { locale, rest };
 }
 
+/** `/{locale}` itself is the public landing page; login and the auth flows are public too. */
 function isPublic(rest: string): boolean {
-  return PUBLIC_PREFIXES.some((p) => rest === p || rest.startsWith(`${p}/`));
+  return rest === "/" || PUBLIC_PREFIXES.some((p) => rest === p || rest.startsWith(`${p}/`));
 }
 
 /**
@@ -33,6 +35,48 @@ export function proxyRedirect(pathname: string, authenticated: boolean): string 
   const parts = splitLocale(pathname);
   if (!parts || isPublic(parts.rest)) return null;
   return `/${parts.locale}/login`;
+}
+
+/** next-intl's locale cookie (routing.localeCookie is not customized). */
+export const LOCALE_COOKIE = "NEXT_LOCALE";
+
+/**
+ * The preferred supported locale: the NEXT_LOCALE cookie (written by next-intl when a
+ * localized page is visited), then the Accept-Language header by quality, then the
+ * default. A simplified version of next-intl's own detection (its matcher is internal).
+ */
+export function preferredLocale(cookieLocale: string | null | undefined, acceptLanguage: string | null | undefined): Locale {
+  const fromCookie = routing.locales.find((l) => l === cookieLocale);
+  if (fromCookie) return fromCookie;
+  const ranked = (acceptLanguage ?? "")
+    .split(",")
+    .map((part, index) => {
+      const [tag, ...params] = part.trim().split(";");
+      const q = params.map((p) => /^\s*q=([\d.]+)\s*$/.exec(p)).find(Boolean);
+      return { base: tag.trim().toLowerCase().split("-")[0], q: q ? Number(q[1]) : 1, index };
+    })
+    .filter((x) => x.base && Number.isFinite(x.q) && x.q > 0)
+    .sort((a, b) => b.q - a.q || a.index - b.index);
+  for (const { base } of ranked) {
+    const match = routing.locales.find((l) => l === base);
+    if (match) return match;
+  }
+  return routing.defaultLocale;
+}
+
+/**
+ * Proxy rule for the installed app: the manifest start_url ("/?source=pwa") opens Today in
+ * the preferred locale instead of the landing page (the guards then send signed-out users
+ * to login). Any other request (including a plain "/") returns null.
+ */
+export function launchRedirect(
+  pathname: string,
+  search: string,
+  cookieLocale: string | null | undefined,
+  acceptLanguage: string | null | undefined,
+): string | null {
+  if (!isPwaLaunch(pathname, search)) return null;
+  return `/${preferredLocale(cookieLocale, acceptLanguage)}/today`;
 }
 
 export type Area = "app" | "onboarding" | "login";

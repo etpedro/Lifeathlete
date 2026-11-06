@@ -22,8 +22,8 @@ describe("web app manifest", () => {
     expect(m.background_color).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
-  it("start_url is inside scope and both are same-origin root paths", () => {
-    expect(m.start_url).toBe("/");
+  it("start_url is the PWA launch URL (not the landing page), inside the root scope", () => {
+    expect(m.start_url).toBe("/?source=pwa");
     expect(m.scope).toBe("/");
     expect(m.start_url!.startsWith(m.scope!)).toBe(true);
   });

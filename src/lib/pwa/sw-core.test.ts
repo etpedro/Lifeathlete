@@ -317,7 +317,8 @@ describe("navigations: NetworkFirst, Hoje only, privacy", () => {
   });
 });
 
-describe("offline launch at the start_url (/ or /{locale})", () => {
+describe("offline launch at the start_url (/?source=pwa)", () => {
+  const LAUNCH = "/?source=pwa";
   async function stored(langs: ("pt" | "en")[], opts: { language?: string } = {}) {
     const t = setup({ "/pt/today": () => html("hoje-pt"), "/en/today": () => html("hoje-en") }, opts);
     await t.worker.install();
@@ -326,44 +327,44 @@ describe("offline launch at the start_url (/ or /{locale})", () => {
     return t;
   }
 
-  it("/{locale} serves that locale's stored Hoje", async () => {
-    const t = await stored(["pt", "en"]);
-    expect(await (await t.nav("/en"))!.text()).toBe("hoje-en");
-    expect(await (await t.nav("/pt/"))!.text()).toBe("hoje-pt");
-  });
-
-  it("/ uses the Accept-Language header locale", async () => {
+  it("uses the Accept-Language header locale", async () => {
     const t = await stored(["pt", "en"], { language: "pt-PT" });
-    const res = await t.go("/", { navigate: true, headers: { "accept-language": "en-US,en;q=0.9" } });
+    const res = await t.go(LAUNCH, { navigate: true, headers: { "accept-language": "en-US,en;q=0.9" } });
     expect(await res!.text()).toBe("hoje-en");
   });
 
-  it("/ uses navigator.language when there is no header", async () => {
+  it("uses navigator.language when there is no header", async () => {
     const t = await stored(["pt", "en"], { language: "en-GB" });
-    expect(await (await t.nav("/"))!.text()).toBe("hoje-en");
+    expect(await (await t.nav(LAUNCH))!.text()).toBe("hoje-en");
   });
 
-  it("/ defaults to pt", async () => {
+  it("defaults to pt", async () => {
     const t = await stored(["pt", "en"], { language: "de-DE" });
-    expect(await (await t.nav("/"))!.text()).toBe("hoje-pt");
+    expect(await (await t.nav(LAUNCH))!.text()).toBe("hoje-pt");
   });
 
   it("falls back to the other locale's stored Hoje only when the chosen one is absent", async () => {
-    const t = await stored(["pt"]);
-    expect(await (await t.nav("/en"))!.text()).toBe("hoje-pt");
+    const t = await stored(["pt"], { language: "en-US" });
+    expect(await (await t.nav(LAUNCH))!.text()).toBe("hoje-pt");
   });
 
   it("an expired Hoje is not served: the localized offline page is", async () => {
-    const t = await stored(["pt", "en"]);
+    const t = await stored(["pt", "en"], { language: "en-US" });
     t.advance(24 * 60 * 60 * 1000 + 1);
-    expect(await (await t.nav("/en"))!.text()).toBe("offline /offline/en.html");
+    expect(await (await t.nav(LAUNCH))!.text()).toBe("offline /offline/en.html");
     expect(t.caches.urls(PAGES_CACHE)).toEqual([]);
   });
 
   it("with nothing stored, the localized offline page", async () => {
     const t = await stored([], { language: "en-US" });
+    expect(await (await t.nav(LAUNCH))!.text()).toBe("offline /offline/en.html");
+  });
+
+  it("the landing page (/, /pt, /en) offline gets the localized offline page, never the stored Hoje", async () => {
+    const t = await stored(["pt", "en"], { language: "en-US" });
     expect(await (await t.nav("/"))!.text()).toBe("offline /offline/en.html");
     expect(await (await t.nav("/pt"))!.text()).toBe("offline /offline/pt.html");
+    expect(await (await t.nav("/en/"))!.text()).toBe("offline /offline/en.html");
   });
 
   it("other paths never get a stored Hoje", async () => {
@@ -371,10 +372,18 @@ describe("offline launch at the start_url (/ or /{locale})", () => {
     expect(await (await t.nav("/pt/wheel"))!.text()).toBe("offline /offline/pt.html");
   });
 
-  it("nothing is ever stored under / or /{locale}", async () => {
-    const t = await stored(["pt"]);
+  it("the landing HTML and the launch URL are never stored", async () => {
+    const t = setup({
+      "/": () => html("landing", false, { "cache-control": "s-maxage=31536000" }),
+      "/pt": () => html("landing-pt", false, { "cache-control": "s-maxage=31536000" }),
+      "/en": () => html("landing-en", false, { "cache-control": "s-maxage=31536000" }),
+      "/pt/today": () => html("hoje-pt"),
+    });
+    await t.nav("/pt/today");
     await t.nav("/");
     await t.nav("/pt");
+    await t.nav("/en");
+    await t.nav(LAUNCH);
     expect(t.caches.urls(PAGES_CACHE)).toEqual(["/pt/today"]);
   });
 });

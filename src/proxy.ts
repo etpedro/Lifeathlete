@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "./i18n/routing";
-import { PATHNAME_HEADER, proxyRedirect } from "./lib/auth/access";
+import { LOCALE_COOKIE, PATHNAME_HEADER, launchRedirect, proxyRedirect } from "./lib/auth/access";
 import { OFFLINE_OPT_IN_HEADER, OFFLINE_OPT_IN_VALUE, isOfflinePagePath } from "./lib/pwa/cache-rules";
 import { getSupabaseEnv } from "./lib/supabase/env";
 
@@ -14,7 +14,8 @@ type CookieToSet = { name: string; value: string; options: Parameters<NextRespon
  * 1. Refreshes the Supabase session (@supabase/ssr pattern). Refreshed cookies are
  *    written to the request, so next-intl forwards them to Server Components, and
  *    to whichever response is returned.
- * 2. Signed-out users on protected paths go to /{locale}/login.
+ * 2. The installed app's launch ("/?source=pwa") goes to /{locale}/today; signed-out users
+ *    on protected paths go to /{locale}/login. "/{locale}" (the landing page) is public.
  * 3. Otherwise next-intl handles locale routing. Onboarding redirects happen in the
  *    server layouts, not here.
  * 4. The request path is forwarded to the layouts (stored-locale redirect).
@@ -41,7 +42,10 @@ export default async function proxy(request: NextRequest) {
   // Do not run code between createServerClient and getClaims (session refresh).
   const { data } = await supabase.auth.getClaims();
 
-  const target = proxyRedirect(request.nextUrl.pathname, Boolean(data?.claims));
+  const { pathname, search } = request.nextUrl;
+  const target =
+    launchRedirect(pathname, search, request.cookies.get(LOCALE_COOKIE)?.value, request.headers.get("accept-language")) ??
+    proxyRedirect(pathname, Boolean(data?.claims));
   // Forwarded to the server layouts (next-intl copies the request headers) so the
   // stored-locale redirect keeps the page; always overwritten, never taken from the client.
   request.headers.set(PATHNAME_HEADER, request.nextUrl.pathname);

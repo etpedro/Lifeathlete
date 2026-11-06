@@ -6,12 +6,14 @@ import {
   OFFLINE_OPT_IN_VALUE,
   PAGES_MAX_AGE_MS,
   PRECACHE_URLS,
+  PWA_START_URL,
   SHELL_CACHE,
   STATIC_CACHE,
   classifyRequest,
   isCacheableResponse,
   isExpired,
   isOfflinePagePath,
+  isPwaLaunch,
   offlineFallbackPath,
   pageCacheKey,
   rootHojePaths,
@@ -224,21 +226,30 @@ describe("pageCacheKey", () => {
   });
 });
 
+describe("PWA launch URL", () => {
+  it("is exactly / with source=pwa", () => {
+    expect(PWA_START_URL).toBe("/?source=pwa");
+    expect(isPwaLaunch("/", "?source=pwa")).toBe(true);
+    expect(isPwaLaunch("/", "?x=1&source=pwa")).toBe(true);
+    expect(isPwaLaunch("/", "")).toBe(false);
+    expect(isPwaLaunch("/", "?source=web")).toBe(false);
+    expect(isPwaLaunch("/pt", "?source=pwa")).toBe(false);
+  });
+});
+
 describe("rootHojePaths", () => {
-  it("uses the URL locale for /{locale} launches", () => {
-    expect(rootHojePaths("/en", "pt-PT", "pt-PT")).toEqual(["/en/today", "/pt/today"]);
-    expect(rootHojePaths("/pt/", "en-US", "en-US")).toEqual(["/pt/today", "/en/today"]);
+  const launch = `${ORIGIN}/?source=pwa`;
+  it("uses Accept-Language, then navigator.language, then pt for the PWA launch", () => {
+    expect(rootHojePaths(launch, "en-GB,en;q=0.9", "pt-PT")).toEqual(["/en/today", "/pt/today"]);
+    expect(rootHojePaths(launch, "de-DE,en;q=0.5", undefined)).toEqual(["/en/today", "/pt/today"]);
+    expect(rootHojePaths(launch, null, "en-US")).toEqual(["/en/today", "/pt/today"]);
+    expect(rootHojePaths(launch, "de-DE", "fr-FR")).toEqual(["/pt/today", "/en/today"]);
+    expect(rootHojePaths(launch, undefined, undefined)).toEqual(["/pt/today", "/en/today"]);
   });
-  it("uses Accept-Language, then navigator.language, then pt for /", () => {
-    expect(rootHojePaths("/", "en-GB,en;q=0.9", "pt-PT")).toEqual(["/en/today", "/pt/today"]);
-    expect(rootHojePaths("/", "de-DE,en;q=0.5", undefined)).toEqual(["/en/today", "/pt/today"]);
-    expect(rootHojePaths("/", null, "en-US")).toEqual(["/en/today", "/pt/today"]);
-    expect(rootHojePaths("/", "de-DE", "fr-FR")).toEqual(["/pt/today", "/en/today"]);
-    expect(rootHojePaths("/", undefined, undefined)).toEqual(["/pt/today", "/en/today"]);
-  });
-  it("is empty for any other path", () => {
-    for (const p of ["/pt/today", "/pt/wheel", "/fr", "/ptx", "/pt/login", "/offline/pt.html"]) {
-      expect(rootHojePaths(p, "pt", "pt"), p).toEqual([]);
+  it("is empty for the landing page (/, /pt, /en) and any other URL", () => {
+    for (const p of ["/", "/pt", "/en", "/pt/", "/?source=web", "/pt?source=pwa", "/pt/today", "/pt/wheel", "/fr", "/ptx", "/pt/login", "/offline/pt.html"]) {
+      expect(rootHojePaths(`${ORIGIN}${p}`, "pt", "pt"), p).toEqual([]);
     }
+    expect(rootHojePaths("not a url", "pt", "pt")).toEqual([]);
   });
 });

@@ -26,7 +26,7 @@ test("(a) the web app manifest is reachable, valid and linked", async ({ page, r
   expect(res.status()).toBe(200);
   expect(res.headers()["content-type"]).toContain("application/manifest+json");
   const manifest = await res.json();
-  expect(manifest).toMatchObject({ name: "Lifeathlete", start_url: "/", scope: "/", display: "standalone", lang: "pt", id: "/" });
+  expect(manifest).toMatchObject({ name: "Lifeathlete", start_url: "/?source=pwa", scope: "/", display: "standalone", lang: "pt", id: "/" });
   expect(manifest.icons.some((i: { purpose?: string }) => i.purpose === "maskable")).toBe(true);
   for (const icon of manifest.icons as { src: string }[]) {
     const iconRes = await request.get(icon.src);
@@ -71,6 +71,16 @@ test("(c) offline, an uncached page shows the localized offline page instead of 
   // Login was visited online but is never cached: offline it also gets the offline page.
   await page.goto("/pt/login");
   await expect(page.getByRole("heading", { level: 1, name: pt.offline.heading })).toBeVisible();
+
+  // The landing page is never stored either: offline it is the localized offline page.
+  await page.goto("/en");
+  await expect(page.getByRole("heading", { level: 1, name: en.offline.heading })).toBeVisible();
+  await page.goto("/pt");
+  await expect(page.getByRole("heading", { level: 1, name: pt.offline.heading })).toBeVisible();
+  // The installed app's launch with no stored Hoje: the offline page as well.
+  await page.goto("/?source=pwa");
+  // (Its locale follows navigator.language, as for any URL without a locale.)
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(new RegExp(`^(${pt.offline.heading}|${en.offline.heading})$`));
   await context.setOffline(false);
 });
 
@@ -84,12 +94,13 @@ test("(d) signed in: /pt/today opens offline after a first visit, and sign-out w
   await context.setOffline(true);
   await page.goto("/pt/today");
   await expect(page.getByRole("heading", { name: pt.today.title, level: 1 })).toBeVisible();
-  // Launching the installed app (start_url "/") offline reaches the stored Hoje too.
-  await page.goto("/");
+  // Launching the installed app (start_url "/?source=pwa") offline reaches the stored Hoje too.
+  await page.goto("/?source=pwa");
   await expect(page.getByRole("heading", { name: pt.today.title, level: 1 })).toBeVisible();
+  // The landing page (/ and /pt) is not Hoje: offline it gets the offline page.
   await page.goto("/pt");
-  await expect(page.getByRole("heading", { name: pt.today.title, level: 1 })).toBeVisible();
-  expect(await cachedPaths(page, PAGES_CACHE)).toEqual(["/pt/today"]); // nothing stored under / or /pt
+  await expect(page.getByRole("heading", { level: 1, name: pt.offline.heading })).toBeVisible();
+  expect(await cachedPaths(page, PAGES_CACHE)).toEqual(["/pt/today"]); // nothing stored under /, /pt or the launch URL
   await context.setOffline(false);
 
   await page.goto("/pt/profile");

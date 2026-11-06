@@ -133,13 +133,13 @@ export function createWorker(deps: WorkerDeps): Worker {
   }
 
   /**
-   * The stored page to use when the network is unavailable: the page's own entry, or for a
-   * launch at "/" or "/{locale}" (manifest start_url) the stored Hoje (never stored itself).
+   * The stored page to use when the network is unavailable: the page's own entry, or for the
+   * installed app's launch ("/?source=pwa", the manifest start_url) the stored Hoje.
    */
   async function storedFor(request: Request): Promise<Response | undefined> {
     const own = await freshPage(pageCacheKey(request.url));
     if (own) return own;
-    const candidates = rootHojePaths(new URL(request.url).pathname, request.headers.get("accept-language"), deps.language);
+    const candidates = rootHojePaths(request.url, request.headers.get("accept-language"), deps.language);
     for (const path of candidates) {
       const hoje = await freshPage(abs(path));
       if (hoje) return hoje;

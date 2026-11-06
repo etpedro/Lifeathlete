@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { PWA_START_URL } from "@/lib/pwa/cache-rules";
 
 /** The dark background (--color-bg in src/styles/tokens.css; the app is dark by default). */
 export const THEME_COLOR = "#0e1a18";
@@ -8,8 +9,10 @@ export const THEME_COLOR_LIGHT = "#f3efe6";
 export const APPLE_TOUCH_ICON = "/icons/apple-touch-icon.png";
 
 /**
- * Web app manifest, served by Next at /manifest.webmanifest. `start_url` is "/" so the
- * proxy picks the locale; the app is PT-first, so `lang` and `description` are PT.
+ * Web app manifest, served by Next at /manifest.webmanifest. "/" is the public landing
+ * page, so `start_url` is "/?source=pwa": the proxy sends that launch to Hoje in the
+ * preferred locale. `id` stays "/" so installed apps keep their identity. The app is
+ * PT-first, so `lang` and `description` are PT.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -18,7 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Lifeathlete",
     description: "Cuida dos teus 10 pilares, um dia de cada vez.",
     lang: "pt",
-    start_url: "/",
+    start_url: PWA_START_URL,
     scope: "/",
     display: "standalone",
     theme_color: THEME_COLOR,

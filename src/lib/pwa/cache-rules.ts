@@ -33,6 +33,20 @@ export const WARM_MESSAGE = "WARM";
 export const LOCALES = ["pt", "en"] as const;
 const DEFAULT_LOCALE = "pt";
 
+/**
+ * The manifest start_url. "/" is the public landing page, so the installed app launches
+ * at "/?source=pwa", which the proxy redirects to Hoje (and the worker serves the stored
+ * Hoje for it offline).
+ */
+export const PWA_LAUNCH_PARAM = "source";
+export const PWA_LAUNCH_VALUE = "pwa";
+export const PWA_START_URL = `/?${PWA_LAUNCH_PARAM}=${PWA_LAUNCH_VALUE}`;
+
+/** Whether a request is the installed app's launch: exactly "/" with source=pwa. */
+export function isPwaLaunch(pathname: string, search: string): boolean {
+  return pathname === "/" && new URLSearchParams(search).get(PWA_LAUNCH_PARAM) === PWA_LAUNCH_VALUE;
+}
+
 export const OFFLINE_PAGES = LOCALES.map((l) => `/offline/${l}.html`);
 export const PRECACHE_URLS = [
   ...OFFLINE_PAGES,
@@ -156,16 +170,21 @@ function firstSupportedLocale(languages: (string | null | undefined)[]): string 
 }
 
 /**
- * For a launch at "/" or "/{locale}" (the manifest start_url, which redirects to Hoje when
- * online): the stored Hoje paths to try offline, in order. The locale comes from the URL,
- * then Accept-Language, then navigator.language, then pt; the other locale is the fallback.
- * Empty for any other path.
+ * For the installed app's launch ("/?source=pwa", the manifest start_url, which redirects
+ * to Hoje when online): the stored Hoje paths to try offline, in order. The locale comes
+ * from Accept-Language, then navigator.language, then pt; the other locale is the fallback.
+ * Empty for any other URL: a plain "/" or "/{locale}" is the public landing page, which
+ * offline gets the localized offline page like any other uncached page.
  */
-export function rootHojePaths(pathname: string, acceptLanguage: string | null | undefined, language: string | undefined): string[] {
-  const trimmed = pathname.replace(/\/+$/, "") || "/";
-  const urlLocale = trimmed === "/" ? null : localeOf(trimmed);
-  if (trimmed !== "/" && (urlLocale === null || trimmed !== `/${urlLocale}`)) return [];
-  const chosen = urlLocale ?? firstSupportedLocale([acceptLanguage, language]) ?? DEFAULT_LOCALE;
+export function rootHojePaths(url: string, acceptLanguage: string | null | undefined, language: string | undefined): string[] {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return [];
+  }
+  if (!isPwaLaunch(parsed.pathname, parsed.search)) return [];
+  const chosen = firstSupportedLocale([acceptLanguage, language]) ?? DEFAULT_LOCALE;
   const others = LOCALES.filter((l) => l !== chosen);
   return [chosen, ...others].map((l) => `/${l}/today`);
 }

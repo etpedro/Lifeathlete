@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { callbackRedirect, localeRedirect, pageRedirect, proxyRedirect, splitLocale } from "./access";
+import { callbackRedirect, launchRedirect, localeRedirect, pageRedirect, preferredLocale, proxyRedirect, splitLocale } from "./access";
 
 describe("splitLocale", () => {
   it.each([
@@ -19,7 +19,14 @@ describe("proxyRedirect", () => {
   it("sends unauthenticated users on protected routes to the login page of the same locale", () => {
     expect(proxyRedirect("/pt/today", false)).toBe("/pt/login");
     expect(proxyRedirect("/en/onboarding", false)).toBe("/en/login");
-    expect(proxyRedirect("/en", false)).toBe("/en/login");
+    expect(proxyRedirect("/pt/wheel", false)).toBe("/pt/login");
+    expect(proxyRedirect("/en/achievements", false)).toBe("/en/login");
+    expect(proxyRedirect("/pt/profile/habits", false)).toBe("/pt/login");
+  });
+
+  it("lets unauthenticated users stay on the landing page /{locale}", () => {
+    for (const path of ["/pt", "/en", "/pt/", "/en/"]) expect(proxyRedirect(path, false), path).toBeNull();
+    expect(proxyRedirect("/pt", true)).toBeNull();
   });
 
   it("lets unauthenticated users reach login and the auth callback", () => {
@@ -41,6 +48,39 @@ describe("proxyRedirect", () => {
   it("leaves paths without a locale to the i18n routing", () => {
     expect(proxyRedirect("/", false)).toBeNull();
     expect(proxyRedirect("/today", false)).toBeNull();
+  });
+});
+
+describe("preferredLocale", () => {
+  it("uses the NEXT_LOCALE cookie first", () => {
+    expect(preferredLocale("en", "pt-PT")).toBe("en");
+    expect(preferredLocale("pt", "en-US")).toBe("pt");
+  });
+  it("then Accept-Language by quality, ignoring unsupported tags", () => {
+    expect(preferredLocale(undefined, "en-GB,en;q=0.9")).toBe("en");
+    expect(preferredLocale(null, "de-DE,en;q=0.5,pt;q=0.8")).toBe("pt");
+    expect(preferredLocale("fr", "fr-FR,en;q=0.4")).toBe("en");
+    expect(preferredLocale(undefined, "pt;q=0,en;q=0.1")).toBe("en");
+  });
+  it("defaults to pt", () => {
+    expect(preferredLocale(undefined, undefined)).toBe("pt");
+    expect(preferredLocale(undefined, "de-DE,fr;q=0.9")).toBe("pt");
+    expect(preferredLocale("", "")).toBe("pt");
+  });
+});
+
+describe("launchRedirect (installed app start_url)", () => {
+  it("sends /?source=pwa to Today in the preferred locale", () => {
+    expect(launchRedirect("/", "?source=pwa", undefined, undefined)).toBe("/pt/today");
+    expect(launchRedirect("/", "?source=pwa", undefined, "en-US,en;q=0.9")).toBe("/en/today");
+    expect(launchRedirect("/", "?source=pwa", "en", "pt-PT")).toBe("/en/today");
+    expect(launchRedirect("/", "?utm=x&source=pwa", "pt", "en")).toBe("/pt/today");
+  });
+  it("leaves a plain / (the landing), other sources and other paths alone", () => {
+    expect(launchRedirect("/", "", undefined, "en")).toBeNull();
+    expect(launchRedirect("/", "?source=web", undefined, "en")).toBeNull();
+    expect(launchRedirect("/pt", "?source=pwa", undefined, "en")).toBeNull();
+    expect(launchRedirect("/pt/today", "?source=pwa", undefined, "en")).toBeNull();
   });
 });
 

@@ -34,6 +34,18 @@ const CLEAR_USER_CACHES_MESSAGE = "CLEAR_USER_CACHES";
 const WARM_MESSAGE = "WARM";
 const LOCALES = ["pt", "en"];
 const DEFAULT_LOCALE = "pt";
+/**
+ * The manifest start_url. "/" is the public landing page, so the installed app launches
+ * at "/?source=pwa", which the proxy redirects to Hoje (and the worker serves the stored
+ * Hoje for it offline).
+ */
+const PWA_LAUNCH_PARAM = "source";
+const PWA_LAUNCH_VALUE = "pwa";
+const PWA_START_URL = `/?${PWA_LAUNCH_PARAM}=${PWA_LAUNCH_VALUE}`;
+/** Whether a request is the installed app's launch: exactly "/" with source=pwa. */
+function isPwaLaunch(pathname, search) {
+    return pathname === "/" && new URLSearchParams(search).get(PWA_LAUNCH_PARAM) === PWA_LAUNCH_VALUE;
+}
 const OFFLINE_PAGES = LOCALES.map((l) => `/offline/${l}.html`);
 const PRECACHE_URLS = [
     ...OFFLINE_PAGES,
@@ -133,18 +145,24 @@ function firstSupportedLocale(languages) {
     return null;
 }
 /**
- * For a launch at "/" or "/{locale}" (the manifest start_url, which redirects to Hoje when
- * online): the stored Hoje paths to try offline, in order. The locale comes from the URL,
- * then Accept-Language, then navigator.language, then pt; the other locale is the fallback.
- * Empty for any other path.
+ * For the installed app's launch ("/?source=pwa", the manifest start_url, which redirects
+ * to Hoje when online): the stored Hoje paths to try offline, in order. The locale comes
+ * from Accept-Language, then navigator.language, then pt; the other locale is the fallback.
+ * Empty for any other URL: a plain "/" or "/{locale}" is the public landing page, which
+ * offline gets the localized offline page like any other uncached page.
  */
-function rootHojePaths(pathname, acceptLanguage, language) {
+function rootHojePaths(url, acceptLanguage, language) {
     var _a;
-    const trimmed = pathname.replace(/\/+$/, "") || "/";
-    const urlLocale = trimmed === "/" ? null : localeOf(trimmed);
-    if (trimmed !== "/" && (urlLocale === null || trimmed !== `/${urlLocale}`))
+    let parsed;
+    try {
+        parsed = new URL(url);
+    }
+    catch {
         return [];
-    const chosen = (_a = urlLocale !== null && urlLocale !== void 0 ? urlLocale : firstSupportedLocale([acceptLanguage, language])) !== null && _a !== void 0 ? _a : DEFAULT_LOCALE;
+    }
+    if (!isPwaLaunch(parsed.pathname, parsed.search))
+        return [];
+    const chosen = (_a = firstSupportedLocale([acceptLanguage, language])) !== null && _a !== void 0 ? _a : DEFAULT_LOCALE;
     const others = LOCALES.filter((l) => l !== chosen);
     return [chosen, ...others].map((l) => `/${l}/today`);
 }
@@ -244,14 +262,14 @@ function createWorker(deps) {
             maybeStore(url, res, waitUntil);
     }
     /**
-     * The stored page to use when the network is unavailable: the page's own entry, or for a
-     * launch at "/" or "/{locale}" (manifest start_url) the stored Hoje (never stored itself).
+     * The stored page to use when the network is unavailable: the page's own entry, or for the
+     * installed app's launch ("/?source=pwa", the manifest start_url) the stored Hoje.
      */
     async function storedFor(request) {
         const own = await freshPage(pageCacheKey(request.url));
         if (own)
             return own;
-        const candidates = rootHojePaths(new URL(request.url).pathname, request.headers.get("accept-language"), deps.language);
+        const candidates = rootHojePaths(request.url, request.headers.get("accept-language"), deps.language);
         for (const path of candidates) {
             const hoje = await freshPage(abs(path));
             if (hoje)

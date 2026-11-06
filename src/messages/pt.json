@@ -290,5 +290,21 @@
       "name": "Família e valores",
       "description": "Cuidar dos laços familiares e dos valores que nos guiam."
     }
+  },
+  "share": {
+    "button": "Partilhar a minha roda",
+    "working": "A preparar…",
+    "shared": "Partilhado!",
+    "downloaded": "Imagem guardada nas tuas transferências.",
+    "failed": "Não foi possível partilhar. Tenta novamente.",
+    "title": "Lifeathlete",
+    "text": "A minha Roda da Vida no Lifeathlete",
+    "card": {
+      "title": "A minha Roda da Vida",
+      "level": "Nível",
+      "streak": "Sequência",
+      "days": "dias",
+      "wheel": "Roda da Vida"
+    }
   }
 }

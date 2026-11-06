@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { AchievementsView } from "@/components/achievements/AchievementsView";
 import { isResting } from "@/components/mascot/resting";
-import { getAchievements, getProfileStats } from "@/lib/data/stats";
+import { getAchievements, getProfileStats, getWheel } from "@/lib/data/stats";
+import { getShareProps } from "@/lib/data/shareProps";
 import { DEFAULT_TIMEZONE, getProfileTimezone } from "@/lib/data/today";
 import { createClient } from "@/lib/supabase/server";
 import { todayIn } from "@/lib/today/dates";
@@ -22,10 +23,14 @@ export default async function AchievementsPage({ params }: { params: Promise<{ l
   if (!user) redirect(`/${locale}/login`); // the (app) layout already guards; defensive
 
   const timeZone = await getProfileTimezone(db, user.id).catch(() => DEFAULT_TIMEZONE);
-  const [stats, medals] = await Promise.all([
+  const [stats, medals, wheel] = await Promise.all([
     getProfileStats(db).catch(() => null),
     getAchievements(db, locale === "en" ? "en" : "pt").catch(() => null),
+    getWheel(db).catch(() => null),
   ]);
   const resting = stats ? isResting(stats.lastActiveDate, todayIn(timeZone)) : false;
-  return <AchievementsView stats={stats} medals={medals} resting={resting} timeZone={timeZone} />;
+  const share = stats
+    ? await getShareProps(locale, { level: stats.level, streak: stats.currentStreak, scores: wheel?.scores ?? {} })
+    : null;
+  return <AchievementsView stats={stats} medals={medals} resting={resting} timeZone={timeZone} share={share} />;
 }

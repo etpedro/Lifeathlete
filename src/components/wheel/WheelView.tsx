@@ -1,11 +1,12 @@
 import { useTranslations } from "next-intl";
+import { ShareButton, type ShareButtonProps } from "@/components/share/ShareButton";
 import type { Wheel } from "@/lib/data/stats";
 import { wheelCallouts } from "./geometry";
 import { RadarChart, type RadarEntry } from "./RadarChart";
 import styles from "./wheel.module.css";
 
 /** Presentational Wheel screen: chart, strongest/weakest callouts with a gentle suggestion, empty state. */
-export function WheelView({ wheel }: { wheel: Wheel | null }) {
+export function WheelView({ wheel, share }: { wheel: Wheel | null; share?: ShareButtonProps | null }) {
   const t = useTranslations("wheel");
   const slugs = Object.keys(wheel?.scores ?? {});
 
@@ -22,6 +23,7 @@ export function WheelView({ wheel }: { wheel: Wheel | null }) {
       ) : (
         <WheelContent wheel={wheel} slugs={slugs} />
       )}
+      {share && <ShareButton {...share} />}
     </main>
   );
 }

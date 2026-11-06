@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { WheelView } from "@/components/wheel/WheelView";
-import { getWheel } from "@/lib/data/stats";
+import { getProfileStats, getWheel } from "@/lib/data/stats";
+import { getShareProps } from "@/lib/data/shareProps";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -11,6 +12,10 @@ export default async function WheelPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params;
   setRequestLocale(locale);
   const db = await createClient();
-  const wheel = await getWheel(db).catch(() => null);
-  return <WheelView wheel={wheel} />;
+  const [wheel, stats] = await Promise.all([getWheel(db).catch(() => null), getProfileStats(db).catch(() => null)]);
+  const share =
+    wheel && stats
+      ? await getShareProps(locale, { level: stats.level, streak: stats.currentStreak, scores: wheel.scores })
+      : null;
+  return <WheelView wheel={wheel} share={share} />;
 }

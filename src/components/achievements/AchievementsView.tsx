@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { ShareButton, type ShareButtonProps } from "@/components/share/ShareButton";
 import { Mascot } from "@/components/mascot/Mascot";
 import type { AchievementItem, ProfileStats } from "@/lib/data/stats";
 import styles from "./achievements.module.css";
@@ -10,16 +11,19 @@ export type AchievementsViewProps = {
   medals: AchievementItem[] | null;
   resting: boolean;
   timeZone: string;
+  /** Props for the share button; omitted when there is nothing to share. */
+  share?: ShareButtonProps | null;
 };
 
 /** Presentational Achievements screen: level, XP, mascot, streaks and medals. */
-export function AchievementsView({ stats, medals, resting, timeZone }: AchievementsViewProps) {
+export function AchievementsView({ stats, medals, resting, timeZone, share }: AchievementsViewProps) {
   const t = useTranslations("achievements");
   return (
     <main className={styles.screen}>
       <h1>{t("title")}</h1>
       {stats ? <Hero stats={stats} resting={resting} /> : <p role="alert">{t("loadError")}</p>}
       {stats && <Streaks stats={stats} />}
+      {share && <ShareButton {...share} />}
       <section aria-labelledby="medals-heading">
         <h2 id="medals-heading">{t("medals")}</h2>
         {medals ? <MedalGrid items={medals} timeZone={timeZone} /> : <p role="alert">{t("loadError")}</p>}

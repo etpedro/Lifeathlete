@@ -290,5 +290,21 @@
       "name": "Family and values",
       "description": "Nurturing family bonds and the values that guide us."
     }
+  },
+  "share": {
+    "button": "Share my wheel",
+    "working": "Preparing…",
+    "shared": "Shared!",
+    "downloaded": "Image saved to your downloads.",
+    "failed": "Could not share. Please try again.",
+    "title": "Lifeathlete",
+    "text": "My Wheel of Life on Lifeathlete",
+    "card": {
+      "title": "My Wheel of Life",
+      "level": "Level",
+      "streak": "Streak",
+      "days": "days",
+      "wheel": "Wheel of Life"
+    }
   }
 }

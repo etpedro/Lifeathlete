@@ -143,14 +143,64 @@ describe("flushQueue", () => {
     expect(b).toEqual(a);
   });
 
+  it("a flush requested while a pass is running gets one more pass afterwards (no item left behind)", async () => {
+    const fake = setup();
+    const memory = createMemoryStore<QueueEntry>();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let sendStarted!: () => void;
+    const started = new Promise<void>((r) => (sendStarted = r));
+    let first = true;
+    const gated: KeyValueStore<QueueEntry> = {
+      ...memory,
+      async deleteIf(key, pred) {
+        if (first) {
+          first = false;
+          sendStarted();
+          await gate; // pass 1 is "in flight" here, after sending h1
+        }
+        return memory.deleteIf(key, pred);
+      },
+    };
+    await enqueueLog(item("h1"), gated);
+    const p1 = flushQueue(fake.db, TODAY, gated);
+    await started;
+    await enqueueLog(item("h2"), gated); // a tap while pass 1 runs
+    const p2 = flushQueue(fake.db, TODAY, gated);
+    const p3 = flushQueue(fake.db, TODAY, gated);
+    expect(p3).toBe(p2); // requests during a pass share ONE follow-up pass
+    release();
+    expect(await p1).toEqual({ sent: 1, dropped: 0, kept: 1 });
+    expect(await p2).toEqual({ sent: 1, dropped: 0, kept: 0 });
+    expect(fake.writes.map((w) => (w.payload as Row).user_habit_id)).toEqual(["h1", "h2"]);
+  });
+
   it("a value changed while its older version is being sent is kept for the next pass", async () => {
     const fake = setup();
-    const store = createMemoryStore<QueueEntry>();
-    await enqueueLog(item("h1", 1), store);
-    const flushing = flushQueue(fake.db, TODAY, store);
-    await enqueueLog(item("h1", 0), store); // user un-ticks while the tick is in flight
+    const memory = createMemoryStore<QueueEntry>();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let sent!: () => void;
+    const afterSend = new Promise<void>((r) => (sent = r));
+    let first = true;
+    const gated: KeyValueStore<QueueEntry> = {
+      ...memory,
+      async deleteIf(key, pred) {
+        if (first) {
+          first = false;
+          sent();
+          await gate;
+        }
+        return memory.deleteIf(key, pred);
+      },
+    };
+    await enqueueLog(item("h1", 1), gated);
+    const flushing = flushQueue(fake.db, TODAY, gated);
+    await afterSend; // the tick (value 1) has been sent, not yet removed
+    await enqueueLog(item("h1", 0), gated); // user un-ticks meanwhile
+    release();
     expect(await flushing).toEqual({ sent: 1, dropped: 0, kept: 1 });
-    expect(await flushQueue(fake.db, TODAY, store)).toEqual({ sent: 1, dropped: 0, kept: 0 });
+    expect(await flushQueue(fake.db, TODAY, gated)).toEqual({ sent: 1, dropped: 0, kept: 0 });
     expect(rowsOf(fake.tables.habit_logs)).toEqual([{ habit: "h1", date: TODAY, value: 0 }]);
   });
 

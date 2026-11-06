@@ -1,11 +1,39 @@
-import { getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
+import { setRequestLocale } from "next-intl/server";
+import { TodayView } from "@/components/today/TodayView";
+import {
+  DEFAULT_HEADER_STATS,
+  DEFAULT_TIMEZONE,
+  getHeaderStats,
+  getProfileTimezone,
+  getToday,
+  type HeaderStats,
+  type TodayData,
+} from "@/lib/data/today";
+import { createClient } from "@/lib/supabase/server";
+import { todayIn } from "@/lib/today/dates";
 
-// Placeholder; the Today screen is built in Task 9.
-export default async function TodayPage() {
-  const t = await getTranslations("today");
-  return (
-    <main>
-      <h1>{t("title")}</h1>
-    </main>
-  );
+/**
+ * Today (spec §5). Server side: the verified user, their timezone and "today" in it,
+ * then that day's habits and the header stats. Reading cookies (createClient) makes
+ * the page dynamic, so `next build` never touches Supabase.
+ */
+export default async function TodayPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const db = await createClient();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  if (!user) redirect(`/${locale}/login`); // the (app) layout already guards; defensive
+
+  const timezone = await getProfileTimezone(db, user.id).catch(() => DEFAULT_TIMEZONE);
+  const today = todayIn(timezone);
+  // A failed load is shown in the page (with a retry) instead of an error screen.
+  const [data, stats] = await Promise.all([
+    getToday(db, today).catch((): TodayData | null => null),
+    getHeaderStats(db).catch((): HeaderStats => DEFAULT_HEADER_STATS),
+  ]);
+
+  return <TodayView userId={user.id} timezone={timezone} today={today} initialData={data} initialStats={stats} />;
 }

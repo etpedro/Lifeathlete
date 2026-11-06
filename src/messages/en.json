@@ -69,7 +69,61 @@
     }
   },
   "today": {
-    "title": "Today"
+    "title": "Today",
+    "empty": "You have no active habits yet. Choose habits in your Profile to get started.",
+    "remaining": "{count, plural, =0 {Day complete!} one {Day complete: # habit to go} other {Day complete: # habits to go}}",
+    "days": {
+      "label": "Day to fill in",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "twoDaysAgo": "2 days ago"
+    },
+    "stats": {
+      "label": "Your progress",
+      "xp": "{xp} XP",
+      "level": "Level {level}",
+      "streak": "{count, plural, =0 {No streak} one {# day streak} other {# day streak}}"
+    },
+    "pillar": {
+      "progress": "{done} of {total}"
+    },
+    "habit": {
+      "done": "Done",
+      "notDone": "To do",
+      "progress": "{value} of {target}",
+      "progressNoTarget": "{value}",
+      "edit": "Log value: {title}",
+      "via": "via {provider}",
+      "pending": "Waiting to sync"
+    },
+    "picker": {
+      "label": "Value for {title}",
+      "decrease": "Decrease",
+      "increase": "Increase",
+      "fill": "Goal",
+      "confirm": "Confirm"
+    },
+    "toast": {
+      "xp": "+{xp} XP",
+      "levelUp": "You reached level {level}!",
+      "streak": "{count, plural, one {# day streak!} other {# day streak!}}",
+      "dismiss": "Dismiss"
+    },
+    "providers": {
+      "strava": "Strava",
+      "google_fit": "Google Fit",
+      "apple_health": "Apple Health",
+      "garmin": "Garmin",
+      "fitbit": "Fitbit",
+      "other": "a connected app"
+    },
+    "offline": "You are offline. Check-ins are saved and sent when you are back online.",
+    "errors": {
+      "load": "Could not load this day. Please try again.",
+      "save": "Could not save. Please try again.",
+      "outsideWindow": "You can only fill in today and the 2 previous days.",
+      "dropped": "{count, plural, one {# offline check-in could not be sent.} other {# offline check-ins could not be sent.}}"
+    }
   },
   "wheel": {
     "title": "Wheel of Life"

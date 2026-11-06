@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { DataError } from "./errors";
 import { createFakeDb, type Row } from "./testing/fake-db";
-import { getHeaderStats, getToday, LogValidationError, logHabit, MANUAL_SOURCE, NO_LOG_SOURCE } from "./today";
+import {
+  getHeaderStats,
+  getProfileTimezone,
+  getToday,
+  LogValidationError,
+  logHabit,
+  MANUAL_SOURCE,
+  NO_LOG_SOURCE,
+} from "./today";
 
 const USER = "user-1";
 const TODAY = "2026-11-06";
@@ -224,5 +232,16 @@ describe("getHeaderStats", () => {
     const fake = setup();
     fake.failNext("user_stats", "select");
     await expect(getHeaderStats(fake.db)).rejects.toBeInstanceOf(DataError);
+  });
+});
+
+describe("getProfileTimezone", () => {
+  it("reads the user's profile timezone", async () => {
+    const fake = setup({ profiles: [{ user_id: USER, timezone: "Europe/Lisbon" }, { user_id: "other", timezone: "Asia/Tokyo" }] });
+    expect(await getProfileTimezone(fake.db, USER)).toBe("Europe/Lisbon");
+  });
+
+  it("defaults to UTC without a profile", async () => {
+    expect(await getProfileTimezone(setup({ profiles: [] }).db, USER)).toBe("UTC");
   });
 });

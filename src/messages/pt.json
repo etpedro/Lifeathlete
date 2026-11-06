@@ -69,7 +69,61 @@
     }
   },
   "today": {
-    "title": "Hoje"
+    "title": "Hoje",
+    "empty": "Ainda não tens hábitos ativos. Escolhe hábitos no Perfil para começares.",
+    "remaining": "{count, plural, =0 {Dia completo!} one {Dia completo: falta # hábito} other {Dia completo: faltam # hábitos}}",
+    "days": {
+      "label": "Dia a preencher",
+      "today": "Hoje",
+      "yesterday": "Ontem",
+      "twoDaysAgo": "Há 2 dias"
+    },
+    "stats": {
+      "label": "O teu progresso",
+      "xp": "{xp} XP",
+      "level": "Nível {level}",
+      "streak": "{count, plural, =0 {Sem sequência} one {# dia seguido} other {# dias seguidos}}"
+    },
+    "pillar": {
+      "progress": "{done} de {total}"
+    },
+    "habit": {
+      "done": "Feito",
+      "notDone": "Por fazer",
+      "progress": "{value} de {target}",
+      "progressNoTarget": "{value}",
+      "edit": "Registar valor: {title}",
+      "via": "via {provider}",
+      "pending": "Por sincronizar"
+    },
+    "picker": {
+      "label": "Valor de {title}",
+      "decrease": "Diminuir",
+      "increase": "Aumentar",
+      "fill": "Meta",
+      "confirm": "Confirmar"
+    },
+    "toast": {
+      "xp": "+{xp} XP",
+      "levelUp": "Subiste para o nível {level}!",
+      "streak": "{count, plural, one {Sequência de # dia!} other {Sequência de # dias!}}",
+      "dismiss": "Fechar"
+    },
+    "providers": {
+      "strava": "Strava",
+      "google_fit": "Google Fit",
+      "apple_health": "Apple Saúde",
+      "garmin": "Garmin",
+      "fitbit": "Fitbit",
+      "other": "app ligada"
+    },
+    "offline": "Sem ligação. Os registos ficam guardados e são enviados quando voltares a estar online.",
+    "errors": {
+      "load": "Não foi possível carregar este dia. Tenta de novo.",
+      "save": "Não foi possível guardar. Tenta de novo.",
+      "outsideWindow": "Só podes preencher hoje e os 2 dias anteriores.",
+      "dropped": "{count, plural, one {# registo feito sem rede não pôde ser enviado.} other {# registos feitos sem rede não puderam ser enviados.}}"
+    }
   },
   "wheel": {
     "title": "Roda da Vida"

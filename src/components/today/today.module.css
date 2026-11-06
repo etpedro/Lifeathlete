@@ -1,0 +1,149 @@
+/* Today screen. Touch targets are at least 44px; focus is always visible. */
+.screen {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.target {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #c7ccd1;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.target:focus-visible,
+.input:focus-visible {
+  outline: 3px solid #1d6fd8;
+  outline-offset: 2px;
+}
+
+.target[aria-pressed="true"] {
+  background: #e3f4e8;
+  border-color: #2e8b57;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+}
+
+.days {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pillar {
+  border: 1px solid #e1e4e8;
+  border-radius: 0.75rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.pillarHeading {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.pillarToggle {
+  composes: target;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: none;
+  background: none;
+}
+
+.habits {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.5rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.habit {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.habitButton {
+  composes: target;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: start;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #57606a;
+}
+
+.pending {
+  color: #9a6700;
+}
+
+.bar {
+  width: 100%;
+  height: 0.5rem;
+}
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.input {
+  min-height: 44px;
+  width: 6rem;
+  font: inherit;
+  padding: 0 0.5rem;
+}
+
+.toast {
+  position: fixed;
+  inset-inline: 1rem;
+  bottom: 1rem;
+  margin: 0 auto;
+  max-width: 24rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: #1f2328;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.toast p {
+  margin: 0;
+}
+
+.notice {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: #fff8c5;
+}

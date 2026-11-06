@@ -1,4 +1,4 @@
-import { MANUAL_SOURCE, type TodayData, type TodayHabit } from "@/lib/data/today";
+import { MANUAL_SOURCE, type LogInput, type TodayData, type TodayHabit } from "@/lib/data/today";
 
 type ProgressHabit = Pick<TodayHabit, "kind" | "target" | "value">;
 
@@ -45,4 +45,24 @@ export function valueStep(target: number): number {
   if (target <= 100) return 5;
   if (target <= 1000) return 50;
   return 500;
+}
+
+/**
+ * Shows check-ins still waiting in the offline queue on top of the server data for `date`.
+ * Returns the ids of habits shown with a pending (not yet synced) value.
+ */
+export function overlayQueued(
+  data: TodayData,
+  queued: readonly Pick<LogInput, "userHabitId" | "date" | "value">[],
+  date: string,
+): { data: TodayData; pendingIds: Set<string> } {
+  const shown = new Set(data.pillars.flatMap((p) => p.habits.map((h) => h.id)));
+  const pendingIds = new Set<string>();
+  let out = data;
+  for (const q of queued) {
+    if (q.date !== date || !shown.has(q.userHabitId)) continue;
+    out = applyValue(out, q.userHabitId, q.value);
+    pendingIds.add(q.userHabitId);
+  }
+  return { data: out, pendingIds };
 }

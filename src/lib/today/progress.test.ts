@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TodayData, TodayHabit } from "@/lib/data/today";
-import { applyValue, habitProgress, isComplete, progressPercent, remainingCount, valueStep } from "./progress";
+import { applyValue, habitProgress, isComplete, overlayQueued, progressPercent, remainingCount, valueStep } from "./progress";
 
 const check = (value: number): TodayHabit => ({ id: "c", title: "C", kind: "check", target: 1, value, source: "manual" });
 const val = (value: number, target: number): TodayHabit => ({ id: "v", title: "V", kind: "value", target, value, source: "manual" });
@@ -78,5 +78,25 @@ describe("valueStep", () => {
     [500, 50],
   ])("target %d -> step %d", (target, step) => {
     expect(valueStep(target)).toBe(step);
+  });
+});
+
+describe("overlayQueued", () => {
+  const data: TodayData = {
+    pillars: [{ pillarId: "a", slug: "exercise", habits: [check(0), val(10, 30)] }],
+  };
+  const q = (userHabitId: string, date: string, value: number) => ({ userHabitId, userId: "u", date, value, seq: 1 });
+
+  it("shows queued (not yet synced) values of the displayed day and returns their habit ids", () => {
+    const { data: out, pendingIds } = overlayQueued(data, [q("c", "2026-11-06", 1), q("v", "2026-11-05", 30)], "2026-11-06");
+    expect(out.pillars[0].habits[0]).toMatchObject({ id: "c", value: 1, source: "manual" });
+    expect(out.pillars[0].habits[1].value).toBe(10);
+    expect([...pendingIds]).toEqual(["c"]);
+  });
+
+  it("ignores queued items for habits that are not shown (e.g. archived)", () => {
+    const { data: out, pendingIds } = overlayQueued(data, [q("gone", "2026-11-06", 1)], "2026-11-06");
+    expect(out).toEqual(data);
+    expect(pendingIds.size).toBe(0);
   });
 });

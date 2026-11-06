@@ -145,23 +145,35 @@ export function isTransientError(error: unknown): boolean {
   return true; // unknown: keep the user's data and try again later
 }
 
-const inFlight = new WeakMap<KeyValueStore<QueueEntry>, Promise<FlushResult>>();
+/** Per store: the end of the pass chain, and a pass that is queued but not started yet. */
+type FlushSlot = { tail: Promise<unknown>; waiting: Promise<FlushResult> | null };
+const slots = new WeakMap<KeyValueStore<QueueEntry>, FlushSlot>();
 
 /**
  * Replays the queue in insertion order through logHabit. Success removes the item;
  * a transient failure keeps it and ends the pass; a permanent failure drops it and
  * counts it in `dropped` so the UI can tell the user. An item is only removed if it
- * was not replaced while being sent. Concurrent calls share the running pass.
+ * was not replaced while being sent.
+ *
+ * Passes never overlap (no double send): calls made before a pass starts share it,
+ * and calls made while a pass runs share ONE follow-up pass, so an item queued
+ * during a pass is not left behind.
  */
 export function flushQueue(
   db: Db,
   today: string,
   store: KeyValueStore<QueueEntry> = defaultQueueStore(),
 ): Promise<FlushResult> {
-  const running = inFlight.get(store);
-  if (running) return running;
-  const pass = runFlush(db, today, store).finally(() => inFlight.delete(store));
-  inFlight.set(store, pass);
+  let slot = slots.get(store);
+  if (!slot) slots.set(store, (slot = { tail: Promise.resolve(), waiting: null }));
+  if (slot.waiting) return slot.waiting;
+  const s = slot;
+  const pass = s.tail.then(() => {
+    s.waiting = null; // started: later calls queue the next pass
+    return runFlush(db, today, store);
+  });
+  s.waiting = pass;
+  s.tail = pass.catch(() => undefined);
   return pass;
 }
 

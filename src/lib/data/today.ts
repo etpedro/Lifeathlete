@@ -162,3 +162,14 @@ export async function getHeaderStats(db: Db): Promise<HeaderStats> {
     currentStreak: num(row.current_streak, DEFAULT_HEADER_STATS.currentStreak),
   };
 }
+
+/** Fallback when the profile has no timezone (same as the profiles.timezone column default). */
+export const DEFAULT_TIMEZONE = "UTC";
+
+/** The user's IANA timezone from `profiles` (defines when their day starts). */
+export async function getProfileTimezone(db: Db, userId: string): Promise<string> {
+  const { data, error, status } = await db.from("profiles").select("timezone").eq("user_id", userId);
+  throwIfError(error, "load profile", status);
+  const row = ((data ?? []) as { timezone: string | null }[])[0];
+  return row?.timezone || DEFAULT_TIMEZONE;
+}

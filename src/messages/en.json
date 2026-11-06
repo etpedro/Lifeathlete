@@ -114,6 +114,7 @@
       "xp": "+{xp} XP",
       "levelUp": "You reached level {level}!",
       "streak": "{count, plural, one {# day streak!} other {# day streak!}}",
+      "achievement": "Achievement unlocked: {title}!",
       "dismiss": "Dismiss"
     },
     "providers": {

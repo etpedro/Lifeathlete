@@ -7,7 +7,7 @@ export const TOAST_MS = 4000;
 
 type Props = { feedback: StatsFeedback; onDismiss: () => void };
 
-/** "+N XP" with level-up / new-streak notices; announced politely and dismissed after a few seconds. */
+/** "+N XP" with level-up / new-streak / achievement notices; announced politely and dismissed after a few seconds. */
 export function XpToast({ feedback, onDismiss }: Props) {
   const t = useTranslations("today.toast");
   useEffect(() => {
@@ -21,6 +21,9 @@ export function XpToast({ feedback, onDismiss }: Props) {
         {feedback.xpGained !== null && <p>{t("xp", { xp: feedback.xpGained })}</p>}
         {feedback.levelUp !== null && <p>{t("levelUp", { level: feedback.levelUp })}</p>}
         {feedback.streak !== null && <p>{t("streak", { count: feedback.streak })}</p>}
+        {feedback.achievements?.map((title) => (
+          <p key={title}>{t("achievement", { title })}</p>
+        ))}
       </div>
       <button type="button" className={styles.target} onClick={onDismiss}>
         {t("dismiss")}

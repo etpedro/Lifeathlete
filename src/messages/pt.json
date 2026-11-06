@@ -114,6 +114,7 @@
       "xp": "+{xp} XP",
       "levelUp": "Subiste para o nível {level}!",
       "streak": "{count, plural, one {Sequência de # dia!} other {Sequência de # dias!}}",
+      "achievement": "Conquista desbloqueada: {title}!",
       "dismiss": "Fechar"
     },
     "providers": {

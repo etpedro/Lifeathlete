@@ -1,7 +1,9 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createDefaultRecalcScheduler } from "@/lib/data/recalc";
+import { getAchievements } from "@/lib/data/stats";
 import {
   getHeaderStats,
   getToday,
@@ -17,7 +19,14 @@ import { enqueueLog, flushQueue, listQueued } from "@/lib/offline/queue";
 import { createClient } from "@/lib/supabase/client";
 import type { Db } from "@/lib/supabase/types";
 import { reanchorDay, shiftDate, todayIn } from "@/lib/today/dates";
-import { hasFeedback, statsFeedback, type StatsFeedback } from "@/lib/today/feedback";
+import {
+  createAchievementWatcher,
+  hasFeedback,
+  statsFeedback,
+  withAchievements,
+  type AchievementWatcher,
+  type StatsFeedback,
+} from "@/lib/today/feedback";
 import { applyValue, overlayQueued } from "@/lib/today/progress";
 import { createStatsRefresher, type StatsRefresher } from "@/lib/today/stats-refresh";
 
@@ -54,6 +63,7 @@ const assumeOnline = () => true;
  */
 export function useTodayController({ userId, timezone, today, initialData, initialStats }: TodayControllerProps) {
   const online = useSyncExternalStore(subscribeOnline, isOnline, assumeOnline);
+  const locale = useLocale() === "en" ? "en" : "pt";
   const [view, setView] = useState<View>({ date: today, data: initialData, pendingIds: new Set() });
   const [currentToday, setCurrentToday] = useState(today);
   const [stats, setStats] = useState(initialStats);
@@ -64,12 +74,17 @@ export function useTodayController({ userId, timezone, today, initialData, initi
 
   const dbRef = useRef<Db | null>(null);
   const refresherRef = useRef<StatsRefresher | null>(null);
+  const achievementsRef = useRef<AchievementWatcher | null>(null);
   const statsRef = useRef(initialStats);
   const dateRef = useRef(today);
   const todayRef = useRef(today);
   const directWrites = useRef<Promise<void>>(Promise.resolve());
 
   const db = useCallback(() => (dbRef.current ??= createClient()), []);
+  const achievements = useCallback(
+    () => (achievementsRef.current ??= createAchievementWatcher(() => getAchievements(db(), locale))),
+    [db, locale],
+  );
 
   /** Debounced recalculation (with retry) + fresh header stats; one per mount (see the unmount flush). */
   const refresher = useCallback(
@@ -84,10 +99,17 @@ export function useTodayController({ userId, timezone, today, initialData, initi
           setStats(next);
           setStatsFailed(false);
           if (hasFeedback(change)) setFeedback(change);
+          // Achievement unlocks join the same toast (localized titles from the data layer).
+          achievements()
+            .check()
+            .then((unlocked) => {
+              if (unlocked.length > 0) setFeedback((f) => withAchievements(f, unlocked.map((a) => a.title)));
+            })
+            .catch(() => undefined); // only the notice is lost; the medal shows on Conquistas
         },
         onFailed: () => setStatsFailed(true),
       })),
-    [db],
+    [db, achievements],
   );
 
   /** Re-reads a day from the server and shows still-queued values on top. */
@@ -157,12 +179,13 @@ export function useTodayController({ userId, timezone, today, initialData, initi
   // Stats computed for an earlier day (e.g. back after 5 days: the streak shown is old) are
   // recalculated on mount and when coming back; leaving Hoje runs a pending recalculation.
   useEffect(() => {
+    achievements().prime(); // what was already unlocked is never announced
     refresher().ensureFresh(todayRef.current);
     return () => {
       void refresherRef.current?.dispose();
       refresherRef.current = null;
     };
-  }, [refresher]);
+  }, [refresher, achievements]);
 
   // Coming back to the app (e.g. the next morning): re-check which day "today" is.
   useEffect(() => {

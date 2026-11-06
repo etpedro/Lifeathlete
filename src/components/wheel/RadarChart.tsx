@@ -68,7 +68,7 @@ export function RadarChart({ entries, labels }: { entries: RadarEntry[]; labels:
   const n = entries.length;
   const scores = entries.map((e) => clampScore(e.score));
   return (
-    <div>
+    <div className={styles.chartCard}>
       <svg className={styles.chart} viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label={labels.ariaLabel}>
         {RINGS.map((ring) => (
           <polygon

@@ -9,6 +9,7 @@ import {
   type Selection,
 } from "@/lib/onboarding/selection";
 import { PillarChoice } from "./PillarChoice";
+import styles from "./onboarding.module.css";
 
 type Props = {
   catalog: CatalogPillar[] | null;
@@ -26,21 +27,28 @@ export function ChoosePillarsStep({ catalog, failed, onRetry, selection, onChang
 
   if (failed) {
     return (
-      <section>
-        <p role="alert">{tCommon("errors.loadCatalog")}</p>
+      <section className={styles.section}>
+        <p role="alert" className={styles.alert}>
+          {tCommon("errors.loadCatalog")}
+        </p>
         <button type="button" onClick={onRetry}>
           {tCommon("errors.retry")}
         </button>
       </section>
     );
   }
-  if (!catalog) return <p role="status">{tCommon("loading")}</p>;
+  if (!catalog)
+    return (
+      <p role="status" className={styles.status}>
+        {tCommon("loading")}
+      </p>
+    );
 
   const count = selectedTemplateIds(catalog, selection).length;
   return (
-    <section>
-      <p>{t("description")}</p>
-      <ul>
+    <section className={styles.section}>
+      <p className={styles.muted}>{t("description")}</p>
+      <ul className={styles.list}>
         {catalog.map((pillar) => (
           <PillarChoice
             key={pillar.id}
@@ -52,7 +60,9 @@ export function ChoosePillarsStep({ catalog, failed, onRetry, selection, onChang
           />
         ))}
       </ul>
-      <p role="status">{selection.pillars.length === 0 ? t("none") : t("selected", { count })}</p>
+      <p role="status" className={styles.status}>
+        {selection.pillars.length === 0 ? t("none") : t("selected", { count })}
+      </p>
     </section>
   );
 }

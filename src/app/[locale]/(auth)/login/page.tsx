@@ -3,6 +3,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { Link } from "@/i18n/navigation";
 import { guardArea } from "@/lib/auth/guard";
+import ui from "@/components/ui/ui.module.css";
 
 export default async function LoginPage({
   params,
@@ -17,16 +18,20 @@ export default async function LoginPage({
   const tErrors = await getTranslations("common.errors");
 
   return (
-    <main>
-      <h1>{t("title")}</h1>
-      <p>{t("subtitle")}</p>
+    <main className={ui.auth}>
+      <header className={ui.field}>
+        <h1>{t("title")}</h1>
+        <p className={ui.lead}>{t("subtitle")}</p>
+      </header>
       {error === "oauth" && <p role="alert">{tErrors("oauth")}</p>}
       <LoginForm />
-      <p>
+      <p className={ui.links}>
         <Link href="/auth/forgot-password">{t("forgot")}</Link>
       </p>
-      <p>{t("or")}</p>
-      <OAuthButtons />
+      <p className={ui.divider}>{t("or")}</p>
+      <div className={ui.stack}>
+        <OAuthButtons />
+      </div>
     </main>
   );
 }

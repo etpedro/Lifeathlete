@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { routing } from "@/i18n/routing";
 import { usePathname, useRouter } from "@/i18n/navigation";
+import styles from "./onboarding.module.css";
 
 type Props = { timezone: string; timezoneValid: boolean; onTimezoneChange: (value: string) => void };
 
@@ -15,12 +16,12 @@ export function LanguageStep({ timezone, timezoneValid, onTimezoneChange }: Prop
   const pathname = usePathname();
 
   return (
-    <section>
-      <p>{t("description")}</p>
-      <fieldset>
+    <section className={styles.section}>
+      <p className={styles.muted}>{t("description")}</p>
+      <fieldset className={styles.fieldset}>
         <legend>{t("title")}</legend>
         {routing.locales.map((l) => (
-          <label key={l}>
+          <label key={l} className={styles.choice}>
             <input
               type="radio"
               name="locale"
@@ -32,11 +33,11 @@ export function LanguageStep({ timezone, timezoneValid, onTimezoneChange }: Prop
           </label>
         ))}
       </fieldset>
-      <label>
+      <label className={styles.field}>
         {t("timezone")}
         <input value={timezone} onChange={(e) => onTimezoneChange(e.target.value)} aria-invalid={!timezoneValid} />
       </label>
-      <p>{timezoneValid ? t("timezoneHint") : t("invalidTimezone")}</p>
+      <p className={timezoneValid ? styles.muted : styles.hintError}>{timezoneValid ? t("timezoneHint") : t("invalidTimezone")}</p>
     </section>
   );
 }

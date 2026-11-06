@@ -1,0 +1,131 @@
+/*
+ * Auth pages (login, forgot / reset password). Their form components' HTML is asserted by
+ * tests, so they are styled through the page's `.auth` wrapper with descendant selectors
+ * and their markup stays exactly as it was. Built on src/styles/tokens.css.
+ */
+.auth {
+  width: 100%;
+  max-width: calc(var(--layout-narrow) + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: var(--space-10) var(--gutter) calc(var(--space-10) + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.lead {
+  color: var(--color-text-muted);
+}
+
+.auth form,
+.stack,
+.stack > div {
+  display: grid;
+  gap: var(--space-3);
+}
+/* Flex (not grid), so the negative margin below really cancels an empty region's gap. */
+.auth form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Empty live regions stay rendered (so announcements work) but cancel their gap. */
+.auth form > [role]:empty {
+  margin-top: calc(-1 * var(--space-4));
+}
+
+.auth label {
+  display: grid;
+  gap: var(--space-2);
+  font-weight: var(--weight-medium);
+}
+.auth input {
+  width: 100%;
+  font-weight: var(--weight-regular);
+}
+
+/* Buttons: full width. Submit = primary, the in-form switch = ghost, the rest (OAuth) = secondary. */
+.auth button {
+  width: 100%;
+  font-weight: var(--weight-medium);
+}
+.auth button[type="submit"] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.auth button[type="submit"]:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+.auth form button[type="button"] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-primary);
+}
+.auth form button[type="button"]:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+/* Messages styled by role. */
+.auth [role="alert"],
+.auth [role="status"] {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid;
+  border-inline-start-width: 4px;
+}
+.auth [role="alert"] {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
+.auth [role="status"] {
+  background: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+}
+
+.auth [role="alert"]:empty,
+.auth [role="status"]:empty {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Field hints (e.g. the new-password rules) under their input. */
+.auth form p:not([role]) {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.links {
+  display: grid;
+  justify-items: center;
+}
+.links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+}
+
+/* The "or" between the form and the OAuth buttons. */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: var(--border-width) solid var(--color-border);
+}

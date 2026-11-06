@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { isHabitChecked, type CatalogPillar, type Selection } from "@/lib/onboarding/selection";
+import styles from "./onboarding.module.css";
 
 type Props = {
   pillar: CatalogPillar;
@@ -15,16 +16,16 @@ export function PillarChoice({ pillar, locale, selection, onTogglePillar, onTogg
   const tPillars = useTranslations("pillars");
   const active = selection.pillars.includes(pillar.id);
   return (
-    <li>
-      <label>
+    <li className={styles.pillar}>
+      <label className={styles.choice}>
         <input type="checkbox" checked={active} onChange={onTogglePillar} />
         {tPillars(`${pillar.slug}.name`)}
       </label>
       {active && (
-        <fieldset>
+        <fieldset className={styles.fieldset}>
           <legend>{t("habits")}</legend>
           {pillar.templates.map((tpl) => (
-            <label key={tpl.id}>
+            <label key={tpl.id} className={styles.choice}>
               <input
                 type="checkbox"
                 checked={isHabitChecked(selection, pillar.id, tpl.id)}

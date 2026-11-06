@@ -14,7 +14,9 @@ export function WheelView({ wheel, share }: { wheel: Wheel | null; share?: Share
     <main className={styles.screen}>
       <h1>{t("title")}</h1>
       {wheel === null ? (
-        <p role="alert">{t("loadError")}</p>
+        <p role="alert" className={styles.alert}>
+          {t("loadError")}
+        </p>
       ) : slugs.length === 0 ? (
         <section className={styles.empty}>
           <p>{t("empty")}</p>
@@ -64,7 +66,7 @@ function WheelContent({ wheel, slugs }: { wheel: Wheel; slugs: string[] }) {
         </section>
       )}
       {callouts.weakest && (
-        <section className={styles.callout} aria-labelledby="wheel-weakest">
+        <section className={`${styles.callout} ${styles.calloutWeak}`} aria-labelledby="wheel-weakest">
           <h2 id="wheel-weakest">{t("weakest.title")}</h2>
           <p>
             {t("weakest.body", {
@@ -72,7 +74,7 @@ function WheelContent({ wheel, slugs }: { wheel: Wheel; slugs: string[] }) {
               value: Math.round(callouts.weakest.score),
             })}
           </p>
-          <p>{t(`suggestion.${callouts.weakest.slug}`)}</p>
+          <p className={styles.suggestion}>{t(`suggestion.${callouts.weakest.slug}`)}</p>
         </section>
       )}
     </>

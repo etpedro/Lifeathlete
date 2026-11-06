@@ -21,12 +21,24 @@ export function AchievementsView({ stats, medals, resting, timeZone, share }: Ac
   return (
     <main className={styles.screen}>
       <h1>{t("title")}</h1>
-      {stats ? <Hero stats={stats} resting={resting} /> : <p role="alert">{t("loadError")}</p>}
+      {stats ? (
+        <Hero stats={stats} resting={resting} />
+      ) : (
+        <p role="alert" className={styles.alert}>
+          {t("loadError")}
+        </p>
+      )}
       {stats && <Streaks stats={stats} />}
       {share && <ShareButton {...share} />}
-      <section aria-labelledby="medals-heading">
+      <section aria-labelledby="medals-heading" className={styles.medalsSection}>
         <h2 id="medals-heading">{t("medals")}</h2>
-        {medals ? <MedalGrid items={medals} timeZone={timeZone} /> : <p role="alert">{t("loadError")}</p>}
+        {medals ? (
+          <MedalGrid items={medals} timeZone={timeZone} />
+        ) : (
+          <p role="alert" className={styles.alert}>
+            {t("loadError")}
+          </p>
+        )}
       </section>
     </main>
   );

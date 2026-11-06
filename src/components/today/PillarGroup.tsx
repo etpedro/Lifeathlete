@@ -31,7 +31,7 @@ export function PillarGroup({ pillar, pendingIds, onSetValue }: Props) {
           onClick={() => setOpen((o) => !o)}
         >
           <span>{name}</span>
-          <span>{t("progress", { done, total: pillar.habits.length })}</span>
+          <span className={styles.pillarCount}>{t("progress", { done, total: pillar.habits.length })}</span>
         </button>
       </h2>
       <ul id={listId} className={styles.habits} hidden={!open}>

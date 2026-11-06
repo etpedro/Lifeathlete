@@ -26,8 +26,8 @@ export function MedalGrid({ items, timeZone }: { items: AchievementItem[]; timeZ
         return (
           <li key={a.code} className={`${styles.medal} ${unlocked ? styles.medalUnlocked : styles.medalLocked}`} data-unlocked={unlocked}>
             <svg className={styles.medalIcon} viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-              <circle cx="20" cy="22" r="13" fill={unlocked ? "#F5B700" : "none"} stroke={unlocked ? "#B98900" : "#8a949e"} strokeWidth="2" strokeDasharray={unlocked ? undefined : "4 3"} />
-              {unlocked ? <path d="M13 22l5 5 9-10" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /> : <path d="M16 20v-3a4 4 0 018 0v3M15 20h10v8H15z" stroke="#8a949e" strokeWidth="2" fill="none" strokeLinejoin="round" />}
+              <circle className={unlocked ? styles.discUnlocked : styles.discLocked} cx="20" cy="22" r="13" strokeWidth="2" strokeDasharray={unlocked ? undefined : "4 3"} />
+              {unlocked ? <path className={styles.check} d="M13 22l5 5 9-10" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /> : <path className={styles.lock} d="M16 20v-3a4 4 0 018 0v3M15 20h10v8H15z" strokeWidth="2" fill="none" strokeLinejoin="round" />}
             </svg>
             <h3>{a.title}</h3>
             {a.description && <p>{a.description}</p>}

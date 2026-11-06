@@ -30,7 +30,7 @@ export function HabitManager({ userId, timezone, initial, pillarOptions }: Props
         {t("habits.back")}
       </Link>
       <h1>{t("habits.title")}</h1>
-      <p>{t("habits.intro")}</p>
+      <p className={styles.intro}>{t("habits.intro")}</p>
 
       <p role="status" className={styles.status}>
         {m.status ? t(m.status) : ""}

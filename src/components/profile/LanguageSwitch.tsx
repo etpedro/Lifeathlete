@@ -25,10 +25,10 @@ export function LanguageSwitchView({
 }) {
   const working = status === "working";
   return (
-    <fieldset className={styles.field} aria-busy={working} disabled={working}>
+    <fieldset className={`${styles.field} ${styles.card}`} aria-busy={working} disabled={working}>
       <legend>{labels.title}</legend>
       {routing.locales.map((l) => (
-        <label key={l}>
+        <label key={l} className={styles.radioLabel}>
           <input
             type="radio"
             className={styles.radio}

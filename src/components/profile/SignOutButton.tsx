@@ -20,7 +20,7 @@ export function SignOutButtonView({
   const working = status === "working";
   return (
     <div className={styles.field}>
-      <button type="button" className={`${styles.button} ${styles.danger}`} onClick={onSignOut} aria-busy={working} disabled={working}>
+      <button type="button" className={`${styles.button} ${styles.danger} ${styles.block}`} onClick={onSignOut} aria-busy={working} disabled={working}>
         {working ? t("working") : t("button")}
       </button>
       <p role="alert" className={styles.error}>

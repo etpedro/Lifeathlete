@@ -127,7 +127,7 @@ export function AddHabitForm({ pillars, busy, onCreate }: Props) {
           {t(formError)}
         </p>
       )}
-      <button type="submit" className={styles.button} disabled={busy}>
+      <button type="submit" className={`${styles.button} ${styles.primary} ${styles.block}`} disabled={busy}>
         {t("add.submit")}
       </button>
     </form>

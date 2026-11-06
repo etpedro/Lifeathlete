@@ -61,7 +61,7 @@ export function TodayView(props: TodayControllerProps) {
         <p>{t("empty")}</p>
       ) : (
         <>
-          <p aria-live="polite">{t("remaining", { count: remainingCount(c.data) })}</p>
+          <p aria-live="polite" className={styles.remaining}>{t("remaining", { count: remainingCount(c.data) })}</p>
           {c.data.pillars.map((p) => (
             <PillarGroup key={p.pillarId} pillar={p} pendingIds={c.pendingIds} onSetValue={c.setValue} />
           ))}

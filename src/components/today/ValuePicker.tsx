@@ -62,7 +62,7 @@ export function ValuePicker({ title, value, target, onConfirm, onCancel }: Props
       )}
       <button
         type="button"
-        className={styles.target}
+        className={`${styles.target} ${styles.primaryTarget}`}
         disabled={current === null}
         onClick={() => current !== null && onConfirm(current)}
       >

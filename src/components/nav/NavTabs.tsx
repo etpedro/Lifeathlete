@@ -21,19 +21,16 @@ export function NavTabs({ pathname }: { pathname: string }) {
     <>
       <div className={styles.spacer} aria-hidden="true" />
       <nav className={styles.nav} aria-label={t("label")}>
-        {TABS.map((tab) => {
-          const active = isActiveTab(pathname, tab.href);
-          return (
-            <Link
-              key={tab.key}
-              href={tab.href}
-              className={`${styles.tab} ${active ? styles.active : ""}`}
-              aria-current={active ? "page" : undefined}
-            >
-              {t(tab.key)}
-            </Link>
-          );
-        })}
+        <div className={styles.tabs}>
+          {TABS.map((tab) => {
+            const active = isActiveTab(pathname, tab.href);
+            return (
+              <Link key={tab.key} href={tab.href} className={styles.tab} aria-current={active ? "page" : undefined}>
+                {t(tab.key)}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </>
   );

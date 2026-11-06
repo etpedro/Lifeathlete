@@ -12,6 +12,7 @@ import { StepNav } from "./StepNav";
 import { useCatalog } from "./useCatalog";
 import { useFinishOnboarding } from "./useFinishOnboarding";
 import { useTimezone } from "./useTimezone";
+import styles from "./onboarding.module.css";
 
 // Spec §5 steps; "connect providers" is omitted in this phase.
 const STEPS = ["language", "intro", "choose", "dragonfly"] as const;
@@ -31,7 +32,7 @@ export function OnboardingFlow() {
   const next = () => setIndex(index + 1);
 
   return (
-    <main>
+    <main className={styles.screen}>
       <StepHeader current={index + 1} total={STEPS.length} title={t(`${step}.title`)} />
       {step === "language" && <LanguageStep timezone={timezone} timezoneValid={valid} onTimezoneChange={setTimezone} />}
       {step === "intro" && <PillarsIntroStep />}

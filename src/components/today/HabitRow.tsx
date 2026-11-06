@@ -45,7 +45,9 @@ export function HabitRow({ habit, pending, onSetValue }: Props) {
           onClick={() => onSetValue(habit, done ? 0 : 1)}
         >
           <span>{habit.title}</span>
-          <span aria-hidden="true">{done ? t("done") : t("notDone")}</span>
+          <span aria-hidden="true" className={styles.state}>
+            {done ? t("done") : t("notDone")}
+          </span>
         </button>
         {meta}
       </li>
@@ -59,14 +61,14 @@ export function HabitRow({ habit, pending, onSetValue }: Props) {
     <li className={styles.habit}>
       <button
         type="button"
-        className={styles.habitButton}
+        className={`${styles.habitButton} ${done ? styles.habitDone : ""}`}
         aria-label={t("edit", { title: habit.title })}
         aria-expanded={picking}
         aria-describedby={metaId}
         onClick={() => setPicking((open) => !open)}
       >
         <span>{habit.title}</span>
-        <span>{progressText}</span>
+        <span className={styles.value}>{progressText}</span>
       </button>
       <progress className={styles.bar} max={100} value={percent} aria-label={progressText} />
       {meta}

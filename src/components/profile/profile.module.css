@@ -1,66 +1,97 @@
-/* Profile / habit management. Touch targets are at least 44px; focus is always visible. */
+/* Profile / habit management. Touch targets are at least 44px; focus uses the global ring. */
 .screen {
-  max-width: 40rem;
+  width: 100%;
+  max-width: calc(var(--layout-content) + 2 * var(--gutter));
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--space-6) var(--gutter) var(--space-4);
   display: grid;
-  gap: 1rem;
+  gap: var(--space-5);
+  align-content: start;
 }
 
-.button,
+.intro {
+  color: var(--color-text-muted);
+}
+
+/* Neutral button (base look from base.css). */
+.button {
+  font-weight: var(--weight-medium);
+}
+
+.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.block {
+  width: 100%;
+}
+
 .input,
 .select {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid #c7ccd1;
-  background: #fff;
-  color: inherit;
-  font: inherit;
-}
-
-.button {
-  cursor: pointer;
-}
-
-.button:focus-visible,
-.input:focus-visible,
-.select:focus-visible,
-.link:focus-visible,
-.radio:focus-visible,
-.switch:focus-visible {
-  outline: 3px solid #1d6fd8;
-  outline-offset: 2px;
+  width: 100%;
 }
 
 .danger {
-  border-color: #b3261e;
-  color: #b3261e;
+  background: transparent;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+.danger:hover:not(:disabled) {
+  background: var(--color-danger-soft);
 }
 
 .link {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  color: #1d6fd8;
+  min-height: var(--touch-target);
+  color: var(--color-primary);
 }
 
 .linkList {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.linkList .link {
+  width: 100%;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+}
+.linkList .link::after {
+  content: "›" / "";
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+.linkList .link:hover {
+  background: var(--color-surface-hover);
 }
 
+.card,
 .pillar {
-  border: 1px solid #e1e4e8;
-  border-radius: 0.75rem;
-  padding: 0.25rem 0.75rem 0.75rem;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
 }
 
 .pillarHeading {
-  font-size: 1.05rem;
-  margin: 0.5rem 0;
+  font-size: var(--text-lg);
+  margin: 0 0 var(--space-3);
 }
 
 .habits {
@@ -68,16 +99,15 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-4);
 }
 
 .habit {
   display: grid;
-  gap: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #eef0f2;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
 }
-
 .habit:first-child {
   border-top: none;
   padding-top: 0;
@@ -87,7 +117,12 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2) var(--space-3);
+}
+.row > .input {
+  flex: 1 1 6rem;
+  width: auto;
+  min-width: 0;
 }
 
 .grow {
@@ -95,50 +130,83 @@
 }
 
 .switch {
-  composes: button;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
 }
-
+.switch::before {
+  content: "";
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-strong);
+}
 .switch[aria-checked="true"] {
-  background: #e3f4e8;
-  border-color: #2e8b57;
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+.switch[aria-checked="true"]::before {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .badge {
-  font-size: 0.8rem;
-  color: #57606a;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
-.paused {
-  opacity: 0.8;
+.paused > .row:first-child strong {
+  color: var(--color-text-muted);
 }
 
 .form {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+.form h2 {
+  font-size: var(--text-lg);
 }
 
 .field {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-2);
+}
+.field > label,
+.field > legend {
+  font-weight: var(--weight-medium);
+}
+.field > legend {
+  margin-bottom: var(--space-2);
 }
 
 .fieldset {
   border: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  display: grid;
+  gap: var(--space-2);
 }
 
 .radioLabel {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  min-height: 44px;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  border: var(--border-width) solid var(--color-border);
+}
+.radioLabel:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .radio {
@@ -148,10 +216,25 @@
 
 .error {
   margin: 0;
-  color: #b3261e;
+  color: var(--color-danger);
+  font-size: var(--text-sm);
 }
 
 .status {
   margin: 0;
-  color: #1e6b3f;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+.status:not(:empty) {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-secondary-soft);
+  border: var(--border-width) solid var(--color-secondary);
+}
+
+/* A fieldset card: float the legend so it sits inside the card, not on its border. */
+.card > legend {
+  float: left;
+  width: 100%;
+  margin-bottom: var(--space-1);
 }

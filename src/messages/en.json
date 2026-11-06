@@ -49,7 +49,8 @@
       "google": "Continue with Google",
       "apple": "Continue with Apple",
       "checkEmail": "We sent you an email. Open the link to confirm your account.",
-      "submitting": "Sending…"
+      "submitting": "Sending…",
+      "forgot": "Forgot your password?"
     },
     "language": {
       "title": "Choose your language",
@@ -73,6 +74,42 @@
       "title": "Meet the dragonfly",
       "description": "This is your mascot. It grows with you as you keep your habits. Let's do your first check-in!",
       "saving": "Saving…"
+    }
+  },
+  "passwordReset": {
+    "forgot": {
+      "title": "Reset your password",
+      "intro": "Enter your account email. We'll send you a link to set a new password.",
+      "email": "Email",
+      "submit": "Send link",
+      "submitting": "Sending…",
+      "sent": "If an account exists for this email, we've sent a link to set a new password. Open it on this device and browser.",
+      "expired": "The link has expired or was already used. Request a new one.",
+      "back": "Back to sign in"
+    },
+    "update": {
+      "title": "Set a new password",
+      "password": "New password",
+      "confirm": "Confirm the new password",
+      "hint": "Between 8 and 72 characters.",
+      "submit": "Save password",
+      "submitting": "Saving…",
+      "success": "Password updated. Opening Today…",
+      "continue": "Go to Today",
+      "noSession": "The link has expired or was already used. Request a new one to set your password.",
+      "requestNew": "Request a new link"
+    },
+    "errors": {
+      "tooShort": "The password must have at least 8 characters.",
+      "tooLong": "The password can have at most 72 characters.",
+      "mismatch": "The passwords don't match.",
+      "same": "The new password must be different from the current one.",
+      "weak": "This password is too weak. Choose another one.",
+      "expired": "The link has expired or was already used. Request a new one.",
+      "rateLimited": "Too many attempts. Wait a moment and try again.",
+      "invalidEmail": "Check the email.",
+      "network": "No connection. Check the network and try again.",
+      "generic": "Something went wrong. Please try again."
     }
   },
   "today": {

@@ -49,7 +49,8 @@
       "google": "Continuar com Google",
       "apple": "Continuar com Apple",
       "checkEmail": "Enviámos-te um email. Abre o link para confirmar a conta.",
-      "submitting": "A enviar…"
+      "submitting": "A enviar…",
+      "forgot": "Esqueceste-te da palavra-passe?"
     },
     "language": {
       "title": "Escolhe o idioma",
@@ -73,6 +74,42 @@
       "title": "Conhece a libelinha",
       "description": "Esta é a tua mascote. Cresce contigo à medida que cumpres os teus hábitos. Vamos ao primeiro check-in!",
       "saving": "A guardar…"
+    }
+  },
+  "passwordReset": {
+    "forgot": {
+      "title": "Recuperar a palavra-passe",
+      "intro": "Indica o email da tua conta. Enviamos-te um link para definires uma nova palavra-passe.",
+      "email": "Email",
+      "submit": "Enviar link",
+      "submitting": "A enviar…",
+      "sent": "Se existir uma conta com este email, enviámos um link para definires uma nova palavra-passe. Abre-o neste dispositivo e neste browser.",
+      "expired": "O link expirou ou já foi usado. Pede um novo.",
+      "back": "Voltar a entrar"
+    },
+    "update": {
+      "title": "Definir nova palavra-passe",
+      "password": "Nova palavra-passe",
+      "confirm": "Confirmar a nova palavra-passe",
+      "hint": "Entre 8 e 72 caracteres.",
+      "submit": "Guardar palavra-passe",
+      "submitting": "A guardar…",
+      "success": "Palavra-passe atualizada. A abrir o Hoje…",
+      "continue": "Ir para Hoje",
+      "noSession": "O link expirou ou já foi usado. Pede um novo para definires a palavra-passe.",
+      "requestNew": "Pedir novo link"
+    },
+    "errors": {
+      "tooShort": "A palavra-passe tem de ter pelo menos 8 caracteres.",
+      "tooLong": "A palavra-passe pode ter no máximo 72 caracteres.",
+      "mismatch": "As palavras-passe não coincidem.",
+      "same": "A nova palavra-passe tem de ser diferente da atual.",
+      "weak": "A palavra-passe é demasiado fraca. Escolhe outra.",
+      "expired": "O link expirou ou já foi usado. Pede um novo.",
+      "rateLimited": "Demasiadas tentativas. Espera um pouco e tenta de novo.",
+      "invalidEmail": "Verifica o email.",
+      "network": "Sem ligação. Verifica a rede e tenta de novo.",
+      "generic": "Algo correu mal. Tenta de novo."
     }
   },
   "today": {

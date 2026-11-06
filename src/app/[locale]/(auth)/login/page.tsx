@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
+import { Link } from "@/i18n/navigation";
 import { guardArea } from "@/lib/auth/guard";
 
 export default async function LoginPage({
@@ -21,6 +22,9 @@ export default async function LoginPage({
       <p>{t("subtitle")}</p>
       {error === "oauth" && <p role="alert">{tErrors("oauth")}</p>}
       <LoginForm />
+      <p>
+        <Link href="/auth/forgot-password">{t("forgot")}</Link>
+      </p>
       <p>{t("or")}</p>
       <OAuthButtons />
     </main>

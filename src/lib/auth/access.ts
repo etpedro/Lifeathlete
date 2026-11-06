@@ -1,6 +1,7 @@
 // Pure redirect rules for authentication and onboarding. No framework imports, so
 // they are unit-tested and shared by the proxy, the server layouts and the pages.
 import { routing } from "@/i18n/routing";
+import { RESET_NEXT } from "./password-reset";
 
 export type Locale = (typeof routing.locales)[number];
 
@@ -66,8 +67,13 @@ export function pageRedirect(area: Area, locale: Locale, state: AccessState, pat
   return `/${state.locale ?? locale}/today`;
 }
 
-/** Where the auth callback sends the user after exchanging the code. */
-export function callbackRedirect(localeParam: string, ok: boolean): string {
+/**
+ * Where the auth callback sends the user after exchanging the code. A password-reset link
+ * (`next` = RESET_NEXT) goes to the set-new-password page, or back to request a new link.
+ * Any other `next` is ignored (no open redirect).
+ */
+export function callbackRedirect(localeParam: string, ok: boolean, next: string | null = null): string {
   const locale = routing.locales.find((l) => l === localeParam) ?? routing.defaultLocale;
+  if (next === RESET_NEXT) return ok ? `/${locale}/auth/reset-password` : `/${locale}/auth/forgot-password?error=expired`;
   return ok ? `/${locale}/today` : `/${locale}/login?error=oauth`;
 }

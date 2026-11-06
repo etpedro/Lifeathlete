@@ -36,6 +36,12 @@ exception when others then
 end $$;
 grant execute on function pg_temp.fails(text, text) to public;
 
+-- helper: the caller's profile-local today + k days (the habit_logs client date window, 0009)
+create function pg_temp.d(k int) returns date language sql stable as $$
+  select public.safe_local_date((select p.timezone from public.profiles p where p.user_id = auth.uid())) + k
+$$;
+grant execute on function pg_temp.d(int) to public;
+
 -- ---------- safe_local_date (0008): invalid or missing timezone falls back to UTC ----------
 do $$
 begin
@@ -120,29 +126,29 @@ begin
     select auth.uid(), id, 'Mine', 'value', 10 from public.pillars where slug = 'meditation';
   assert (select count(*) from public.user_habits) = 2, 'A inserted own habit';
   insert into public.habit_logs(user_id, user_habit_id, date, value)
-    values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', '2026-01-02', 1);
+    values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', pg_temp.d(0), 1);
   update public.profiles set display_name = 'A2' where user_id = auth.uid();
   assert (select display_name from public.profiles) = 'A2', 'A updated own profile';
 
   -- habit_logs hardening (0005, ruling F): non-negative value, client may only write source 'manual'
   assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)
-      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', '2026-01-03', -1)$f$, '23514'),
+      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', pg_temp.d(-1), -1)$f$, '23514'),
     'negative habit_logs.value must violate check';
-  assert pg_temp.fails($f$update public.habit_logs set value = -5 where date = '2026-01-02'$f$, '23514'),
+  assert pg_temp.fails($f$update public.habit_logs set value = -5 where date = pg_temp.d(0)$f$, '23514'),
     'updating habit_logs.value to negative must violate check';
   assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value, source)
-      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', '2026-01-04', 1, 'strava')$f$, '42501'),
+      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', pg_temp.d(-2), 1, 'strava')$f$, '42501'),
     'authenticated insert with source strava must be denied';
-  assert pg_temp.fails($f$update public.habit_logs set source = 'strava' where date = '2026-01-02'$f$, '42501'),
+  assert pg_temp.fails($f$update public.habit_logs set source = 'strava' where date = pg_temp.d(0)$f$, '42501'),
     'authenticated update setting source to strava must be denied';
-  assert (select source from public.habit_logs where date = '2026-01-02') = 'manual', 'source unchanged after denied update';
-  update public.habit_logs set value = 0 where date = '2026-01-02';
+  assert (select source from public.habit_logs where date = pg_temp.d(0)) = 'manual', 'source unchanged after denied update';
+  update public.habit_logs set value = 0 where date = pg_temp.d(0);
   get diagnostics n = row_count;
   assert n = 1, 'A can still update own manual log (value 0 allowed, un-tick)';
-  update public.habit_logs set value = 1, source = 'manual' where date = '2026-01-02';
+  update public.habit_logs set value = 1, source = 'manual' where date = pg_temp.d(0);
   get diagnostics n = row_count;
   assert n = 1, 'A can still update own manual log back to 1';
-  assert pg_temp.fails($f$delete from public.habit_logs where date = '2026-01-02'$f$, '42501'),
+  assert pg_temp.fails($f$delete from public.habit_logs where date = pg_temp.d(0)$f$, '42501'),
     'A still cannot delete logs (no delete grant)';
 
   -- cannot touch B's rows
@@ -164,18 +170,18 @@ begin
       values ('bbbbbbbb-0000-0000-0000-00000000000b', 'b1b1b1b1-0000-0000-0000-000000000001', '2026-02-01', 1)$f$),
     'A cannot log on B habit (B user_id)';
   assert pg_temp.fails($f$update public.habit_logs set user_habit_id = 'b1b1b1b1-0000-0000-0000-000000000001'
-      where date = '2026-01-02'$f$),
+      where date = pg_temp.d(0)$f$),
     'A cannot re-point a log to B habit';
 
   -- target snapshot (0007): the client writes the habit's target with the log; it must be > 0 or null
-  update public.habit_logs set target = 1 where date = '2026-01-02';
-  assert (select target from public.habit_logs where date = '2026-01-02') = 1, 'A stores a target snapshot';
-  update public.habit_logs set target = null where date = '2026-01-02';
+  update public.habit_logs set target = 1 where date = pg_temp.d(0);
+  assert (select target from public.habit_logs where date = pg_temp.d(0)) = 1, 'A stores a target snapshot';
+  update public.habit_logs set target = null where date = pg_temp.d(0);
   get diagnostics n = row_count;
   assert n = 1, 'a null snapshot is allowed (provider/legacy rows)';
-  assert pg_temp.fails($f$update public.habit_logs set target = 0 where date = '2026-01-02'$f$, '23514'),
+  assert pg_temp.fails($f$update public.habit_logs set target = 0 where date = pg_temp.d(0)$f$, '23514'),
     'a zero target snapshot must violate the check';
-  assert pg_temp.fails($f$update public.habit_logs set target = -1 where date = '2026-01-02'$f$, '23514'),
+  assert pg_temp.fails($f$update public.habit_logs set target = -1 where date = pg_temp.d(0)$f$, '23514'),
     'a negative target snapshot must violate the check';
 
   -- pause intervals (0008): a jsonb array, default empty, written by the client with `active`
@@ -189,9 +195,33 @@ begin
   assert pg_temp.fails($f$update public.user_habits set pauses = '{}' where id = 'a1a1a1a1-0000-0000-0000-000000000001'$f$, '23514'),
     'pauses must be a json array';
 
+  -- client date window (0009, F10): manual logs only for [local today - 3, local today + 1]
+  assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)
+      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', pg_temp.d(-10), 1)$f$, '42501'),
+    'a manual log 10 days ago must be denied';
+  assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)
+      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', pg_temp.d(10), 1)$f$, '42501'),
+    'a manual log 10 days ahead must be denied';
+  assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)
+      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', pg_temp.d(-4), 1)$f$, '42501'),
+    'today - 4 is outside the window';
+  assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)
+      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', pg_temp.d(2), 1)$f$, '42501'),
+    'today + 2 is outside the window';
+  assert pg_temp.fails($f$update public.habit_logs set date = pg_temp.d(-10) where date = pg_temp.d(0)$f$, '42501'),
+    'moving a log out of the window must be denied';
+  insert into public.habit_logs(user_id, user_habit_id, date, value)
+    select auth.uid(), id, d, 1 from public.user_habits, unnest(array[pg_temp.d(-1), pg_temp.d(-3), pg_temp.d(1)]) d
+     where title = 'Mine';
+  get diagnostics n = row_count;
+  assert n = 3, 'yesterday, today - 3 and today + 1 (timezone edge) are allowed';
+  -- an old row outside the window (here the 2026-01-01 fixture) cannot be rewritten by the client
+  assert pg_temp.fails($f$update public.habit_logs set value = 0 where date = '2026-01-01'$f$, '42501'),
+    'an old log cannot be edited by the client';
+
   -- unique (user_habit_id, date)
   assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)
-      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', '2026-01-02', 1)$f$, '23505'),
+      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', pg_temp.d(0), 1)$f$, '23505'),
     'duplicate (user_habit_id,date) must violate unique';
 
   -- server-written tables: read-only for the client
@@ -273,6 +303,7 @@ end $$;
 
 -- ---------- user B sees nothing of A ----------
 reset role;
+update public.profiles set timezone = 'Not/AZone' where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b';
 set role authenticated;
 set request.jwt.claim.sub = 'bbbbbbbb-0000-0000-0000-00000000000b';
 do $$
@@ -283,6 +314,12 @@ begin
   assert (select count(*) from public.user_stats) = 0, 'B cannot see A stats';
   assert (select count(*) from public.provider_connections) = 0, 'B cannot see A connections';
   assert (select count(*) from public.provider_activity) = 1, 'B sees own provider_activity';
+  -- window with an invalid profile timezone: UTC today is used
+  insert into public.habit_logs(user_id, user_habit_id, date, value)
+    values (auth.uid(), 'b1b1b1b1-0000-0000-0000-000000000001', (now() at time zone 'UTC')::date, 1);
+  assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)
+      values (auth.uid(), 'b1b1b1b1-0000-0000-0000-000000000001', (now() at time zone 'UTC')::date - 10, 1)$f$, '42501'),
+    'invalid timezone: the UTC window still applies';
 end $$;
 
 -- ---------- anon ----------
@@ -316,7 +353,7 @@ begin
   assert (select access_token_enc from public.provider_connections) = 'SECRET-ACCESS', 'service_role reads tokens';
   update public.provider_connections set last_synced_at = now();
   insert into public.provider_activity(user_id, provider, date) values ('aaaaaaaa-0000-0000-0000-00000000000a','strava','2026-01-02');
-  -- service_role CAN write provider-sourced logs (ruling F)
+  -- service_role CAN write provider-sourced logs (ruling F), on any date (no client window, 0009)
   insert into public.habit_logs(user_id, user_habit_id, date, value, source)
     values ('bbbbbbbb-0000-0000-0000-00000000000b','b1b1b1b1-0000-0000-0000-000000000001','2026-01-03', 5000, 'strava');
   assert (select source from public.habit_logs where date = '2026-01-03'

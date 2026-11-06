@@ -1,0 +1,68 @@
+{
+  "common": {
+    "appName": "Lifeathlete",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "language": "Language"
+  },
+  "onboarding": {
+    "title": "Welcome to Lifeathlete"
+  },
+  "today": {
+    "title": "Today"
+  },
+  "wheel": {
+    "title": "Wheel of Life"
+  },
+  "achievements": {
+    "title": "Achievements"
+  },
+  "profile": {
+    "title": "Profile"
+  },
+  "pillars": {
+    "exercise": {
+      "name": "Regular exercise",
+      "description": "Moving your body regularly to build energy and endurance."
+    },
+    "nutrition": {
+      "name": "Healthy eating",
+      "description": "Eating in a balanced way, with foods that nourish the body."
+    },
+    "nature": {
+      "name": "Recharge in nature",
+      "description": "Spending time outdoors to restore energy and focus."
+    },
+    "gratitude": {
+      "name": "Live with gratitude",
+      "description": "Acknowledging every day what you are grateful for."
+    },
+    "screens": {
+      "name": "Screens in moderate doses",
+      "description": "Using phone, computer and TV in moderation."
+    },
+    "lightness": {
+      "name": "Live light like a dragonfly",
+      "description": "Facing the day lightly, without letting worries weigh you down."
+    },
+    "meditation": {
+      "name": "Meditation",
+      "description": "Pausing, breathing and calming the mind every day."
+    },
+    "active-lifestyle": {
+      "name": "Healthy and active lifestyle",
+      "description": "Keeping daily life active, with healthy habits."
+    },
+    "reading": {
+      "name": "Read more",
+      "description": "Making time to read, to learn and to relax."
+    },
+    "family": {
+      "name": "Family and values",
+      "description": "Nurturing family bonds and the values that guide us."
+    }
+  }
+}

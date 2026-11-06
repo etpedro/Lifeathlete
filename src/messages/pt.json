@@ -1,0 +1,68 @@
+{
+  "common": {
+    "appName": "Lifeathlete",
+    "loading": "A carregar…",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "back": "Voltar",
+    "next": "Seguinte",
+    "language": "Idioma"
+  },
+  "onboarding": {
+    "title": "Bem-vindo ao Lifeathlete"
+  },
+  "today": {
+    "title": "Hoje"
+  },
+  "wheel": {
+    "title": "Roda da Vida"
+  },
+  "achievements": {
+    "title": "Conquistas"
+  },
+  "profile": {
+    "title": "Perfil"
+  },
+  "pillars": {
+    "exercise": {
+      "name": "Exercício regular",
+      "description": "Mexer o corpo com regularidade para ganhar energia e resistência."
+    },
+    "nutrition": {
+      "name": "Alimentação saudável",
+      "description": "Comer de forma equilibrada, com alimentos que nutrem o corpo."
+    },
+    "nature": {
+      "name": "Carregar baterias na natureza",
+      "description": "Passar tempo ao ar livre para recuperar energia e foco."
+    },
+    "gratitude": {
+      "name": "Viver com gratidão",
+      "description": "Reconhecer todos os dias aquilo por que és grato."
+    },
+    "screens": {
+      "name": "Ecrãs em doses moderadas",
+      "description": "Usar telemóvel, computador e televisão com moderação."
+    },
+    "lightness": {
+      "name": "Viver leve como uma libelinha",
+      "description": "Encarar o dia com leveza, sem pesar demasiado as preocupações."
+    },
+    "meditation": {
+      "name": "Meditação",
+      "description": "Parar, respirar e acalmar a mente todos os dias."
+    },
+    "active-lifestyle": {
+      "name": "Estilo de vida saudável e ativo",
+      "description": "Manter o dia a dia ativo e com hábitos saudáveis."
+    },
+    "reading": {
+      "name": "Ler mais",
+      "description": "Dedicar tempo à leitura para aprender e relaxar."
+    },
+    "family": {
+      "name": "Família e valores",
+      "description": "Cuidar dos laços familiares e dos valores que nos guiam."
+    }
+  }
+}

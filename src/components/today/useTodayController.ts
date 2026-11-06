@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { createDefaultRecalcScheduler, type RecalcScheduler } from "@/lib/data/recalc";
+import { createDefaultRecalcScheduler } from "@/lib/data/recalc";
 import {
   getHeaderStats,
   getToday,
@@ -19,6 +19,7 @@ import type { Db } from "@/lib/supabase/types";
 import { reanchorDay, shiftDate, todayIn } from "@/lib/today/dates";
 import { hasFeedback, statsFeedback, type StatsFeedback } from "@/lib/today/feedback";
 import { applyValue, overlayQueued } from "@/lib/today/progress";
+import { createStatsRefresher, type StatsRefresher } from "@/lib/today/stats-refresh";
 
 export type TodayNotice =
   | { kind: "save" }
@@ -58,17 +59,34 @@ export function useTodayController({ userId, timezone, today, initialData, initi
   const [stats, setStats] = useState(initialStats);
   const [feedback, setFeedback] = useState<StatsFeedback | null>(null);
   const [notice, setNotice] = useState<TodayNotice | null>(null);
+  /** The stats could not be refreshed (after retries): a polite, non-blocking notice. */
+  const [statsFailed, setStatsFailed] = useState(false);
 
   const dbRef = useRef<Db | null>(null);
-  const schedulerRef = useRef<RecalcScheduler | null>(null);
+  const refresherRef = useRef<StatsRefresher | null>(null);
   const statsRef = useRef(initialStats);
   const dateRef = useRef(today);
   const todayRef = useRef(today);
   const directWrites = useRef<Promise<void>>(Promise.resolve());
 
   const db = useCallback(() => (dbRef.current ??= createClient()), []);
-  const scheduler = useCallback(
-    () => (schedulerRef.current ??= createDefaultRecalcScheduler(db())),
+
+  /** Debounced recalculation (with retry) + fresh header stats; one per mount (see the unmount flush). */
+  const refresher = useCallback(
+    () =>
+      (refresherRef.current ??= createStatsRefresher({
+        createScheduler: () => createDefaultRecalcScheduler(db()),
+        loadStats: () => getHeaderStats(db()),
+        current: () => statsRef.current,
+        onStats: (next) => {
+          const change = statsFeedback(statsRef.current, next);
+          statsRef.current = next;
+          setStats(next);
+          setStatsFailed(false);
+          if (hasFeedback(change)) setFeedback(change);
+        },
+        onFailed: () => setStatsFailed(true),
+      })),
     [db],
   );
 
@@ -97,28 +115,16 @@ export function useTodayController({ userId, timezone, today, initialData, initi
     if (!next.changed) return false;
     todayRef.current = next.today;
     setCurrentToday(next.today);
+    refresher().ensureFresh(next.today); // yesterday's streak/mascot are stale now
     if (!next.reload) return false;
     dateRef.current = next.selected;
     setView({ date: next.selected, data: null, pendingIds: new Set() });
     void reload(next.selected);
     return true;
-  }, [timezone, reload]);
+  }, [timezone, reload, refresher]);
 
-  const refreshStats = useCallback(async () => {
-    const next = await getHeaderStats(db());
-    const change = statsFeedback(statsRef.current, next);
-    statsRef.current = next;
-    setStats(next);
-    if (hasFeedback(change)) setFeedback(change);
-  }, [db]);
-
-  /** Debounced recalculation, then fresh header stats (failures only delay the update). */
-  const recalc = useCallback(() => {
-    scheduler()
-      .request()
-      .then(refreshStats)
-      .catch(() => undefined);
-  }, [scheduler, refreshStats]);
+  /** Debounced recalculation, then fresh header stats (a final failure shows a notice). */
+  const recalc = useCallback(() => refresher().afterWrite(), [refresher]);
 
   /** Marks the shown day's habits that still have a queued (unsynced) value; no network. */
   const showPending = useCallback(async () => {
@@ -148,10 +154,22 @@ export function useTodayController({ userId, timezone, today, initialData, initi
     return () => window.removeEventListener("online", sync);
   }, [checkDay, reload, sync]);
 
+  // Stats computed for an earlier day (e.g. back after 5 days: the streak shown is old) are
+  // recalculated on mount and when coming back; leaving Hoje runs a pending recalculation.
+  useEffect(() => {
+    refresher().ensureFresh(todayRef.current);
+    return () => {
+      void refresherRef.current?.dispose();
+      refresherRef.current = null;
+    };
+  }, [refresher]);
+
   // Coming back to the app (e.g. the next morning): re-check which day "today" is.
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") checkDay();
+      if (document.visibilityState !== "visible") return;
+      checkDay();
+      refresher().ensureFresh(todayRef.current);
     };
     window.addEventListener("focus", onVisible);
     document.addEventListener("visibilitychange", onVisible);
@@ -159,7 +177,7 @@ export function useTodayController({ userId, timezone, today, initialData, initi
       window.removeEventListener("focus", onVisible);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [checkDay]);
+  }, [checkDay, refresher]);
 
   /** Without IndexedDB (rare): write directly, one at a time so taps never race. */
   const writeDirect = useCallback(
@@ -224,6 +242,7 @@ export function useTodayController({ userId, timezone, today, initialData, initi
     data: view.data,
     pendingIds: view.pendingIds,
     stats,
+    statsFailed,
     feedback,
     dismissFeedback: useCallback(() => setFeedback(null), []),
     notice,

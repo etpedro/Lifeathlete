@@ -12,7 +12,9 @@ export type StatsFeedback = {
 const grew = (before: number, after: number) => Number.isFinite(before) && Number.isFinite(after) && after > before;
 
 /** What to celebrate after a recalculation; only numbers that actually changed upwards. */
-export function statsFeedback(before: HeaderStats, after: HeaderStats): StatsFeedback {
+type Counters = Pick<HeaderStats, "xpTotal" | "level" | "currentStreak">;
+
+export function statsFeedback(before: Counters, after: Counters): StatsFeedback {
   return {
     xpGained: grew(before.xpTotal, after.xpTotal) ? after.xpTotal - before.xpTotal : null,
     levelUp: grew(before.level, after.level) ? after.level : null,

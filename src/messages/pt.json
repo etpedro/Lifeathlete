@@ -129,7 +129,8 @@
       "load": "Não foi possível carregar este dia. Tenta de novo.",
       "save": "Não foi possível guardar. Tenta de novo.",
       "outsideWindow": "Só podes preencher hoje e os 2 dias anteriores.",
-      "dropped": "{count, plural, one {# registo feito sem rede não pôde ser enviado.} other {# registos feitos sem rede não puderam ser enviados.}}"
+      "dropped": "{count, plural, one {# registo feito sem rede não pôde ser enviado.} other {# registos feitos sem rede não puderam ser enviados.}}",
+      "stats": "Não foi possível atualizar as estatísticas agora. Tentamos de novo mais tarde."
     }
   },
   "wheel": {

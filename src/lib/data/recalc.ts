@@ -82,7 +82,30 @@ export function recalculateVia(db: Db): () => Promise<void> {
   };
 }
 
-/** The shared debounced recalculation for UI controllers (Today, habit management). */
+/** Bounded retry of a failed recalculation: 3 tries, waiting 1s then 2s (spec §6 "intervalos crescentes"). */
+export const RECALC_RETRY = { attempts: 3, baseDelayMs: 1000 } as const;
+
+/**
+ * `fn` with bounded exponential backoff: up to `attempts` tries, waiting
+ * baseDelayMs * 2^(n-1) after the n-th failure; rejects with the last error.
+ */
+export function withRetry(
+  fn: () => Promise<void>,
+  { attempts, baseDelayMs }: { attempts: number; baseDelayMs: number },
+): () => Promise<void> {
+  return async () => {
+    for (let n = 1; ; n++) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (n >= attempts) throw error;
+        await new Promise((resolve) => setTimeout(resolve, baseDelayMs * 2 ** (n - 1)));
+      }
+    }
+  };
+}
+
+/** The shared debounced recalculation (with retry) for UI controllers (Today, habit management). */
 export function createDefaultRecalcScheduler(db: Db): RecalcScheduler {
-  return createRecalcScheduler(recalculateVia(db), RECALC_DELAY_MS);
+  return createRecalcScheduler(withRetry(recalculateVia(db), RECALC_RETRY), RECALC_DELAY_MS);
 }

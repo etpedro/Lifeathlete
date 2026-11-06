@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createRecalcScheduler } from "./recalc";
+import { createDefaultRecalcScheduler, createRecalcScheduler, RECALC_DELAY_MS, RECALC_RETRY, withRetry } from "./recalc";
 
 const DELAY = 500;
 
@@ -117,5 +117,51 @@ describe("createRecalcScheduler", () => {
     const invoke = vi.fn(async () => {});
     await createRecalcScheduler(invoke, DELAY).flush();
     expect(invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe("withRetry (bounded exponential backoff)", () => {
+  it("retries a failing call after 1s then 2s and resolves when an attempt succeeds", async () => {
+    let calls = 0;
+    const fn = vi.fn(async () => {
+      calls += 1;
+      if (calls < 3) throw new Error("boom");
+    });
+    const done = withRetry(fn, { attempts: 3, baseDelayMs: 1000 })();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fn).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fn).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fn).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(fn).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(done).resolves.toBeUndefined();
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it("gives up after `attempts` tries and rejects with the last error", async () => {
+    const fn = vi.fn(async () => {
+      throw new Error(`fail ${fn.mock.calls.length}`);
+    });
+    const done = withRetry(fn, { attempts: 3, baseDelayMs: 1000 })();
+    const outcome = done.catch((e: Error) => e.message);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(await outcome).toBe("fail 3");
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it("the default scheduler path retries the recalculate call (3 tries)", async () => {
+    const invoke = vi.fn(async () => ({ error: new Error("503") }));
+    const db = { functions: { invoke } } as unknown as Parameters<typeof createDefaultRecalcScheduler>[0];
+    const s = createDefaultRecalcScheduler(db);
+    const outcome = s.request().then(
+      () => "ok",
+      () => "failed",
+    );
+    await vi.advanceTimersByTimeAsync(RECALC_DELAY_MS + 10_000);
+    expect(await outcome).toBe("failed");
+    expect(invoke).toHaveBeenCalledTimes(RECALC_RETRY.attempts);
   });
 });

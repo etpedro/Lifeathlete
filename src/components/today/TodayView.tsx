@@ -31,6 +31,11 @@ export function TodayView(props: TodayControllerProps) {
           {t("offline")}
         </p>
       )}
+      {c.statsFailed && (
+        <p role="status" className={styles.notice}>
+          {t("errors.stats")}
+        </p>
+      )}
       {c.notice && (
         <div role="alert" className={styles.notice}>
           <p>{noticeText(c.notice)}</p>

@@ -294,6 +294,12 @@ describe("recalculateUser", () => {
     expect(state.stats.lastActiveDate).toBe("2026-03-09");
   });
 
+  it("records the local day the state was computed for (stale-stats detection)", async () => {
+    const base = { habits: [], logs: [], achievements: [], unlockedCodes: [] };
+    expect(computeUserState({ ...base, now: "2026-03-05T02:00:00Z", timezone: "America/New_York" }).computedFor).toBe("2026-03-04");
+    expect(computeUserState({ ...base, now: NOW, timezone: "Not/AZone" }).computedFor).toBe("2026-03-05");
+  });
+
   it("computes today in a UTC-positive timezone", () => {
     // 12:00 UTC on Mar 9 is already Mar 10 in Auckland (UTC+13)
     const state = computeUserState({

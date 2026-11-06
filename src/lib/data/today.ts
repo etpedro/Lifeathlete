@@ -165,19 +165,28 @@ export async function logHabit(db: Db, input: LogInput, today: string): Promise<
   throwIfError(error, "save habit log", status);
 }
 
-export type HeaderStats = { xpTotal: number; level: number; currentStreak: number };
-export const DEFAULT_HEADER_STATS: HeaderStats = { xpTotal: 0, level: 1, currentStreak: 0 };
+export type HeaderStats = {
+  xpTotal: number;
+  level: number;
+  currentStreak: number;
+  /** The user's local day the stats were computed for (null: never, or before this was recorded). */
+  computedFor: string | null;
+};
+export const DEFAULT_HEADER_STATS: HeaderStats = { xpTotal: 0, level: 1, currentStreak: 0, computedFor: null };
 
 /** The caller's XP, level and streak (RLS returns only their row); defaults before the first recalculation. */
 export async function getHeaderStats(db: Db): Promise<HeaderStats> {
-  const { data, error, status } = await db.from("user_stats").select("xp_total, level, current_streak");
+  const { data, error, status } = await db.from("user_stats").select("xp_total, level, current_streak, computed_for");
   throwIfError(error, "load stats", status);
-  const row = ((data ?? []) as { xp_total: unknown; level: unknown; current_streak: unknown }[])[0];
+  const row = (
+    (data ?? []) as { xp_total: unknown; level: unknown; current_streak: unknown; computed_for?: unknown }[]
+  )[0];
   if (!row) return { ...DEFAULT_HEADER_STATS };
   return {
     xpTotal: num(row.xp_total, DEFAULT_HEADER_STATS.xpTotal),
     level: num(row.level, DEFAULT_HEADER_STATS.level),
     currentStreak: num(row.current_streak, DEFAULT_HEADER_STATS.currentStreak),
+    computedFor: typeof row.computed_for === "string" ? row.computed_for : null,
   };
 }
 

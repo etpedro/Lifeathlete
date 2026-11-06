@@ -77,6 +77,8 @@ export type UserState = {
   /** Achievements to INSERT (never update/delete existing rows). */
   newAchievements: { code: string; unlockedAt: string }[];
   mascot: { stage: number; variant: string };
+  /** The user's local day this state was computed for (user_stats.computed_for, 0010). */
+  computedFor: string;
 };
 
 /**
@@ -266,6 +268,7 @@ export function computeUserState(input: RecalcInput): UserState {
     pillarScores: scores,
     newAchievements,
     mascot: mascotState(level, balanceIndex(scores)),
+    computedFor: today,
   };
 }
 

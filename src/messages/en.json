@@ -129,7 +129,8 @@
       "load": "Could not load this day. Please try again.",
       "save": "Could not save. Please try again.",
       "outsideWindow": "You can only fill in today and the 2 previous days.",
-      "dropped": "{count, plural, one {# offline check-in could not be sent.} other {# offline check-ins could not be sent.}}"
+      "dropped": "{count, plural, one {# offline check-in could not be sent.} other {# offline check-ins could not be sent.}}",
+      "stats": "Couldn't update your stats right now. We'll try again later."
     }
   },
   "wheel": {

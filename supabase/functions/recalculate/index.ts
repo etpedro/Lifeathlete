@@ -110,6 +110,7 @@ function supabaseDb(admin: SupabaseClient): Db {
         current_streak: s.currentStreak,
         best_streak: s.bestStreak,
         last_active_date: s.lastActiveDate,
+        computed_for: state.computedFor, // lets the app detect stats from an earlier day (0010)
       }, { onConflict: "user_id" }));
 
       // pillar_scores: replace set (upsert present pillars, delete the rest)

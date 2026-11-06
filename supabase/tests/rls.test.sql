@@ -228,6 +228,8 @@ begin
   assert (select count(*) from public.user_stats) = 1, 'A can read own user_stats';
   assert pg_temp.fails($f$insert into public.user_stats(user_id) values (auth.uid())$f$), 'A cannot insert user_stats';
   assert pg_temp.fails($f$update public.user_stats set xp_total = 999999$f$), 'A cannot update user_stats';
+  assert pg_temp.fails($f$update public.user_stats set computed_for = '2099-01-01'$f$, '42501'),
+    'A cannot mark its stats as fresh';
   assert pg_temp.fails($f$delete from public.user_stats$f$), 'A cannot delete user_stats';
   assert pg_temp.fails($f$insert into public.pillar_scores(user_id, pillar_id, score)
       select auth.uid(), id, 100 from public.pillars limit 1$f$), 'A cannot insert pillar_scores';
@@ -344,6 +346,9 @@ do $$
 begin
   insert into public.user_stats(user_id) values ('bbbbbbbb-0000-0000-0000-00000000000b');
   update public.user_stats set xp_total = 50 where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b';
+  update public.user_stats set computed_for = '2026-11-06' where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b';
+  assert (select computed_for from public.user_stats where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b') = '2026-11-06',
+    'service_role records the day stats were computed for (0010)';
   insert into public.pillar_scores(user_id, pillar_id, score)
     select 'bbbbbbbb-0000-0000-0000-00000000000b', id, 50 from public.pillars limit 1;
   insert into public.user_achievements(user_id, achievement_id)

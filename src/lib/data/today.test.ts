@@ -234,14 +234,19 @@ describe("logHabit", () => {
 
 describe("getHeaderStats", () => {
   it("defaults to 0 XP, level 1 and no streak when the user has no stats row", async () => {
-    expect(await getHeaderStats(setup().db)).toEqual({ xpTotal: 0, level: 1, currentStreak: 0 });
+    expect(await getHeaderStats(setup().db)).toEqual({ xpTotal: 0, level: 1, currentStreak: 0, computedFor: null });
   });
 
-  it("reads xp_total, level and current_streak", async () => {
+  it("reads xp_total, level, current_streak and the local day they were computed for", async () => {
     const fake = setup({
-      user_stats: [{ user_id: USER, xp_total: 140, level: 2, current_streak: 3, best_streak: 5 }],
+      user_stats: [{ user_id: USER, xp_total: 140, level: 2, current_streak: 3, best_streak: 5, computed_for: "2026-11-01" }],
     });
-    expect(await getHeaderStats(fake.db)).toEqual({ xpTotal: 140, level: 2, currentStreak: 3 });
+    expect(await getHeaderStats(fake.db)).toEqual({ xpTotal: 140, level: 2, currentStreak: 3, computedFor: "2026-11-01" });
+  });
+
+  it("computedFor is null for rows written before it existed", async () => {
+    const fake = setup({ user_stats: [{ user_id: USER, xp_total: 1, level: 1, current_streak: 0 }] });
+    expect((await getHeaderStats(fake.db)).computedFor).toBeNull();
   });
 
   it("throws a DataError when the query fails", async () => {

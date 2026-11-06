@@ -7,7 +7,7 @@ import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import { TodayView } from "./TodayView";
 
-const STATS = { xpTotal: 140, level: 2, currentStreak: 3 };
+const STATS = { xpTotal: 140, level: 2, currentStreak: 3, computedFor: "2026-11-06" };
 
 function render(data: TodayData | null, locale: "pt" | "en" = "pt") {
   return renderToStaticMarkup(

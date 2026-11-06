@@ -5,6 +5,9 @@ import type { Db } from "@/lib/supabase/types";
 export type Row = Record<string, unknown>;
 type Op = "select" | "insert" | "update" | "upsert";
 type DbError = { code: string; message: string };
+type Response = { data: unknown; error: DbError | null; status: number };
+/** A write as the data module sent it (for asserting exact payloads). */
+export type Write = { table: string; op: Exclude<Op, "select">; payload: unknown; onConflict?: string };
 type Filter = (row: Row) => boolean;
 
 /** Embedded resource in a select string, e.g. `habit_templates_i18n(locale,title)`. */
@@ -26,22 +29,24 @@ export type FakeDb = {
   db: Db;
   tables: Record<string, Row[]>;
   /** The next `op` on `table` fails with `error` (one-shot). */
-  failNext(table: string, op: Op, error?: DbError): void;
+  failNext(table: string, op: Op, error?: DbError, status?: number): void;
   calls: { table: string; op: Op }[];
+  writes: Write[];
 };
 
 const EMBED = /([a-z0-9_]+)\(([^)]*)\)/g;
 
 export function createFakeDb(options: FakeDbOptions): FakeDb {
   const tables: Record<string, Row[]> = structuredClone(options.tables);
-  const failures: { table: string; op: Op; error: DbError }[] = [];
+  const failures: { table: string; op: Op; error: DbError; status: number }[] = [];
   const calls: { table: string; op: Op }[] = [];
+  const writes: Write[] = [];
   let seq = 0;
 
-  function takeFailure(table: string, op: Op): DbError | null {
+  function takeFailure(table: string, op: Op): { error: DbError; status: number } | null {
     const i = failures.findIndex((f) => f.table === table && f.op === op);
     if (i < 0) return null;
-    return failures.splice(i, 1)[0].error;
+    return failures.splice(i, 1)[0];
   }
 
   function violates(table: string, candidate: Row, others: Row[]): boolean {
@@ -60,7 +65,7 @@ export function createFakeDb(options: FakeDbOptions): FakeDb {
     return out;
   }
 
-  class Query implements PromiseLike<{ data: unknown; error: DbError | null }> {
+  class Query implements PromiseLike<Response> {
     private op: Op = "select";
     private filters: Filter[] = [];
     private columns = "*";
@@ -106,8 +111,8 @@ export function createFakeDb(options: FakeDbOptions): FakeDb {
       return this;
     }
 
-    then<T1 = { data: unknown; error: DbError | null }, T2 = never>(
-      onfulfilled?: ((value: { data: unknown; error: DbError | null }) => T1 | PromiseLike<T1>) | null,
+    then<T1 = Response, T2 = never>(
+      onfulfilled?: ((value: Response) => T1 | PromiseLike<T1>) | null,
       onrejected?: ((reason: unknown) => T2 | PromiseLike<T2>) | null,
     ): PromiseLike<T1 | T2> {
       return Promise.resolve()
@@ -115,10 +120,22 @@ export function createFakeDb(options: FakeDbOptions): FakeDb {
         .then(onfulfilled, onrejected);
     }
 
-    private run(): { data: unknown; error: DbError | null } {
+    private run(): Response {
       calls.push({ table: this.table, op: this.op });
+      if (this.op !== "select") {
+        writes.push({
+          table: this.table,
+          op: this.op,
+          payload: structuredClone(this.payload),
+          ...(this.op === "upsert" ? { onConflict: this.conflict.join(",") } : {}),
+        });
+      }
       const failure = takeFailure(this.table, this.op);
-      if (failure) return { data: null, error: failure };
+      if (failure) return { data: null, ...failure };
+      return { status: this.op === "select" ? 200 : 201, ...this.exec() };
+    }
+
+    private exec(): { data: unknown; error: DbError | null } {
       const rows = (tables[this.table] ??= []);
       const matches = () => rows.filter((r) => this.filters.every((f) => f(r)));
 
@@ -172,8 +189,9 @@ export function createFakeDb(options: FakeDbOptions): FakeDb {
     db,
     tables,
     calls,
-    failNext(table, op, error = { code: "XX000", message: "injected failure" }) {
-      failures.push({ table, op, error });
+    writes,
+    failNext(table, op, error = { code: "XX000", message: "injected failure" }, status = 400) {
+      failures.push({ table, op, error, status });
     },
   };
 }

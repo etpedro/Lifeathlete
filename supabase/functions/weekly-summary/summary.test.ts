@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildSummaryCard, type SummaryCardLabels } from "./summary.ts";
+import en from "../../../src/messages/en.json";
+import pt from "../../../src/messages/pt.json";
+import { buildSummaryCard, wrapLabel, type SummaryCardLabels } from "./summary.ts";
 
 const labels: SummaryCardLabels = {
   title: "O meu resumo",
@@ -129,5 +131,77 @@ describe("buildSummaryCard", () => {
   it("is deterministic", () => {
     const a = svgOf({ level: 9, streak: 3, scores });
     expect(svgOf({ level: 9, streak: 3, scores })).toBe(a);
+  });
+});
+
+/** The text of every wheel label, its lines joined with a space (tspans are the lines). */
+function wheelLabels(svg: string): string[][] {
+  return [...svg.matchAll(/<text class="label"[^>]*>(.*?)<\/text>/g)].map((m) =>
+    [...m[1].matchAll(/<tspan[^>]*>([^<]*)<\/tspan>/g)].map((t) => t[1]),
+  );
+}
+
+const unescape = (s: string) =>
+  s.replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+
+describe.each([
+  ["pt", pt.pillars],
+  ["en", en.pillars],
+] as const)("share card pillar labels (%s)", (_locale, pillars) => {
+  const slugs = Object.keys(pillars) as (keyof typeof pillars)[];
+  const names = slugs.map((s) => pillars[s].name);
+  const svg = svgOf(
+    { level: 4, streak: 12, scores: Object.fromEntries(slugs.map((s, i) => [s, 22 + i * 7])) },
+    { ...labels, pillars: Object.fromEntries(slugs.map((s) => [s, pillars[s].name])) },
+  );
+
+  it("renders all 10 pillar names in full, on at most two lines, with no ellipsis", () => {
+    expect(names).toHaveLength(10);
+    const rendered = wheelLabels(svg);
+    expect(rendered).toHaveLength(10);
+    rendered.forEach((lines, i) => {
+      expect(lines.length).toBeGreaterThanOrEqual(1);
+      expect(lines.length).toBeLessThanOrEqual(2);
+      expect(unescape(lines.join(" "))).toBe(names[i]);
+    });
+    expect(svg).not.toContain("…");
+    assertWellFormed(svg);
+  });
+
+  it.each(names)("wrapLabel keeps %s whole within 18 characters per line", (name) => {
+    const lines = wrapLabel(name);
+    expect(lines.join(" ")).toBe(name);
+    expect(lines.length).toBeLessThanOrEqual(2);
+    for (const line of lines) expect(Array.from(line).length).toBeLessThanOrEqual(18);
+  });
+});
+
+describe("wrapLabel", () => {
+  it("keeps short labels on one line and splits at spaces", () => {
+    expect(wrapLabel("Meditação")).toEqual(["Meditação"]);
+    expect(wrapLabel("Carregar baterias na natureza")).toEqual(["Carregar baterias", "na natureza"]);
+  });
+
+  it("is deterministic and only shortens text that cannot fit, with a final ellipsis", () => {
+    const long = "uma frase muito comprida que nunca cabe em duas linhas curtas";
+    expect(wrapLabel(long)).toEqual(wrapLabel(long));
+    const lines = wrapLabel(long);
+    expect(lines).toHaveLength(2);
+    expect(lines[1].endsWith("…")).toBe(true);
+    for (const line of lines) expect(Array.from(line).length).toBeLessThanOrEqual(18);
+    const word = wrapLabel("Supercalifragilisticexpialidocious");
+    expect(word).toHaveLength(1);
+    expect(Array.from(word[0]).length).toBe(18);
+    expect(wrapLabel("   ")).toEqual([""]);
+  });
+
+  it("wrapped hostile labels are still escaped inside their lines", () => {
+    const svg = svgOf(
+      { level: 1, streak: 1, scores: { a: 10, b: 20, c: 30 } },
+      { ...labels, pillars: { a: `<b>bold</b> & "quoted" words here`, b: "x", c: "y" } },
+    );
+    expect(svg).not.toContain("<b>");
+    expect(svg).toContain("&lt;b&gt;bold&lt;/b&gt;");
+    assertWellFormed(svg);
   });
 });

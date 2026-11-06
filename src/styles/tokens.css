@@ -47,6 +47,7 @@
   --mascot-wing-b: #a99ce8;
   --mascot-eye: #0e1a18;
   --mascot-perch: #9c8466;
+  --mascot-sparkle: #e2c072;
   --mascot-glow: rgba(140, 199, 230, 0.35);
 
   /* Spacing scale */
@@ -125,6 +126,8 @@
     --mascot-wing-b: #7a62c9;
     --mascot-eye: #fffdf8;
     --mascot-perch: #8b6b4a;
+    /* Decorative only (not text): a warmer gold than --color-accent-gold reads as light. */
+    --mascot-sparkle: #c99a2e;
     --mascot-glow: rgba(61, 143, 191, 0);
   }
 }

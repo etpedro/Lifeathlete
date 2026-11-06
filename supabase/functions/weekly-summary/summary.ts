@@ -22,11 +22,18 @@ export type SummaryCardLabels = {
 
 const SIZE = 1080;
 const CX = 540;
-const CY = 700;
+const CY = 670;
 const RADIUS = 230;
 const BRAND = "Lifeathlete · O Atleta da Vida";
 const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-const C = { bg: "#123524", panel: "#1b4a33", text: "#f4f1e8", muted: "#b7c9bd", grid: "#3b6b52", accent: "#7fdc8c" };
+// Self-contained image: literal values mirroring the dark tokens in src/styles/tokens.css
+// (bg, surface, text, text-muted, border, primary). No CSS variables on purpose.
+const C = { bg: "#0e1a18", panel: "#1a2c28", text: "#dfe9e3", muted: "#9cb0a8", grid: "#2f4842", accent: "#7cc79b" };
+/** Pillar labels around the wheel: at most this many characters per line, two lines. */
+const LABEL_LINE = 18;
+const LABEL_LINES = 2;
+const LABEL_SIZE = 24;
+const LABEL_LEADING = 28;
 
 /** XML-escape; also drops characters that are illegal in XML 1.0. */
 function esc(value: unknown): string {
@@ -54,6 +61,34 @@ function truncate(text: string, max: number): string {
   return chars.length > max ? `${chars.slice(0, max - 1).join("")}…` : text;
 }
 
+/**
+ * Greedy word wrap into at most `maxLines` lines of at most `maxChars` characters
+ * (counted as code points). Pure and deterministic; returns unescaped text. Only a label
+ * that cannot fit (an over-long word, or more text than the lines hold) is shortened
+ * with "…"; every real pillar name (PT and EN) fits in two lines.
+ */
+export function wrapLabel(text: string, maxChars = LABEL_LINE, maxLines = LABEL_LINES): string[] {
+  const len = (s: string) => Array.from(s).length;
+  const lines: string[] = [];
+  let line = "";
+  for (const word of text.trim().split(/\s+/).filter(Boolean)) {
+    const next = line ? `${line} ${word}` : word;
+    if (len(next) <= maxChars) {
+      line = next;
+      continue;
+    }
+    if (line) lines.push(line);
+    line = word;
+  }
+  if (line) lines.push(line);
+  const fitted = lines.slice(0, maxLines).map((l) => truncate(l, maxChars));
+  if (lines.length > maxLines) {
+    const last = Array.from(fitted[maxLines - 1]);
+    if (last[last.length - 1] !== "…") fitted[maxLines - 1] = `${last.slice(0, maxChars - 1).join("")}…`;
+  }
+  return fitted.length > 0 ? fitted : [""];
+}
+
 // Geometry duplicated from src/components/wheel/geometry.ts (Deno cannot import from src/).
 function point(index: number, total: number, score: number, radius: number): { x: number; y: number } {
   const angle = -Math.PI / 2 + (2 * Math.PI * index) / total;
@@ -74,7 +109,7 @@ function wheelShape(entries: { label: string; score: number }[]): string {
         const y = 560 + i * 140;
         const w = round((760 * e.score) / 100);
         return (
-          `<text x="160" y="${y}" font-size="34" fill="${C.text}">${esc(truncate(e.label, 28))}</text>` +
+          `<text class="label" x="160" y="${y}" font-size="34" fill="${C.text}">${esc(truncate(e.label, 40))}</text>` +
           `<rect x="160" y="${y + 16}" width="760" height="28" rx="14" fill="${C.panel}"/>` +
           `<rect class="bar" x="160" y="${y + 16}" width="${w}" height="28" rx="14" fill="${C.accent}"/>`
         );
@@ -96,8 +131,15 @@ function wheelShape(entries: { label: string; score: number }[]): string {
       const p = point(i, n, 100, RADIUS + 28);
       const cos = Math.cos(-Math.PI / 2 + (2 * Math.PI * i) / n);
       const anchor = Math.abs(cos) < 0.2 ? "middle" : cos > 0 ? "start" : "end";
-      const dy = p.y > CY + 1 ? 22 : p.y < CY - 1 ? 0 : 10;
-      return `<text x="${round(p.x)}" y="${round(p.y + dy)}" text-anchor="${anchor}" font-size="26" fill="${C.muted}">${esc(truncate(e.label, 18))}</text>`;
+      const lines = wrapLabel(e.label);
+      const extra = (lines.length - 1) * LABEL_LEADING;
+      // Below the centre the block grows downward, above it upward, at the sides it is centred.
+      const first = p.y > CY + 1 ? p.y + 22 : p.y < CY - 1 ? p.y - extra : p.y + 9 - extra / 2;
+      const x = round(p.x);
+      const spans = lines
+        .map((line, li) => `<tspan x="${x}" ${li === 0 ? `y="${round(first)}"` : `dy="${LABEL_LEADING}"`}>${esc(line)}</tspan>`)
+        .join("");
+      return `<text class="label" text-anchor="${anchor}" font-size="${LABEL_SIZE}" fill="${C.muted}">${spans}</text>`;
     })
     .join("");
   return rings + spokes + polygon + dots + labels;
@@ -128,7 +170,7 @@ export function buildSummaryCard(stats: SummaryCardStats, labels: SummaryCardLab
     `<text x="780" y="290" text-anchor="middle" font-size="150" font-weight="700" fill="${C.accent}">${streak}</text>` +
     `<text x="780" y="350" text-anchor="middle" font-size="40" fill="${C.muted}">${esc(truncate(`${labels.streak} · ${labels.days}`, 30))}</text>` +
     `<g aria-label="${esc(labels.wheel)}">${wheelShape(entries)}</g>` +
-    `<text x="${CX}" y="1040" text-anchor="middle" font-size="30" fill="${C.muted}">${esc(BRAND)}</text>` +
+    `<text x="${CX}" y="1046" text-anchor="middle" font-size="28" fill="${C.muted}">${esc(BRAND)}</text>` +
     `</svg>`;
   return { svg };
 }

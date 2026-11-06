@@ -1,7 +1,10 @@
 import type { MetadataRoute } from "next";
 
-export const THEME_COLOR = "#2E933C";
-export const BACKGROUND_COLOR = "#F4FBF6";
+/** The dark background (--color-bg in src/styles/tokens.css; the app is dark by default). */
+export const THEME_COLOR = "#0e1a18";
+export const BACKGROUND_COLOR = THEME_COLOR;
+/** --color-bg of the light token variant, for the light `theme-color` meta. */
+export const THEME_COLOR_LIGHT = "#f3efe6";
 export const APPLE_TOUCH_ICON = "/icons/apple-touch-icon.png";
 
 /**

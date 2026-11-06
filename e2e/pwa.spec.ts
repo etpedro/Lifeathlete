@@ -3,6 +3,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import en from "../src/messages/en.json";
 import pt from "../src/messages/pt.json";
+import { BACKGROUND_COLOR, THEME_COLOR, THEME_COLOR_LIGHT } from "../src/app/manifest";
 import { PAGES_CACHE, PRECACHE_URLS, SHELL_CACHE } from "../src/lib/pwa/cache-rules";
 import { signUpAndOnboard } from "./helpers";
 
@@ -36,7 +37,10 @@ test("(a) the web app manifest is reachable, valid and linked", async ({ page, r
   await page.goto("/pt/login");
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/manifest.webmanifest");
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", "/icons/apple-touch-icon.png");
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#2E933C");
+  // Dark by default, with a light entry for systems in light mode (src/styles/tokens.css).
+  await expect(page.locator('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]')).toHaveAttribute("content", THEME_COLOR);
+  await expect(page.locator('meta[name="theme-color"][media="(prefers-color-scheme: light)"]')).toHaveAttribute("content", THEME_COLOR_LIGHT);
+  expect(manifest).toMatchObject({ theme_color: THEME_COLOR, background_color: BACKGROUND_COLOR });
 });
 
 test("(b) after a first visit to /pt/login the service worker activates and precaches the shell", async ({ page }) => {

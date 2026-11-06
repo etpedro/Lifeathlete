@@ -1,14 +1,77 @@
-.figure { margin: 0; display: grid; justify-items: center; gap: 0.5rem; text-align: center; }
-.svg { width: 9rem; height: 9rem; }
-.dim { filter: saturate(0.5); opacity: 0.85; }
-.normal { filter: saturate(1); }
-.bright { filter: saturate(1.35) drop-shadow(0 0 6px rgba(255, 214, 102, 0.9)); }
-.wing { transform-box: fill-box; transform-origin: 50% 100%; }
+/* The dragonfly: colors from the --mascot-* tokens; a soft glow keeps it readable on the
+   dark background (the light variant sets the glow to transparent). */
+.figure {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.svg {
+  width: 9rem;
+  height: 9rem;
+  overflow: visible;
+}
+.glow,
+.normal {
+  filter: drop-shadow(0 0 8px var(--mascot-glow));
+}
+.dim {
+  filter: saturate(0.55) drop-shadow(0 0 6px var(--mascot-glow));
+  opacity: 0.85;
+}
+.bright {
+  filter: saturate(1.2) drop-shadow(0 0 7px color-mix(in srgb, var(--color-accent-gold) 55%, transparent));
+}
+
+.body {
+  fill: var(--mascot-body);
+}
+.bodyLine {
+  stroke: var(--mascot-body);
+}
+.wingA {
+  fill: var(--mascot-wing-a);
+}
+.wingB {
+  fill: var(--mascot-wing-b);
+}
+.eye {
+  fill: var(--mascot-eye);
+}
+.eyeLine {
+  stroke: var(--mascot-eye);
+}
+.perch {
+  stroke: var(--mascot-perch);
+}
+.gold {
+  fill: var(--mascot-sparkle);
+}
+.halo {
+  stroke: var(--mascot-sparkle);
+}
+
+.wing {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
 @media (prefers-reduced-motion: no-preference) {
-  .flutter { animation: flutter 2.4s ease-in-out infinite; }
-  .flutter + .flutter { animation-delay: 0.3s; }
+  .flutter {
+    animation: flutter 2.4s ease-in-out infinite;
+  }
+  .flutter + .flutter {
+    animation-delay: 0.3s;
+  }
 }
 @keyframes flutter {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(4deg); }
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
 }

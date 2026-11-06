@@ -5,7 +5,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { routing } from "@/i18n/routing";
-import { APPLE_TOUCH_ICON, THEME_COLOR } from "../manifest";
+import { APPLE_TOUCH_ICON, THEME_COLOR, THEME_COLOR_LIGHT } from "../manifest";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
 
@@ -16,7 +16,14 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Lifeathlete", statusBarStyle: "default" },
 };
 
-export const viewport: Viewport = { themeColor: THEME_COLOR };
+/** Dark by default; the light entry matches the light token variant (src/styles/tokens.css). */
+export const viewport: Viewport = {
+  colorScheme: "dark light",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR_LIGHT },
+  ],
+};
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

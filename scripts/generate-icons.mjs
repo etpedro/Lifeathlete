@@ -11,19 +11,23 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "public", "icons");
 const PREINSTALLED = "/opt/pw-browsers/chromium";
 
-const BG = "#F4FBF6";
-const BODY = "#2E933C";
+// Dark tile (--color-bg) and the dark mascot tokens of src/styles/tokens.css.
+const BG = "#0e1a18";
+const BODY = "#7cc79b";
+const WING_A = "#8cc7e6";
+const WING_B = "#a99ce8";
+const EYE = "#0e1a18";
 
 /** The mark in a 120x120 box, centered on the dragonfly. */
 const mark = `
-  <ellipse cx="36" cy="46" rx="26" ry="10" fill="#5BC0EB" opacity="0.8" transform="rotate(-18 36 46)"/>
-  <ellipse cx="84" cy="46" rx="26" ry="10" fill="#5BC0EB" opacity="0.8" transform="rotate(18 84 46)"/>
-  <ellipse cx="38" cy="64" rx="22" ry="8" fill="#9B5DE5" opacity="0.7" transform="rotate(14 38 64)"/>
-  <ellipse cx="82" cy="64" rx="22" ry="8" fill="#9B5DE5" opacity="0.7" transform="rotate(-14 82 64)"/>
+  <ellipse cx="36" cy="46" rx="26" ry="10" fill="${WING_A}" opacity="0.85" transform="rotate(-18 36 46)"/>
+  <ellipse cx="84" cy="46" rx="26" ry="10" fill="${WING_A}" opacity="0.85" transform="rotate(18 84 46)"/>
+  <ellipse cx="38" cy="64" rx="22" ry="8" fill="${WING_B}" opacity="0.75" transform="rotate(14 38 64)"/>
+  <ellipse cx="82" cy="64" rx="22" ry="8" fill="${WING_B}" opacity="0.75" transform="rotate(-14 82 64)"/>
   <rect x="56" y="40" width="8" height="62" rx="4" fill="${BODY}"/>
   <circle cx="60" cy="34" r="9" fill="${BODY}"/>
-  <circle cx="56.5" cy="32.5" r="1.6" fill="#fff"/>
-  <circle cx="63.5" cy="32.5" r="1.6" fill="#fff"/>`;
+  <circle cx="56.5" cy="32.5" r="1.6" fill="${EYE}"/>
+  <circle cx="63.5" cy="32.5" r="1.6" fill="${EYE}"/>`;
 
 /**
  * `inset` is the fraction of the canvas the mark may use. Maskable icons keep the mark

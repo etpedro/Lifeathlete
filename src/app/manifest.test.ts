@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readPngSize } from "@/lib/pwa/png";
 import manifest from "./manifest";
-import { APPLE_TOUCH_ICON, THEME_COLOR } from "./manifest";
+import { APPLE_TOUCH_ICON, BACKGROUND_COLOR, THEME_COLOR, THEME_COLOR_LIGHT } from "./manifest";
 
 const PUBLIC = join(process.cwd(), "public");
 const file = (src: string) => join(PUBLIC, src.replace(/^\//, ""));
@@ -50,5 +50,22 @@ describe("web app manifest", () => {
 describe("readPngSize", () => {
   it("rejects non-PNG data", () => {
     expect(() => readPngSize(Buffer.from("not a png at all, definitely not"))).toThrow();
+  });
+});
+
+/** `--color-bg` of the dark (default) and the light variant in src/styles/tokens.css. */
+function tokenBackgrounds() {
+  const css = readFileSync(join(process.cwd(), "src/styles/tokens.css"), "utf8");
+  const at = css.indexOf("@media (prefers-color-scheme: light)");
+  const bg = (block: string) => /--color-bg:\s*(#[0-9a-fA-F]{6})/.exec(block)![1].toLowerCase();
+  return { dark: bg(css.slice(0, at)), light: bg(css.slice(at)) };
+}
+
+describe("theme colors follow the design tokens", () => {
+  it("manifest theme/background and the dark theme-color are the dark background; the light theme-color is the light background", () => {
+    const { dark, light } = tokenBackgrounds();
+    expect(THEME_COLOR).toBe(dark);
+    expect(BACKGROUND_COLOR).toBe(dark);
+    expect(THEME_COLOR_LIGHT).toBe(light);
   });
 });

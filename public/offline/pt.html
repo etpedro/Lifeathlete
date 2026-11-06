@@ -2,24 +2,130 @@
 <html lang="pt">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#2E933C">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0e1a18" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3efe6" media="(prefers-color-scheme: light)">
 <meta name="robots" content="noindex">
 <title>Sem ligação · Lifeathlete</title>
 <link rel="icon" href="/icons/icon-192.png">
 <style>
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, sans-serif; background: #F4FBF6; color: #1b1f23; }
-  main { max-width: 26rem; padding: 1.5rem; text-align: center; }
-  img { width: 96px; height: 96px; }
-  h1 { font-size: 1.5rem; margin: 1rem 0 0.5rem; }
-  p { line-height: 1.5; }
-  a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 1.25rem; border-radius: 0.5rem; background: #2E933C; color: #fff; text-decoration: none; font-weight: 600; }
-  a:focus-visible { outline: 3px solid #1d6fd8; outline-offset: 2px; }
+:root {
+  color-scheme: dark light;
+  --color-bg: #0e1a18;
+  --color-surface: #14231f;
+  --color-surface-raised: #1a2c28;
+  --color-surface-hover: #213531;
+  --color-input-bg: #101e1b;
+  --color-border: #263a35;
+  --color-border-strong: #62827a;
+  --color-track: #2a403a;
+  --color-text: #dfe9e3;
+  --color-text-muted: #9cb0a8;
+  --color-primary: #7cc79b;
+  --color-primary-hover: #93d4ad;
+  --color-on-primary: #0c1a15;
+  --color-primary-soft: #183229;
+  --color-secondary: #a9aee8;
+  --color-secondary-soft: #1d2440;
+  --color-accent-gold: #e2c072;
+  --color-on-gold: #2a2006;
+  --color-gold-soft: #2b2716;
+  --color-danger: #ec9a91;
+  --color-danger-soft: #34201f;
+  --color-success: #7cc79b;
+  --color-focus: #9cc6f2;
+  --color-selection: #2c4a5e;
+  --mascot-body: #7cc79b;
+  --mascot-wing-a: #8cc7e6;
+  --mascot-wing-b: #a99ce8;
+  --mascot-eye: #0e1a18;
+  --mascot-perch: #9c8466;
+  --mascot-sparkle: #e2c072;
+  --mascot-glow: rgba(140, 199, 230, 0.35);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-pill: 999px;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --leading: 1.5;
+  --leading-tight: 1.25;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: clamp(1.0625rem, 1rem + 0.25vw, 1.125rem);
+  --text-xl: clamp(1.25rem, 1.15rem + 0.45vw, 1.4rem);
+  --text-2xl: clamp(1.5rem, 1.3rem + 0.9vw, 1.875rem);
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --layout-content: 40rem;
+  --layout-narrow: 26rem;
+  --gutter: 1rem;
+  --touch-target: 44px;
+  --nav-height: 60px;
+  --nav-clearance: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+  --border-width: 1px;
+  --focus-ring: 3px solid var(--color-focus);
+  --duration: 160ms;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #f3efe6;
+    --color-surface: #faf7f0;
+    --color-surface-raised: #fffdf8;
+    --color-surface-hover: #efeadf;
+    --color-input-bg: #fffdf8;
+    --color-border: #e0d9cb;
+    --color-border-strong: #857f70;
+    --color-track: #e4ddcf;
+    --color-text: #1c2a26;
+    --color-text-muted: #4f5f59;
+    --color-primary: #2b6b4a;
+    --color-primary-hover: #235a3e;
+    --color-on-primary: #f8f5ee;
+    --color-primary-soft: #e3eee5;
+    --color-secondary: #4b52a6;
+    --color-secondary-soft: #e8e8f5;
+    --color-accent-gold: #7f5d0e;
+    --color-on-gold: #fffaf0;
+    --color-gold-soft: #f5ecd6;
+    --color-danger: #a3352c;
+    --color-danger-soft: #f7e6e1;
+    --color-success: #2b6b4a;
+    --color-focus: #2f5fb8;
+    --color-selection: #cfe0f5;
+    --mascot-body: #2f7a52;
+    --mascot-wing-a: #3d8fbf;
+    --mascot-wing-b: #7a62c9;
+    --mascot-eye: #fffdf8;
+    --mascot-perch: #8b6b4a;
+    --mascot-sparkle: #c99a2e;
+    --mascot-glow: rgba(61, 143, 191, 0);
+  }
+}
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--space-6) var(--gutter); font-family: var(--font-sans); line-height: var(--leading); background: var(--color-bg); color: var(--color-text); }
+  main { width: 100%; max-width: var(--layout-narrow); padding: var(--space-8) var(--space-6); text-align: center; display: grid; gap: var(--space-4); justify-items: center; background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-lg); }
+  img { width: 88px; height: 88px; border-radius: 22%; }
+  h1 { font-size: var(--text-2xl); font-weight: var(--weight-semibold); line-height: var(--leading-tight); margin: 0; }
+  p { margin: 0; color: var(--color-text-muted); }
+  a { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: var(--touch-target); padding: 0 var(--space-5); border-radius: var(--radius-md); background: var(--color-primary); color: var(--color-on-primary); text-decoration: none; font-weight: var(--weight-medium); }
+  a:hover { background: var(--color-primary-hover); }
+  a:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 </style>
 </head>
 <body>
 <main>
-<img src="/icons/icon-192.png" alt="" width="96" height="96">
+<img src="/icons/icon-192.png" alt="" width="88" height="88">
 <h1>Estás sem ligação</h1>
 <p>Não foi possível abrir esta página sem rede. Os registos que fizeres no ecrã Hoje ficam guardados e são enviados quando a ligação voltar.</p>
 <a href="/pt/today">Tentar novamente</a>

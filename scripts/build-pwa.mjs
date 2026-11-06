@@ -77,31 +77,53 @@ function serviceWorker() {
 
 const escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/** The design tokens (src/styles/tokens.css), inlined so the offline page makes no requests. */
+function tokens() {
+  return readFileSync(join(ROOT, "src", "styles", "tokens.css"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\n\s*\n/g, "\n")
+    .trim();
+}
+
+/** `--color-bg` of the dark (default) and light token variants, for the theme-color metas. */
+function themeColors(css) {
+  const at = css.indexOf("@media (prefers-color-scheme: light)");
+  const bg = (block) => /--color-bg:\s*(#[0-9a-fA-F]{6})/.exec(block)[1];
+  return { dark: bg(css.slice(0, at)), light: bg(css.slice(at)) };
+}
+
 function offlinePage(locale) {
   const { offline } = JSON.parse(readFileSync(join(ROOT, "src", "messages", `${locale}.json`), "utf8"));
   const t = (key) => escapeHtml(offline[key]);
+  const css = tokens();
+  const theme = themeColors(css);
   return `<!doctype html>
 <html lang="${locale}">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#2E933C">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="${theme.dark}" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="${theme.light}" media="(prefers-color-scheme: light)">
 <meta name="robots" content="noindex">
 <title>${t("title")}</title>
 <link rel="icon" href="/icons/icon-192.png">
 <style>
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, sans-serif; background: #F4FBF6; color: #1b1f23; }
-  main { max-width: 26rem; padding: 1.5rem; text-align: center; }
-  img { width: 96px; height: 96px; }
-  h1 { font-size: 1.5rem; margin: 1rem 0 0.5rem; }
-  p { line-height: 1.5; }
-  a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 1.25rem; border-radius: 0.5rem; background: #2E933C; color: #fff; text-decoration: none; font-weight: 600; }
-  a:focus-visible { outline: 3px solid #1d6fd8; outline-offset: 2px; }
+${css}
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--space-6) var(--gutter); font-family: var(--font-sans); line-height: var(--leading); background: var(--color-bg); color: var(--color-text); }
+  main { width: 100%; max-width: var(--layout-narrow); padding: var(--space-8) var(--space-6); text-align: center; display: grid; gap: var(--space-4); justify-items: center; background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-lg); }
+  img { width: 88px; height: 88px; border-radius: 22%; }
+  h1 { font-size: var(--text-2xl); font-weight: var(--weight-semibold); line-height: var(--leading-tight); margin: 0; }
+  p { margin: 0; color: var(--color-text-muted); }
+  a { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: var(--touch-target); padding: 0 var(--space-5); border-radius: var(--radius-md); background: var(--color-primary); color: var(--color-on-primary); text-decoration: none; font-weight: var(--weight-medium); }
+  a:hover { background: var(--color-primary-hover); }
+  a:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 </style>
 </head>
 <body>
 <main>
-<img src="/icons/icon-192.png" alt="" width="96" height="96">
+<img src="/icons/icon-192.png" alt="" width="88" height="88">
 <h1>${t("heading")}</h1>
 <p>${t("body")}</p>
 <a href="/${locale}/today">${t("retry")}</a>

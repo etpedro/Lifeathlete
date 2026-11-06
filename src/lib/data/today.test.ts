@@ -115,7 +115,7 @@ describe("getToday", () => {
 });
 
 describe("logHabit", () => {
-  const input = (over: Partial<{ userHabitId: string; date: string; value: number }> = {}) => ({
+  const input = (over: Partial<{ userHabitId: string; date: string; value: number; target: number | null }> = {}) => ({
     userHabitId: "h-read",
     userId: USER,
     date: TODAY,
@@ -135,6 +135,22 @@ describe("logHabit", () => {
       },
     ]);
     expect(MANUAL_SOURCE).toBe("manual");
+  });
+
+  it("snapshots the habit's target at log time on the row (check habits store 1)", async () => {
+    const fake = setup();
+    await logHabit(fake.db, input({ value: 15, target: 20 }), TODAY);
+    await logHabit(fake.db, input({ userHabitId: "h-workout", value: 1, target: 1 }), TODAY);
+    expect(fake.writes.map((w) => (w.payload as Row).target)).toEqual([20, 1]);
+    expect(fake.tables.habit_logs.find((r) => r.user_habit_id === "h-read" && r.date === TODAY)?.target).toBe(20);
+  });
+
+  it("stores a null snapshot when the habit has no valid target (0, negative, NaN)", async () => {
+    for (const target of [0, -5, Number.NaN, null]) {
+      const fake = setup();
+      await logHabit(fake.db, input({ target }), TODAY);
+      expect((fake.writes[0].payload as Row).target).toBeNull();
+    }
   });
 
   it("accepts today and up to backfillDays (2) days before today", async () => {

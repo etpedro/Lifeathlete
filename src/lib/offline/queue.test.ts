@@ -70,6 +70,15 @@ describe("flushQueue", () => {
     expect(await listQueued(store)).toEqual([]);
   });
 
+  it("keeps the habit's target snapshot of a queued item and sends it", async () => {
+    const fake = setup();
+    const store = createMemoryStore<QueueEntry>();
+    await enqueueLog({ ...item("h1", 7), target: 10 }, store);
+    expect((await listQueued(store))[0].target).toBe(10);
+    await flushQueue(fake.db, TODAY, USER, store);
+    expect((fake.writes[0].payload as Row).target).toBe(10);
+  });
+
   it("sends only the last value for a habit/day that was changed several times offline", async () => {
     const fake = setup();
     const store = createMemoryStore<QueueEntry>();

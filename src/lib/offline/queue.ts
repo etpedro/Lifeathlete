@@ -128,6 +128,7 @@ export async function enqueueLog(item: QueuedLog, store: KeyValueStore<QueueEntr
     userId: item.userId,
     date: item.date,
     value: item.value,
+    ...(item.target === undefined ? {} : { target: item.target }),
     seq: nextSeq(),
   };
   await store.set(queueKey(item.userHabitId, item.date), entry);

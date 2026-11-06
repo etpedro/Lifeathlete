@@ -60,9 +60,11 @@ async function findLive(db: Db, id: string): Promise<{ id: string; kind: HabitKi
   return row;
 }
 
+/** Updates the non-deleted habit `id`; an update that matched no row (archived meanwhile, RLS) is `not_found`. */
 async function updateLive(db: Db, id: string, patch: Record<string, unknown>, action: string): Promise<void> {
-  const { error } = await db.from("user_habits").update(patch).eq("id", id).is("deleted_at", null);
+  const { data, error } = await db.from("user_habits").update(patch).eq("id", id).is("deleted_at", null).select("id");
   if (error) throw failed(action, error);
+  if (((data ?? []) as unknown[]).length === 0) throw new HabitError("not_found", `Habit not found: ${id}`);
 }
 
 /**

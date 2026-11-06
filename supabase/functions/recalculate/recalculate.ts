@@ -33,6 +33,11 @@ export type LogInput = {
   /** Local calendar date (YYYY-MM-DD) in the user's timezone. */
   date: string;
   value: number;
+  /**
+   * The habit's target when the log was written (habit_logs.target, migration 0007).
+   * Null/absent for provider and legacy rows: the habit's current target is used then.
+   */
+  target?: number | null;
 };
 
 /** Everything the Db loads for one user. */
@@ -80,17 +85,22 @@ export interface Db {
   saveState(userId: string, state: UserState): Promise<void>;
 }
 
+const validTarget = (t: number | null | undefined): t is number =>
+  typeof t === "number" && Number.isFinite(t) && t > 0;
+
 /**
  * Progress ruling: check habit -> 1 when value > 0, else 0. Value habit ->
- * value / target; a target of 0, negative or missing counts as 1 when value > 0
- * (never divide by zero).
+ * value / target, where target is the log's own snapshot (the target when it was
+ * logged, so changing a habit's target never rewrites past days) and falls back to
+ * the habit's current target when the log has none; a target of 0, negative or
+ * missing counts as 1 when value > 0 (never divide by zero).
  */
-function progressOf(habit: HabitInput, value: number): number {
-  if (!(value > 0)) return 0;
+function progressOf(habit: HabitInput, log: LogInput): number {
+  if (!(log.value > 0)) return 0;
   if (habit.kind === "check") return 1;
-  const target = habit.target;
-  if (target === null || !Number.isFinite(target) || target <= 0) return 1;
-  return value / target;
+  const target = validTarget(log.target) ? log.target : habit.target;
+  if (!validTarget(target)) return 1;
+  return log.value / target;
 }
 
 function safeLocalDate(instant: string, timezone: string): string {
@@ -132,7 +142,7 @@ export function computeUserState(input: RecalcInput): UserState {
       habitId: l.habitId,
       pillarId: entry.habit.pillar,
       date: l.date,
-      progress: progressOf(entry.habit, l.value),
+      progress: progressOf(entry.habit, l),
     });
   }
 

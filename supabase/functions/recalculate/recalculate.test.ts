@@ -116,8 +116,14 @@ function habit(id: string, pillar: string, extra: Partial<HabitInput> = {}): Hab
   };
 }
 
-function log(habitId: string, date: string, value = 1): LogInput {
-  return { habitId, date, value };
+function log(habitId: string, date: string, value = 1, target?: number | null): LogInput {
+  return target === undefined ? { habitId, date, value } : { habitId, date, value, target };
+}
+
+/** `count` consecutive dates ending on `last` (inclusive), oldest first. */
+function daysEnding(last: string, count: number): string[] {
+  const end = Date.parse(`${last}T00:00:00Z`);
+  return Array.from({ length: count }, (_, i) => new Date(end - (count - 1 - i) * 86_400_000).toISOString().slice(0, 10));
 }
 
 const NOW = "2026-03-05T12:00:00Z"; // Thursday
@@ -398,6 +404,61 @@ describe("recalculateUser", () => {
       unlockedCodes: [],
     });
     expect(state.stats.xpTotal).toBe(4 * 40 + 30);
+  });
+
+  describe("target snapshot (changing a value habit's target keeps past history)", () => {
+    // 60 days of "meditate 10 min" logged at 10, Mon 2026-01-05 .. Thu 2026-03-05 (= today).
+    const days = daysEnding("2026-03-05", 60);
+    const run = (target: number, logTarget: number | null | undefined) =>
+      computeUserState({
+        now: NOW,
+        timezone: "UTC",
+        habits: [habit("h1", "meditation", { kind: "value", target })],
+        logs: days.map((d) => log("h1", d, 10, logTarget)),
+        achievements: [],
+        unlockedCodes: [],
+      }).stats;
+
+    it("60 days at target 10 -> XP 2070, level 5, streak 60/60", () => {
+      expect(run(10, 10)).toEqual({
+        xpTotal: 60 * 30 + 9 * 30,
+        level: 5,
+        currentStreak: 60,
+        bestStreak: 60,
+        lastActiveDate: "2026-03-05",
+      });
+      expect(run(10, 10).xpTotal).toBe(2070);
+    });
+
+    it("raising the habit's target to 15 afterwards does not rewrite the logged days", () => {
+      expect(run(15, 10)).toEqual(run(10, 10));
+    });
+
+    it("a log without a snapshot (legacy/provider row) falls back to the habit's current target", () => {
+      // the probe numbers of the bug: every day re-scored at 10/15
+      expect(run(15, null)).toEqual({ xpTotal: 690, level: 3, currentStreak: 0, bestStreak: 0, lastActiveDate: null });
+      expect(run(15, undefined)).toEqual(run(15, null));
+    });
+
+    it("an invalid snapshot (0, negative, NaN) falls back to the habit's target", () => {
+      expect(run(10, 0)).toEqual(run(10, 10));
+      expect(run(10, -3)).toEqual(run(10, 10));
+      expect(run(10, Number.NaN)).toEqual(run(10, 10));
+    });
+
+    it("lowering the target only helps logs made after the change", () => {
+      const state = computeUserState({
+        now: NOW,
+        timezone: "UTC",
+        habits: [habit("h1", "reading", { kind: "value", target: 5 })],
+        // Mar 4 logged 5 at target 10 (half), Mar 5 logged 5 at the new target 5 (done)
+        logs: [log("h1", "2026-03-04", 5, 10), log("h1", "2026-03-05", 5, 5)],
+        achievements: [],
+        unlockedCodes: [],
+      });
+      expect(state.stats.xpTotal).toBe(5 + 30);
+      expect(state.stats.currentStreak).toBe(1);
+    });
   });
 
   it("a failing saveState lets a retry converge to the correct state", async () => {

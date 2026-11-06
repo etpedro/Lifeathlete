@@ -188,7 +188,8 @@ export function useTodayController({ userId, timezone, today, initialData, initi
       // The day rolled over and the shown day moved (it was "today"): drop this tap so it
       // never lands on the previous day; the real today is reloaded and shown instead.
       if (checkDay()) return;
-      const input: LogInput = { userHabitId: habit.id, userId, date: dateRef.current, value };
+      // The habit's target travels with the log (snapshot): check habits carry 1.
+      const input: LogInput = { userHabitId: habit.id, userId, date: dateRef.current, value, target: habit.target };
       try {
         validateLog(input, todayIn(timezone));
       } catch (error) {

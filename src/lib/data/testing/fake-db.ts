@@ -159,8 +159,9 @@ export function createFakeDb(options: FakeDbOptions): FakeDb {
         case "select":
           return { data: matches().map((r) => embed(r, this.columns)), error: null };
         case "update": {
-          for (const r of matches()) Object.assign(r, this.payload);
-          return { data: null, error: null };
+          const updated = matches();
+          for (const r of updated) Object.assign(r, this.payload);
+          return { data: this.returning ? updated.map((r) => ({ ...r })) : null, error: null };
         }
         case "insert": {
           const incoming = (Array.isArray(this.payload) ? this.payload : [this.payload]).map((r) => ({

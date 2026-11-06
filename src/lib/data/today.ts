@@ -25,7 +25,23 @@ export type TodayHabit = {
 export type TodayPillar = { pillarId: string; slug: string; habits: TodayHabit[] };
 export type TodayData = { pillars: TodayPillar[] };
 
-export type LogInput = { userHabitId: string; userId: string; date: string; value: number };
+export type LogInput = {
+  userHabitId: string;
+  userId: string;
+  date: string;
+  value: number;
+  /**
+   * The habit's target when the user logged (stored on the row as `habit_logs.target`,
+   * so changing the habit's target later never rewrites past days). Check habits: 1.
+   * Absent on items queued before the snapshot existed: the column is then not sent.
+   */
+  target?: number | null;
+};
+
+/** The target snapshot stored on a log: a finite number > 0, else null (no target). */
+export function snapshotTarget(target: number | null | undefined): number | null {
+  return typeof target === "number" && Number.isFinite(target) && target > 0 ? target : null;
+}
 
 export type LogValidationCode = "invalid_date" | "future_date" | "outside_backfill" | "invalid_value";
 
@@ -130,6 +146,7 @@ export function validateLog(input: Pick<LogInput, "date" | "value">, today: stri
  * day and the last write wins. `source: "manual"` is sent explicitly so a tap turns a
  * provider-filled row into a manual one (ruling M; RLS rejects any other source).
  * Un-ticking is `value: 0` through the same upsert (the client has no DELETE).
+ * `target` is the habit's target at log time (see LogInput.target).
  * Does not trigger a recalculation: the caller schedules it (see recalc.ts).
  */
 export async function logHabit(db: Db, input: LogInput, today: string): Promise<void> {
@@ -141,6 +158,7 @@ export async function logHabit(db: Db, input: LogInput, today: string): Promise<
       date: input.date,
       value: input.value,
       source: MANUAL_SOURCE,
+      ...(input.target === undefined ? {} : { target: snapshotTarget(input.target) }),
     },
     { onConflict: "user_habit_id,date" },
   );

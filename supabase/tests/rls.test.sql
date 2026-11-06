@@ -157,6 +157,17 @@ begin
       where date = '2026-01-02'$f$),
     'A cannot re-point a log to B habit';
 
+  -- target snapshot (0007): the client writes the habit's target with the log; it must be > 0 or null
+  update public.habit_logs set target = 1 where date = '2026-01-02';
+  assert (select target from public.habit_logs where date = '2026-01-02') = 1, 'A stores a target snapshot';
+  update public.habit_logs set target = null where date = '2026-01-02';
+  get diagnostics n = row_count;
+  assert n = 1, 'a null snapshot is allowed (provider/legacy rows)';
+  assert pg_temp.fails($f$update public.habit_logs set target = 0 where date = '2026-01-02'$f$, '23514'),
+    'a zero target snapshot must violate the check';
+  assert pg_temp.fails($f$update public.habit_logs set target = -1 where date = '2026-01-02'$f$, '23514'),
+    'a negative target snapshot must violate the check';
+
   -- unique (user_habit_id, date)
   assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)
       values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', '2026-01-02', 1)$f$, '23505'),

@@ -61,9 +61,11 @@ function supabaseDb(admin: SupabaseClient): Db {
           .eq("user_id", userId).order("id").range(from, to)
       );
 
-      const logs = await selectAll<{ user_habit_id: string; date: string; value: number | string }>(
+      const logs = await selectAll<{
+        user_habit_id: string; date: string; value: number | string; target: number | string | null;
+      }>(
         (from, to) =>
-          admin.from("habit_logs").select("user_habit_id, date, value")
+          admin.from("habit_logs").select("user_habit_id, date, value, target")
             .eq("user_id", userId).order("id").range(from, to),
       );
 
@@ -86,7 +88,12 @@ function supabaseDb(admin: SupabaseClient): Db {
           createdAt: h.created_at,
           deletedAt: h.deleted_at,
         })),
-        logs: logs.map((l) => ({ habitId: l.user_habit_id, date: l.date, value: Number(l.value) })),
+        logs: logs.map((l) => ({
+          habitId: l.user_habit_id,
+          date: l.date,
+          value: Number(l.value),
+          target: l.target === null ? null : Number(l.target), // snapshot at log time (0007)
+        })),
         achievements,
         unlockedCodes: unlocked.flatMap((u) => (u.achievements ? [u.achievements.code] : [])),
       };

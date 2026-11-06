@@ -202,6 +202,36 @@ describe("setHabitActive", () => {
   });
 });
 
+describe("writes that match no row", () => {
+  /** The habit is archived by another tab between the existence check and the update. */
+  function archivedMidway(f: ReturnType<typeof setup>, id: string) {
+    const from = f.db.from.bind(f.db);
+    return {
+      ...f.db,
+      from: (table: string) => {
+        const q = from(table);
+        if (table !== "user_habits") return q;
+        const update = q.update.bind(q);
+        q.update = ((patch: Row) => {
+          row(f, id).deleted_at = "2026-11-06T10:00:00Z";
+          return update(patch);
+        }) as typeof q.update;
+        return q;
+      },
+    } as typeof f.db;
+  }
+
+  it("an update that affected 0 rows is not_found, not a silent success", async () => {
+    let f = setup();
+    expect(await codeOf(setHabitActive(archivedMidway(f, "h-walk"), "h-walk", false))).toBe("not_found");
+    f = setup();
+    expect(await codeOf(updateHabitTarget(archivedMidway(f, "h-walk"), "h-walk", 40))).toBe("not_found");
+    expect(row(f, "h-walk").target).toBe(30);
+    f = setup();
+    expect(await codeOf(archiveHabit(archivedMidway(f, "h-walk"), "h-walk"))).toBe("not_found");
+  });
+});
+
 describe("archiveHabit", () => {
   it("soft-deletes: deleted_at = now, active = false, row kept", async () => {
     const f = setup();

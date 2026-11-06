@@ -58,6 +58,40 @@ const PAIRS: [string, string, number][] = [
   ["color-secondary", "color-track", 3],
 ];
 
+/**
+ * The landing page's section surfaces and every gradient stop (hero sky, wheel glow, final
+ * call-to-action). Text over a gradient is between two stops, so it is checked on each stop.
+ */
+const LANDING_BACKGROUNDS = [
+  "landing-sky-top",
+  "landing-sky-bottom",
+  "landing-glow",
+  "landing-band",
+  "landing-cta-top",
+  "landing-cta-bottom",
+];
+/** Every text color the landing page puts on those surfaces. */
+const LANDING_TEXT = ["color-text", "color-text-muted", "color-primary", "color-secondary", "color-accent-gold"];
+/** The outlined secondary button's border and the focus ring on those surfaces: 3:1. */
+const LANDING_UI = ["color-border-strong", "color-focus", "color-primary"];
+
+describe.each(Object.entries(THEMES))("%s theme landing page", (_name, t) => {
+  it.each(LANDING_TEXT.flatMap((fg) => LANDING_BACKGROUNDS.map((bg) => [fg, bg] as const)))(
+    "text %s on %s is at least 4.5:1",
+    (fg, bg) => {
+      expect(t[bg], bg).toMatch(/^#[0-9a-f]{6}$/);
+      expect(contrast(t[fg], t[bg])).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  it.each(LANDING_UI.flatMap((fg) => LANDING_BACKGROUNDS.map((bg) => [fg, bg] as const)))(
+    "UI boundary %s on %s is at least 3:1",
+    (fg, bg) => {
+      expect(contrast(t[fg], t[bg])).toBeGreaterThanOrEqual(3);
+    },
+  );
+});
+
 describe.each(Object.entries(THEMES))("%s theme tokens", (_name, t) => {
   it("defines every color role as a hex value", () => {
     const needed = [...BACKGROUNDS, ...TEXT_ROLES, ...UI_ROLES, ...PAIRS.flatMap(([a, b]) => [a, b])];

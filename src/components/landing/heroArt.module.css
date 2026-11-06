@@ -1,0 +1,140 @@
+/* The hero illustration. Colors come from tokens; the motion is decorative and stops
+   entirely (animation: none) under prefers-reduced-motion. */
+.art {
+  position: relative;
+  width: min(100%, 20rem);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+.glow {
+  position: absolute;
+  inset: 8% 4% -2%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--landing-glow), transparent);
+}
+.wheel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.star {
+  fill: var(--landing-star);
+  opacity: 0.55;
+}
+.halo {
+  fill: none;
+  stroke: var(--landing-ring);
+  stroke-width: 1;
+  stroke-dasharray: 2 6;
+}
+.ring {
+  fill: none;
+  stroke: var(--landing-ring);
+  stroke-width: 1;
+}
+.axis {
+  stroke: var(--landing-ring);
+  stroke-width: 1;
+}
+.area {
+  fill: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.dot {
+  stroke: var(--color-bg);
+  stroke-width: 2;
+}
+.toneA {
+  fill: var(--color-primary);
+}
+.toneB {
+  fill: var(--mascot-wing-a);
+}
+.toneC {
+  fill: var(--color-secondary);
+}
+.toneD {
+  fill: var(--mascot-sparkle);
+}
+.bead {
+  fill: var(--landing-ring);
+}
+
+.float {
+  position: absolute;
+  top: -7%;
+  left: 50%;
+  width: 40%;
+  translate: -50% 0;
+}
+/* The Mascot draws at a fixed size and shows a caption; here it scales with the art and
+   its caption is visually hidden (the whole illustration is decorative). */
+.float svg {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.float figcaption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 52rem) {
+  .art {
+    width: min(100%, 28rem);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .float {
+    animation: float 7s ease-in-out infinite;
+  }
+  .glow {
+    animation: breathe 9s ease-in-out infinite;
+  }
+  .twinkle {
+    animation: twinkle 5s ease-in-out infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .float,
+  .glow,
+  .twinkle {
+    animation: none;
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}

@@ -366,5 +366,70 @@
     "heading": "You're offline",
     "body": "This page can't be opened without a connection. Check-ins you make on the Today screen are saved and sent when you're back online.",
     "retry": "Try again"
+  },
+  "landing": {
+    "meta": {
+      "title": "Lifeathlete · The life athlete",
+      "description": "Care for your 10 pillars, one day at a time: quick check-ins, XP, levels, streaks and medals, the Wheel of Life and a dragonfly that grows with you. Free, in Portuguese and English.",
+      "ogAlt": "Lifeathlete: the dragonfly over the Wheel of Life of the 10 pillars"
+    },
+    "hero": {
+      "eyebrow": "A habit app for a balanced life",
+      "title": "The life athlete",
+      "subtitle": "Care for your 10 pillars, one day at a time.",
+      "cta": "Sign in",
+      "more": "See how it works",
+      "note": "Free, and installable on your phone.",
+      "mascot": "Radiant dragonfly, stage 5 of 5"
+    },
+    "pillars": {
+      "title": "The 10 pillars",
+      "intro": "A balanced life rests on ten pillars. You choose the ones you want to care for, and every habit you complete strengthens one of them."
+    },
+    "how": {
+      "title": "How it works",
+      "intro": "Three simple steps, every day.",
+      "step": "Step {number}",
+      "checkin": {
+        "title": "Check in within seconds",
+        "body": "One tap marks a habit as done. You choose the habits for each pillar and adjust the goals whenever you like."
+      },
+      "progress": {
+        "title": "Earn XP, levels and streaks",
+        "body": "Every habit you complete earns XP. You level up, unlock medals, and your streak forgives one rest day a week."
+      },
+      "balance": {
+        "title": "Balance your wheel",
+        "body": "The Wheel of Life shows how your pillars are doing and which one is waiting for some care, with a gentle suggestion and no pressure."
+      }
+    },
+    "see": {
+      "title": "Take a look",
+      "intro": "Today for your daily check-ins, and the Wheel of Life to see your balance.",
+      "sample": "Real app screens, with sample data.",
+      "today": {
+        "caption": "Today",
+        "alt": "The Today screen: level 4, 1240 XP and a 12-day streak, with habits grouped by pillar, some done and some still to do."
+      },
+      "wheel": {
+        "caption": "Wheel of Life",
+        "alt": "The Wheel of Life screen: a radar chart of the 10 pillars' scores over the last 30 days and the list of pillars with their percentages."
+      }
+    },
+    "dragonfly": {
+      "title": "Your dragonfly",
+      "body": "It grows with you through five stages as you level up. If you take a break, it rests and waits for you: it never dies or sulks.",
+      "stages": "The dragonfly's five stages",
+      "stage": "Stage {stage}"
+    },
+    "final": {
+      "title": "Start today, at your own pace",
+      "body": "Pick the pillars you want to care for and make your first check-in.",
+      "cta": "Sign in"
+    },
+    "footer": {
+      "tagline": "Free, installable on your phone, in Portuguese and English.",
+      "language": "Language"
+    }
   }
 }

@@ -366,5 +366,70 @@
     "heading": "Estás sem ligação",
     "body": "Não foi possível abrir esta página sem rede. Os registos que fizeres no ecrã Hoje ficam guardados e são enviados quando a ligação voltar.",
     "retry": "Tentar novamente"
+  },
+  "landing": {
+    "meta": {
+      "title": "Lifeathlete · O atleta da vida",
+      "description": "Cuida dos teus 10 pilares, um dia de cada vez: check-ins rápidos, XP, níveis, sequências e medalhas, a Roda da Vida e uma libelinha que cresce contigo. Grátis, em português e inglês.",
+      "ogAlt": "Lifeathlete: a libelinha sobre a Roda da Vida dos 10 pilares"
+    },
+    "hero": {
+      "eyebrow": "Uma app de hábitos para uma vida equilibrada",
+      "title": "O atleta da vida",
+      "subtitle": "Cuida dos teus 10 pilares, um dia de cada vez.",
+      "cta": "Entrar",
+      "more": "Ver como funciona",
+      "note": "Grátis e instalável no telemóvel.",
+      "mascot": "Libelinha radiante, na fase 5 de 5"
+    },
+    "pillars": {
+      "title": "Os 10 pilares",
+      "intro": "Uma vida equilibrada assenta em dez pilares. Escolhes os que queres cuidar e cada hábito que cumpres fortalece um deles."
+    },
+    "how": {
+      "title": "Como funciona",
+      "intro": "Três passos simples, todos os dias.",
+      "step": "Passo {number}",
+      "checkin": {
+        "title": "Faz o check-in em segundos",
+        "body": "Um toque marca um hábito como feito. Tu escolhes os hábitos de cada pilar e ajustas as metas sempre que quiseres."
+      },
+      "progress": {
+        "title": "Ganha XP, níveis e sequências",
+        "body": "Cada hábito cumprido dá XP. Sobes de nível, desbloqueias medalhas e a tua sequência perdoa um dia de descanso por semana."
+      },
+      "balance": {
+        "title": "Equilibra a tua roda",
+        "body": "A Roda da Vida mostra como andam os teus pilares e qual está à espera de carinho, com uma sugestão gentil e sem pressão."
+      }
+    },
+    "see": {
+      "title": "Vê como é",
+      "intro": "O ecrã Hoje para os check-ins do dia e a Roda da Vida para veres o teu equilíbrio.",
+      "sample": "Ecrãs reais da app, com dados de exemplo.",
+      "today": {
+        "caption": "Hoje",
+        "alt": "Ecrã Hoje da app: nível 4, 1240 XP e 12 dias seguidos, com os hábitos agrupados por pilar, alguns feitos e outros por fazer."
+      },
+      "wheel": {
+        "caption": "Roda da Vida",
+        "alt": "Ecrã Roda da Vida: gráfico radar com a pontuação dos 10 pilares nos últimos 30 dias e a lista dos pilares com as percentagens."
+      }
+    },
+    "dragonfly": {
+      "title": "A tua libelinha",
+      "body": "Cresce contigo em cinco fases, à medida que sobes de nível. Se fizeres uma pausa, descansa e espera por ti: nunca morre nem fica amuada.",
+      "stages": "As cinco fases da libelinha",
+      "stage": "Fase {stage}"
+    },
+    "final": {
+      "title": "Começa hoje, ao teu ritmo",
+      "body": "Escolhe os pilares que queres cuidar e faz o teu primeiro check-in.",
+      "cta": "Entrar"
+    },
+    "footer": {
+      "tagline": "Grátis, instalável no telemóvel, em português e inglês.",
+      "language": "Idioma"
+    }
   }
 }

@@ -1,0 +1,33 @@
+/* Five stages in one row, on every width (they scale down on phones). */
+.stages {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+  max-width: 52rem;
+  margin: 0 auto;
+  align-items: end;
+}
+.stage {
+  display: grid;
+  justify-items: center;
+}
+/* The Mascot draws at a fixed size; here each stage scales with its column. */
+.stage svg {
+  width: 100%;
+  max-width: 8.5rem;
+  height: auto;
+  aspect-ratio: 1;
+}
+.stage figcaption {
+  font-size: var(--text-xs);
+}
+@media (min-width: 40rem) {
+  .stages {
+    gap: var(--space-6);
+  }
+  .stage figcaption {
+    font-size: var(--text-sm);
+  }
+}

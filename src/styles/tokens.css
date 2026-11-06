@@ -50,6 +50,21 @@
   --mascot-sparkle: #e2c072;
   --mascot-glow: rgba(140, 199, 230, 0.35);
 
+  /* Landing page (the public front page): a more scenic night. Text sits on every one of
+     these surfaces and gradient stops, so contrast.test.ts checks text against each. */
+  --landing-sky-top: #070f0e;
+  --landing-sky-bottom: #0e1a18;
+  --landing-glow: #15312d;
+  --landing-band: #112019;
+  --landing-cta-top: #142b2b;
+  --landing-cta-bottom: #0e1a18;
+  /* Decorative only (never behind text) */
+  --landing-ring: #2f4a44;
+  --landing-star: #dfe9e3;
+  --landing-phone-frame: #050b0a;
+  --landing-phone-edge: #31453f;
+  --landing-shadow: rgba(0, 0, 0, 0.55);
+
   /* Spacing scale */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -129,5 +144,17 @@
     /* Decorative only (not text): a warmer gold than --color-accent-gold reads as light. */
     --mascot-sparkle: #c99a2e;
     --mascot-glow: rgba(61, 143, 191, 0);
+
+    --landing-sky-top: #e4ebe3;
+    --landing-sky-bottom: #f3efe6;
+    --landing-glow: #d6e7dc;
+    --landing-band: #ece6d8;
+    --landing-cta-top: #dfeadf;
+    --landing-cta-bottom: #f3efe6;
+    --landing-ring: #c9d3c8;
+    --landing-star: #c99a2e;
+    --landing-phone-frame: #16211e;
+    --landing-phone-edge: #4f5f59;
+    --landing-shadow: rgba(28, 42, 38, 0.28);
   }
 }

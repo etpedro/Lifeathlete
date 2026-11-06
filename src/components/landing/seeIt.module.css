@@ -1,0 +1,71 @@
+/* Two phone frames: side by side on desktop, overlapping (the second lower) on phones. */
+.phones {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-bottom: var(--space-8);
+}
+.figure {
+  margin: 0;
+  width: min(48%, 17.5rem);
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+}
+.figure + .figure {
+  margin-left: -4%;
+  margin-top: var(--space-10);
+  position: relative;
+}
+.phone {
+  position: relative;
+  width: 100%;
+  padding: 3.2%;
+  border-radius: 13% / 6%;
+  background: var(--landing-phone-frame);
+  box-shadow:
+    0 0 0 1px var(--landing-phone-edge),
+    0 30px 60px -24px var(--landing-shadow);
+}
+.phone::before {
+  content: "";
+  position: absolute;
+  top: 2.4%;
+  left: 50%;
+  translate: -50% 0;
+  width: 28%;
+  height: 2.2%;
+  border-radius: var(--radius-pill);
+  background: var(--landing-phone-frame);
+  z-index: 1;
+}
+.screen {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10.5% / 4.9%;
+  background: var(--color-bg);
+}
+.caption {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+.sample {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 48rem) {
+  .phones {
+    gap: clamp(2rem, 1rem + 4vw, 5rem);
+  }
+  .figure {
+    width: 17.5rem;
+  }
+  .figure + .figure {
+    margin-left: 0;
+    margin-top: var(--space-10);
+  }
+}

@@ -1,0 +1,28 @@
+/* Layout shared by the landing sections: a centered column and a heading block. */
+.section {
+  padding: clamp(3.5rem, 2.5rem + 5vw, 6.5rem) var(--gutter);
+}
+.band {
+  background: var(--landing-band);
+}
+.inner {
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+.head {
+  max-width: 40rem;
+  margin: 0 auto clamp(2rem, 1.5rem + 2vw, 3.25rem);
+  text-align: center;
+  display: grid;
+  gap: var(--space-3);
+}
+.title {
+  font-size: clamp(1.75rem, 1.35rem + 1.8vw, 2.5rem);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+}
+.lead {
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}

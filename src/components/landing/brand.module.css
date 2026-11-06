@@ -1,0 +1,33 @@
+/* The page header: the product name with the dragonfly mark. */
+.header {
+  padding: var(--space-5) var(--gutter) 0;
+}
+.inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.name {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+.mark {
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+}
+.wingA {
+  fill: var(--mascot-wing-a);
+  opacity: 0.85;
+}
+.wingB {
+  fill: var(--mascot-wing-b);
+  opacity: 0.75;
+}
+.body {
+  fill: var(--mascot-body);
+}

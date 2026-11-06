@@ -1,0 +1,102 @@
+/* The pillars grid: 1 column on small phones, then 2 and 5 (10 items: no orphan row). Cards are plain text;
+   the hover highlight is decorative. */
+.grid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 1fr;
+}
+/* Phones: compact rows (icon left, text right). From 30rem: cards with the icon on top. */
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-4);
+  row-gap: var(--space-1);
+  align-content: start;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  transition:
+    border-color var(--duration) ease,
+    background-color var(--duration) ease,
+    transform var(--duration) ease;
+}
+.card:hover {
+  border-color: var(--tone);
+  background: var(--color-surface-raised);
+  transform: translateY(-2px);
+}
+.primary {
+  --tone: var(--color-primary);
+  --tone-soft: var(--color-primary-soft);
+}
+.secondary {
+  --tone: var(--color-secondary);
+  --tone-soft: var(--color-secondary-soft);
+}
+.gold {
+  --tone: var(--color-accent-gold);
+  --tone-soft: var(--color-gold-soft);
+}
+.badge {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--tone-soft);
+  color: var(--tone);
+  grid-row: span 2;
+}
+.icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.number {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+.name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  padding-right: var(--space-6);
+}
+.description {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 30rem) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .card {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-2);
+    padding: var(--space-5);
+  }
+  .badge {
+    grid-row: auto;
+    margin-bottom: var(--space-1);
+  }
+  .number {
+    top: var(--space-5);
+    right: var(--space-5);
+  }
+  .name {
+    padding-right: 0;
+  }
+}
+@media (min-width: 66rem) {
+  .grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}

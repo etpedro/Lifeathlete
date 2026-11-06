@@ -1,0 +1,157 @@
+/* Profile / habit management. Touch targets are at least 44px; focus is always visible. */
+.screen {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.button,
+.input,
+.select {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #c7ccd1;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+.button {
+  cursor: pointer;
+}
+
+.button:focus-visible,
+.input:focus-visible,
+.select:focus-visible,
+.link:focus-visible,
+.radio:focus-visible,
+.switch:focus-visible {
+  outline: 3px solid #1d6fd8;
+  outline-offset: 2px;
+}
+
+.danger {
+  border-color: #b3261e;
+  color: #b3261e;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #1d6fd8;
+}
+
+.linkList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pillar {
+  border: 1px solid #e1e4e8;
+  border-radius: 0.75rem;
+  padding: 0.25rem 0.75rem 0.75rem;
+}
+
+.pillarHeading {
+  font-size: 1.05rem;
+  margin: 0.5rem 0;
+}
+
+.habits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.habit {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #eef0f2;
+}
+
+.habit:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grow {
+  flex: 1 1 8rem;
+}
+
+.switch {
+  composes: button;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.switch[aria-checked="true"] {
+  background: #e3f4e8;
+  border-color: #2e8b57;
+}
+
+.badge {
+  font-size: 0.8rem;
+  color: #57606a;
+}
+
+.paused {
+  opacity: 0.8;
+}
+
+.form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.radioLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+
+.radio {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.error {
+  margin: 0;
+  color: #b3261e;
+}
+
+.status {
+  margin: 0;
+  color: #1e6b3f;
+}

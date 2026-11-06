@@ -71,11 +71,19 @@ export function createFakeDb(options: FakeDbOptions): FakeDb {
     private columns = "*";
     private payload: Row | Row[] = {};
     private conflict: string[] = [];
+    private returning = false; // `.select()` chained after a write returns the written rows
+    private wantSingle = false;
 
     constructor(private readonly table: string) {}
 
     select(columns = "*") {
       this.columns = columns;
+      if (this.op !== "select") this.returning = true;
+      return this;
+    }
+    /** Exactly one row, like PostgREST `.single()`. */
+    single() {
+      this.wantSingle = true;
       return this;
     }
     insert(rows: Row | Row[]) {
@@ -132,7 +140,15 @@ export function createFakeDb(options: FakeDbOptions): FakeDb {
       }
       const failure = takeFailure(this.table, this.op);
       if (failure) return { data: null, ...failure };
-      return { status: this.op === "select" ? 200 : 201, ...this.exec() };
+      const result = this.exec();
+      if (this.wantSingle && result.data !== null && !result.error) {
+        const list = result.data as Row[];
+        if (list.length !== 1) {
+          return { data: null, error: { code: "PGRST116", message: "expected a single row" }, status: 406 };
+        }
+        result.data = list[0];
+      }
+      return { status: this.op === "select" ? 200 : 201, ...result };
     }
 
     private exec(): { data: unknown; error: DbError | null } {
@@ -161,7 +177,7 @@ export function createFakeDb(options: FakeDbOptions): FakeDb {
             all.push(r);
           }
           rows.push(...incoming); // all-or-nothing, like a single INSERT statement
-          return { data: null, error: null };
+          return { data: this.returning ? incoming.map((r) => ({ ...r })) : null, error: null };
         }
         case "upsert": {
           for (const r of Array.isArray(this.payload) ? this.payload : [this.payload]) {

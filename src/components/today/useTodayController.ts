@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { createRecalcScheduler, RECALC_DELAY_MS, recalculateVia, type RecalcScheduler } from "@/lib/data/recalc";
+import { createDefaultRecalcScheduler, type RecalcScheduler } from "@/lib/data/recalc";
 import {
   getHeaderStats,
   getToday,
@@ -68,7 +68,7 @@ export function useTodayController({ userId, timezone, today, initialData, initi
 
   const db = useCallback(() => (dbRef.current ??= createClient()), []);
   const scheduler = useCallback(
-    () => (schedulerRef.current ??= createRecalcScheduler(recalculateVia(db()), RECALC_DELAY_MS)),
+    () => (schedulerRef.current ??= createDefaultRecalcScheduler(db())),
     [db],
   );
 

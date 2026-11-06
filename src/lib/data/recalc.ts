@@ -81,3 +81,8 @@ export function recalculateVia(db: Db): () => Promise<void> {
     if (error) throw error;
   };
 }
+
+/** The shared debounced recalculation for UI controllers (Today, habit management). */
+export function createDefaultRecalcScheduler(db: Db): RecalcScheduler {
+  return createRecalcScheduler(recalculateVia(db), RECALC_DELAY_MS);
+}

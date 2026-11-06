@@ -132,7 +132,55 @@
     "title": "Conquistas"
   },
   "profile": {
-    "title": "Perfil"
+    "title": "Perfil",
+    "links": {
+      "habits": "Gerir hábitos"
+    },
+    "habits": {
+      "title": "Gerir hábitos",
+      "back": "Voltar ao perfil",
+      "intro": "Pausa, ajusta a meta ou arquiva hábitos. O histórico e as sequências são sempre mantidos.",
+      "empty": "Ainda não tens hábitos. Adiciona o primeiro abaixo.",
+      "load": "Não foi possível carregar os teus hábitos. Tenta novamente.",
+      "active": "Ativo",
+      "paused": "Em pausa",
+      "toggleLabel": "Ativar {title}",
+      "fromTemplate": "Sugerido",
+      "custom": "Personalizado",
+      "kindCheck": "Fazer / não fazer",
+      "kindValue": "Quantidade",
+      "targetLabel": "Meta de {title}",
+      "saveTarget": "Guardar meta",
+      "targetSaved": "Meta guardada.",
+      "activated": "Hábito ativado.",
+      "paused_done": "Hábito em pausa.",
+      "archive": "Arquivar",
+      "archiveLabel": "Arquivar {title}",
+      "archiveConfirm": "Arquivar “{title}”? Deixa de aparecer em Hoje, mas o histórico e as sequências são mantidos.",
+      "archiveYes": "Sim, arquivar",
+      "archiveCancel": "Cancelar",
+      "archived": "Hábito arquivado."
+    },
+    "add": {
+      "title": "Adicionar hábito personalizado",
+      "pillar": "Pilar",
+      "pillarPlaceholder": "Escolhe um pilar",
+      "titleLabel": "Nome do hábito",
+      "kind": "Tipo",
+      "kindCheck": "Fazer / não fazer",
+      "kindValue": "Quantidade",
+      "target": "Meta diária",
+      "submit": "Adicionar hábito",
+      "added": "Hábito adicionado."
+    },
+    "errors": {
+      "invalidTitle": "O nome tem de ter entre 1 e 80 caracteres.",
+      "invalidTarget": "A meta tem de ser um número maior que 0.",
+      "invalidKind": "Tipo de hábito inválido.",
+      "notFound": "Este hábito já não existe. Atualiza a página.",
+      "pillarRequired": "Escolhe um pilar.",
+      "save": "Não foi possível guardar. Tenta novamente."
+    }
   },
   "pillars": {
     "exercise": {

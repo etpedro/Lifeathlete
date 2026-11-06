@@ -132,7 +132,55 @@
     "title": "Achievements"
   },
   "profile": {
-    "title": "Profile"
+    "title": "Profile",
+    "links": {
+      "habits": "Manage habits"
+    },
+    "habits": {
+      "title": "Manage habits",
+      "back": "Back to profile",
+      "intro": "Pause, adjust the target or archive habits. History and streaks are always kept.",
+      "empty": "You have no habits yet. Add your first one below.",
+      "load": "We couldn't load your habits. Please try again.",
+      "active": "Active",
+      "paused": "Paused",
+      "toggleLabel": "Enable {title}",
+      "fromTemplate": "Suggested",
+      "custom": "Custom",
+      "kindCheck": "Done / not done",
+      "kindValue": "Amount",
+      "targetLabel": "Target for {title}",
+      "saveTarget": "Save target",
+      "targetSaved": "Target saved.",
+      "activated": "Habit enabled.",
+      "paused_done": "Habit paused.",
+      "archive": "Archive",
+      "archiveLabel": "Archive {title}",
+      "archiveConfirm": "Archive “{title}”? It will no longer appear in Today, but its history and streaks are kept.",
+      "archiveYes": "Yes, archive",
+      "archiveCancel": "Cancel",
+      "archived": "Habit archived."
+    },
+    "add": {
+      "title": "Add a custom habit",
+      "pillar": "Pillar",
+      "pillarPlaceholder": "Choose a pillar",
+      "titleLabel": "Habit name",
+      "kind": "Type",
+      "kindCheck": "Done / not done",
+      "kindValue": "Amount",
+      "target": "Daily target",
+      "submit": "Add habit",
+      "added": "Habit added."
+    },
+    "errors": {
+      "invalidTitle": "The name must be 1 to 80 characters.",
+      "invalidTarget": "The target must be a number greater than 0.",
+      "invalidKind": "Invalid habit type.",
+      "notFound": "This habit no longer exists. Refresh the page.",
+      "pillarRequired": "Choose a pillar.",
+      "save": "We couldn't save. Please try again."
+    }
   },
   "pillars": {
     "exercise": {

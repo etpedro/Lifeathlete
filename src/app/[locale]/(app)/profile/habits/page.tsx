@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { HabitManager } from "@/components/profile/HabitManager";
 import { listManageableHabits, listPillars, type ManageablePillar, type PillarOption } from "@/lib/data/habits";
+import { DEFAULT_TIMEZONE, getProfileTimezone } from "@/lib/data/today";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -18,9 +19,10 @@ export default async function HabitsPage({ params }: { params: Promise<{ locale:
   } = await db.auth.getUser();
   if (!user) redirect(`/${locale}/login`); // the (app) layout already guards; defensive
 
-  const [initial, pillarOptions] = await Promise.all([
+  const [initial, pillarOptions, timezone] = await Promise.all([
     listManageableHabits(db).catch((): ManageablePillar[] | null => null),
     listPillars(db).catch((): PillarOption[] => []),
+    getProfileTimezone(db, user.id).catch(() => DEFAULT_TIMEZONE),
   ]);
-  return <HabitManager userId={user.id} initial={initial} pillarOptions={pillarOptions} />;
+  return <HabitManager userId={user.id} timezone={timezone} initial={initial} pillarOptions={pillarOptions} />;
 }

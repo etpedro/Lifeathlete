@@ -180,25 +180,66 @@ describe("setHabitActive", () => {
     const ids = async () => (await getToday(f.db, TODAY)).pillars.flatMap((p) => p.habits.map((h) => h.id));
     expect(await ids()).toContain("h-walk");
     const logsBefore = f.tables.habit_logs.length;
-    await setHabitActive(f.db, "h-walk", false);
+    await setHabitActive(f.db, "h-walk", false, TODAY);
     expect(row(f, "h-walk").active).toBe(false);
     expect(await ids()).not.toContain("h-walk");
     expect(f.tables.habit_logs).toHaveLength(logsBefore);
-    await setHabitActive(f.db, "h-walk", true);
+    await setHabitActive(f.db, "h-walk", true, TODAY);
     expect(await ids()).toContain("h-walk");
+  });
+
+  it("pausing opens a pause interval from the local today; resuming closes it on that day", async () => {
+    const f = setup();
+    await setHabitActive(f.db, "h-walk", false, "2026-11-02");
+    expect(row(f, "h-walk").pauses).toEqual([{ from: "2026-11-02", to: null }]);
+    await setHabitActive(f.db, "h-walk", true, "2026-11-05");
+    expect(row(f, "h-walk")).toMatchObject({ active: true, pauses: [{ from: "2026-11-02", to: "2026-11-05" }] });
+    await setHabitActive(f.db, "h-walk", false, TODAY);
+    expect(row(f, "h-walk").pauses).toEqual([
+      { from: "2026-11-02", to: "2026-11-05" },
+      { from: TODAY, to: null },
+    ]);
+  });
+
+  it("is idempotent: pausing a paused habit keeps one open interval, resuming an active one adds nothing", async () => {
+    const f = setup();
+    await setHabitActive(f.db, "h-walk", false, "2026-11-04");
+    await setHabitActive(f.db, "h-walk", false, TODAY);
+    expect(row(f, "h-walk").pauses).toEqual([{ from: "2026-11-04", to: null }]);
+    await setHabitActive(f.db, "h-read", true, TODAY);
+    expect(row(f, "h-read").pauses ?? []).toEqual([]);
+  });
+
+  it("a pause resumed on the same day leaves no interval (no day was paused)", async () => {
+    const f = setup();
+    await setHabitActive(f.db, "h-walk", false, TODAY);
+    await setHabitActive(f.db, "h-walk", true, TODAY);
+    expect(row(f, "h-walk").pauses).toEqual([]);
+  });
+
+  it("resuming a habit paused before intervals existed (no open interval) just activates it", async () => {
+    const f = setup();
+    await setHabitActive(f.db, "h-paused", true, TODAY);
+    expect(row(f, "h-paused")).toMatchObject({ active: true, pauses: [] });
+  });
+
+  it("rejects a malformed today before writing", async () => {
+    const f = setup();
+    expect(await codeOf(setHabitActive(f.db, "h-walk", false, "nope"))).toBe("save_failed");
+    expect(f.writes).toEqual([]);
   });
 
   it("works on a paused habit and does not touch deleted_at", async () => {
     const f = setup();
-    await setHabitActive(f.db, "h-paused", true);
+    await setHabitActive(f.db, "h-paused", true, TODAY);
     expect(row(f, "h-paused")).toMatchObject({ active: true, deleted_at: null });
   });
 
   it("does not touch an archived habit: not_found", async () => {
     const f = setup();
-    expect(await codeOf(setHabitActive(f.db, "h-archived", true))).toBe("not_found");
+    expect(await codeOf(setHabitActive(f.db, "h-archived", true, TODAY))).toBe("not_found");
     expect(row(f, "h-archived").active).toBe(true); // unchanged fixture value
-    expect(await codeOf(setHabitActive(f.db, "nope", false))).toBe("not_found");
+    expect(await codeOf(setHabitActive(f.db, "nope", false, TODAY))).toBe("not_found");
   });
 });
 
@@ -223,7 +264,7 @@ describe("writes that match no row", () => {
 
   it("an update that affected 0 rows is not_found, not a silent success", async () => {
     let f = setup();
-    expect(await codeOf(setHabitActive(archivedMidway(f, "h-walk"), "h-walk", false))).toBe("not_found");
+    expect(await codeOf(setHabitActive(archivedMidway(f, "h-walk"), "h-walk", false, TODAY))).toBe("not_found");
     f = setup();
     expect(await codeOf(updateHabitTarget(archivedMidway(f, "h-walk"), "h-walk", 40))).toBe("not_found");
     expect(row(f, "h-walk").target).toBe(30);

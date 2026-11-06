@@ -8,14 +8,20 @@ import { HabitItem } from "./HabitItem";
 import styles from "./profile.module.css";
 import { useHabitManager } from "./useHabitManager";
 
-type Props = { userId: string; initial: ManageablePillar[] | null; pillarOptions: PillarOption[] };
+type Props = {
+  userId: string;
+  /** The user's IANA timezone (pause intervals are recorded in their local day). */
+  timezone: string;
+  initial: ManageablePillar[] | null;
+  pillarOptions: PillarOption[];
+};
 
 /** Habit management (spec §5 Perfil): habits by pillar plus the "add custom habit" form. */
-export function HabitManager({ userId, initial, pillarOptions }: Props) {
+export function HabitManager({ userId, timezone, initial, pillarOptions }: Props) {
   const t = useTranslations("profile");
   const tCommon = useTranslations("common");
   const tPillars = useTranslations("pillars");
-  const m = useHabitManager(userId, initial);
+  const m = useHabitManager(userId, timezone, initial);
   const pillarName = (slug: string) => (tPillars.has(`${slug}.name`) ? tPillars(`${slug}.name`) : slug);
 
   return (

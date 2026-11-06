@@ -406,6 +406,56 @@ describe("recalculateUser", () => {
     expect(state.stats.xpTotal).toBe(4 * 40 + 30);
   });
 
+  describe("paused habits (pause intervals) do not block the bonuses on paused days", () => {
+    const xp = (habits: HabitInput[], logs: LogInput[]) =>
+      computeUserState({ now: NOW, timezone: "UTC", habits, logs, achievements: [], unlockedCodes: [] }).stats.xpTotal;
+    const paused = (from: string, to: string | null = null, extra: Partial<HabitInput> = {}) =>
+      habit("h2", "reading", { active: to !== null, pauses: [{ from, to }], ...extra });
+
+    it("h1 active, h2 paused: completing h1 today earns the day-complete bonus (30, not 10)", () => {
+      expect(xp([habit("h1", "exercise"), paused("2026-03-01")], [log("h1", "2026-03-05")])).toBe(30);
+    });
+
+    it("days before the pause stay exactly as they were", () => {
+      const habits = [habit("h1", "exercise"), paused("2026-03-05")];
+      expect(xp(habits, [log("h1", "2026-03-04")])).toBe(10); // h2 was still active on Mar 4
+      expect(xp(habits, [log("h1", "2026-03-04"), log("h1", "2026-03-05")])).toBe(10 + 30);
+    });
+
+    it("resuming makes the habit count again from the resume day", () => {
+      const habits = [habit("h1", "exercise"), paused("2026-03-02", "2026-03-04")];
+      const days = ["2026-03-02", "2026-03-03", "2026-03-04"].map((d) => log("h1", d));
+      expect(xp(habits, days)).toBe(30 + 30 + 10);
+    });
+
+    it("a habit paused and then archived", () => {
+      const habits = [
+        habit("h1", "exercise"),
+        paused("2026-03-02", null, { deletedAt: "2026-03-04T10:00:00Z" }),
+      ];
+      const days = ["2026-03-01", "2026-03-02", "2026-03-04"].map((d) => log("h1", d));
+      expect(xp(habits, days)).toBe(10 + 30 + 30);
+    });
+
+    it("a habit paused before pause intervals existed (active false, no interval) is paused from today only", () => {
+      const habits = [habit("h1", "exercise"), habit("h2", "reading", { active: false })];
+      expect(xp(habits, [log("h1", "2026-03-04"), log("h1", "2026-03-05")])).toBe(10 + 30);
+    });
+
+    it("weekly bonus: 4 days on h1 while the other pillar is paused all week earns the +30", () => {
+      // Week Mon 2026-02-23..Sun 2026-03-01; reading paused from the Friday before until Mar 2.
+      const days = ["2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26"].map((d) => log("h1", d));
+      expect(xp([habit("h1", "exercise"), paused("2026-02-20", "2026-03-02")], days)).toBe(4 * 30 + 30);
+      // without the pause the reading pillar is required and missing: no weekly bonus, no day bonus
+      expect(xp([habit("h1", "exercise"), habit("h2", "reading")], days)).toBe(4 * 10);
+    });
+
+    it("ignores malformed pause entries", () => {
+      const bad = habit("h2", "reading", { pauses: [{ from: "nope", to: null }, null, 7] as never });
+      expect(xp([habit("h1", "exercise"), bad], [log("h1", "2026-03-05")])).toBe(10);
+    });
+  });
+
   describe("target snapshot (changing a value habit's target keeps past history)", () => {
     // 60 days of "meditate 10 min" logged at 10, Mon 2026-01-05 .. Thu 2026-03-05 (= today).
     const days = daysEnding("2026-03-05", 60);

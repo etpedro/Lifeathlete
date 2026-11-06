@@ -36,6 +36,16 @@ exception when others then
 end $$;
 grant execute on function pg_temp.fails(text, text) to public;
 
+-- ---------- safe_local_date (0008): invalid or missing timezone falls back to UTC ----------
+do $$
+begin
+  assert public.safe_local_date('UTC') = (now() at time zone 'UTC')::date, 'UTC local date';
+  assert public.safe_local_date('Pacific/Kiritimati') = (now() at time zone 'Pacific/Kiritimati')::date, 'named zone';
+  assert public.safe_local_date('Not/AZone') = (now() at time zone 'UTC')::date, 'invalid zone -> UTC';
+  assert public.safe_local_date(null) = (now() at time zone 'UTC')::date, 'null zone -> UTC';
+  assert public.safe_local_date('') = (now() at time zone 'UTC')::date, 'empty zone -> UTC';
+end $$;
+
 -- ---------- catalog / seed (superuser) ----------
 do $$
 declare bad int;
@@ -167,6 +177,17 @@ begin
     'a zero target snapshot must violate the check';
   assert pg_temp.fails($f$update public.habit_logs set target = -1 where date = '2026-01-02'$f$, '23514'),
     'a negative target snapshot must violate the check';
+
+  -- pause intervals (0008): a jsonb array, default empty, written by the client with `active`
+  assert (select pauses from public.user_habits where id = 'a1a1a1a1-0000-0000-0000-000000000001') = '[]'::jsonb,
+    'pauses defaults to an empty array';
+  update public.user_habits set active = false, pauses = '[{"from":"2026-01-03","to":null}]'
+   where id = 'a1a1a1a1-0000-0000-0000-000000000001';
+  get diagnostics n = row_count;
+  assert n = 1, 'A can record a pause interval';
+  update public.user_habits set active = true, pauses = '[]' where id = 'a1a1a1a1-0000-0000-0000-000000000001';
+  assert pg_temp.fails($f$update public.user_habits set pauses = '{}' where id = 'a1a1a1a1-0000-0000-0000-000000000001'$f$, '23514'),
+    'pauses must be a json array';
 
   -- unique (user_habit_id, date)
   assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)

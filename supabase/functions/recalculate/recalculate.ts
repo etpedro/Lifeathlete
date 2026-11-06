@@ -26,7 +26,14 @@ export type HabitInput = {
   createdAt: string;
   /** ISO instant (timestamptz) of the soft delete, or null. */
   deletedAt: string | null;
+  /**
+   * Pause intervals (user_habits.pauses, migration 0008): local dates, `from` inclusive,
+   * `to` = the resume day (exclusive) or null while still paused. Absent = none.
+   */
+  pauses?: PauseInterval[];
 };
+
+export type PauseInterval = { from: string; to: string | null };
 
 export type LogInput = {
   habitId: string;
@@ -103,6 +110,36 @@ function progressOf(habit: HabitInput, log: LogInput): number {
   return log.value / target;
 }
 
+function dayOrNull(date: unknown): number | null {
+  if (typeof date !== "string") return null;
+  try {
+    return dayNumber(date);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A habit's paused days as day-number ranges [from, to). Malformed entries are ignored.
+ * A habit that is paused (active false, not deleted) without an open interval was paused
+ * before intervals existed: it counts as paused from today on (past days unchanged).
+ */
+function pausedRanges(h: HabitInput, todayN: number): [number, number][] {
+  const ranges: [number, number][] = [];
+  let open = false;
+  for (const p of Array.isArray(h.pauses) ? h.pauses : []) {
+    if (typeof p !== "object" || p === null) continue;
+    const from = dayOrNull(p.from);
+    if (from === null) continue;
+    const to = p.to === null ? Infinity : dayOrNull(p.to);
+    if (to === null) continue;
+    if (to === Infinity) open = true;
+    ranges.push([from, to]);
+  }
+  if (!h.active && h.deletedAt === null && !open) ranges.push([todayN, Infinity]);
+  return ranges;
+}
+
 function safeLocalDate(instant: string, timezone: string): string {
   try {
     return localDate(instant, timezone);
@@ -123,14 +160,18 @@ export function computeUserState(input: RecalcInput): UserState {
   const todayN = dayNumber(today);
 
   // Ruling J: habit lifetime = [local date of created_at, local date of deleted_at) as day numbers.
-  const habits = new Map<string, { habit: HabitInput; from: number; until: number }>();
+  // F2: a habit is not alive on its paused days (pause intervals [from, to)), so a paused
+  // habit neither blocks the day-complete bonus nor makes its pillar required that week.
+  type Entry = { habit: HabitInput; from: number; until: number; paused: [number, number][] };
+  const habits = new Map<string, Entry>();
   for (const h of input.habits) {
     const from = dayNumber(safeLocalDate(h.createdAt, timezone));
     const until = h.deletedAt === null ? Infinity : dayNumber(safeLocalDate(h.deletedAt, timezone));
-    habits.set(h.id, { habit: h, from, until });
+    habits.set(h.id, { habit: h, from, until, paused: pausedRanges(h, todayN) });
   }
-  const aliveOn = (day: number) =>
-    [...habits.values()].filter((e) => e.from <= day && day < e.until);
+  const isAlive = (e: Entry, day: number) =>
+    e.from <= day && day < e.until && !e.paused.some(([a, b]) => a <= day && day < b);
+  const aliveOn = (day: number) => [...habits.values()].filter((e) => isAlive(e, day));
 
   // Completions keyed by pillar SLUG (ruling L). Logs after today are ignored everywhere (ruling G).
   const completions: Completion[] = [];
@@ -156,7 +197,7 @@ export function computeUserState(input: RecalcInput): UserState {
   // XP per day (ruling G + J): habits alive that day define activeHabitCount and are the
   // only ones that can complete the day; logs on habits outside their lifetime (backfill)
   // still earn per-habit XP (dayXp with an unreachable count yields per-habit XP only).
-  // The `active` flag has no history and is ignored for past days.
+  // Pauses come from the habit's pause intervals (the `active` flag alone has no history).
   let xpTotal = 0;
   for (const [date, dayCompletions] of byDate) {
     const day = dayNumber(date);
@@ -167,7 +208,7 @@ export function computeUserState(input: RecalcInput): UserState {
   }
 
   // Weekly balance bonus: per ISO week, the active pillars are those with at least
-  // one habit alive on some day of that week.
+  // one habit alive (in its lifetime and not paused) on some day of that week.
   const byWeek = new Map<number, Completion[]>();
   for (const c of completions) {
     const week = isoWeekStart(dayNumber(c.date));
@@ -179,7 +220,12 @@ export function computeUserState(input: RecalcInput): UserState {
     const weekEnd = weekStart + 6;
     const pillars = new Set<string>();
     for (const e of habits.values()) {
-      if (e.from <= weekEnd && weekStart < e.until) pillars.add(e.habit.pillar);
+      for (let day = weekStart; day <= weekEnd; day++) {
+        if (isAlive(e, day)) {
+          pillars.add(e.habit.pillar);
+          break;
+        }
+      }
     }
     xpTotal += weeklyBalanceBonus(weekCompletions, [...pillars]);
   }

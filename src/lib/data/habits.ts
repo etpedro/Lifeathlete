@@ -1,4 +1,5 @@
 import type { Db } from "@/lib/supabase/types";
+import { dayNumber } from "../../../supabase/functions/_shared/engine/streaks.ts";
 import type { HabitKind } from "./today";
 
 export const MAX_TITLE_LENGTH = 80;
@@ -51,13 +52,36 @@ function failed(action: string, error: { message: string }): HabitError {
   return new HabitError("save_failed", `Could not ${action}`, { cause: error });
 }
 
-/** The non-deleted habit `id` (its kind), or `not_found`. RLS scopes the read to the caller. */
-async function findLive(db: Db, id: string): Promise<{ id: string; kind: HabitKind }> {
-  const { data, error } = await db.from("user_habits").select("id, kind").eq("id", id).is("deleted_at", null);
+/** A pause interval of `user_habits.pauses` (0008): local dates, `to` = resume day (exclusive) or null. */
+export type PauseInterval = { from: string; to: string | null };
+type LiveHabit = { id: string; kind: HabitKind; active: boolean; pauses?: unknown };
+
+/** The non-deleted habit `id`, or `not_found`. RLS scopes the read to the caller. */
+async function findLive(db: Db, id: string): Promise<LiveHabit> {
+  const { data, error } = await db
+    .from("user_habits")
+    .select("id, kind, active, pauses")
+    .eq("id", id)
+    .is("deleted_at", null);
   if (error) throw failed("load habit", error);
-  const row = ((data ?? []) as { id: string; kind: HabitKind }[])[0];
+  const row = ((data ?? []) as LiveHabit[])[0];
   if (!row) throw new HabitError("not_found", `Habit not found: ${id}`);
   return row;
+}
+
+/**
+ * The pause intervals after pausing (`active` false: open one from `today` unless one is
+ * open) or resuming (true: close the open one on `today`; dropped if it opened today).
+ */
+export function nextPauses(current: unknown, active: boolean, today: string): PauseInterval[] {
+  const list = (Array.isArray(current) ? current : []).filter(
+    (p): p is PauseInterval => typeof p === "object" && p !== null && typeof p.from === "string",
+  );
+  const open = list.findIndex((p) => p.to === null);
+  if (!active) return open >= 0 ? list : [...list, { from: today, to: null }];
+  if (open < 0) return list;
+  const closed = { ...list[open], to: today };
+  return closed.from >= today ? list.filter((_, i) => i !== open) : list.map((p, i) => (i === open ? closed : p));
 }
 
 /** Updates the non-deleted habit `id`; an update that matched no row (archived meanwhile, RLS) is `not_found`. */
@@ -68,12 +92,19 @@ async function updateLive(db: Db, id: string, patch: Record<string, unknown>, ac
 }
 
 /**
- * Pauses (false) or resumes (true) a habit. Only non-deleted habits; unknown or archived
- * -> `not_found`. Logs are untouched. Callers schedule the recalculation.
+ * Pauses (false) or resumes (true) a habit and records the pause interval in the user's
+ * local `today` (YYYY-MM-DD), so the engine knows which days were paused: past days keep
+ * their bonuses and paused days do not count against them. Only non-deleted habits;
+ * unknown or archived -> `not_found`. Logs are untouched. Callers schedule the recalculation.
  */
-export async function setHabitActive(db: Db, id: string, active: boolean): Promise<void> {
-  await findLive(db, id);
-  await updateLive(db, id, { active }, "update habit");
+export async function setHabitActive(db: Db, id: string, active: boolean, today: string): Promise<void> {
+  try {
+    dayNumber(today);
+  } catch (cause) {
+    throw new HabitError("save_failed", `Invalid today: ${today}`, { cause });
+  }
+  const habit = await findLive(db, id);
+  await updateLive(db, id, { active, pauses: nextPauses(habit.pauses, active, today) }, "update habit");
 }
 
 /** Changes a value habit's target (> 0). A check habit -> `invalid_target`; unknown/archived -> `not_found`. */

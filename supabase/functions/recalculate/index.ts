@@ -54,10 +54,10 @@ function supabaseDb(admin: SupabaseClient): Db {
 
       const habits = await selectAll<{
         id: string; pillar_id: string; kind: "check" | "value"; target: number | string | null;
-        active: boolean; created_at: string; deleted_at: string | null;
+        active: boolean; created_at: string; deleted_at: string | null; pauses: unknown;
       }>((from, to) =>
         admin.from("user_habits")
-          .select("id, pillar_id, kind, target, active, created_at, deleted_at")
+          .select("id, pillar_id, kind, target, active, created_at, deleted_at, pauses")
           .eq("user_id", userId).order("id").range(from, to)
       );
 
@@ -87,6 +87,8 @@ function supabaseDb(admin: SupabaseClient): Db {
           active: h.active,
           createdAt: h.created_at,
           deletedAt: h.deleted_at,
+          // jsonb array of { from, to } local dates (0008); the engine skips malformed entries
+          pauses: Array.isArray(h.pauses) ? h.pauses : [],
         })),
         logs: logs.map((l) => ({
           habitId: l.user_habit_id,

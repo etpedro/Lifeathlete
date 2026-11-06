@@ -14,6 +14,7 @@ import type { HabitKind } from "@/lib/data/today";
 import { habitErrorMessageKey, type ProfileErrorKey } from "@/lib/profile/habit-form";
 import { createClient } from "@/lib/supabase/client";
 import type { Db } from "@/lib/supabase/types";
+import { todayIn } from "@/lib/today/dates";
 
 /** Keys inside the `profile` namespace of the success messages. */
 export type StatusKey = "habits.targetSaved" | "habits.activated" | "habits.paused_done" | "habits.archived" | "add.added";
@@ -27,7 +28,7 @@ export type NewHabit = { pillarId: string; title: string; kind: HabitKind; targe
  * Glue between the management components and the data layer: runs one mutation at a time,
  * re-reads the list, and asks for a debounced recalculation after every success.
  */
-export function useHabitManager(userId: string, initial: ManageablePillar[] | null) {
+export function useHabitManager(userId: string, timezone: string, initial: ManageablePillar[] | null) {
   const [pillars, setPillars] = useState<ManageablePillar[] | null>(initial);
   const [status, setStatus] = useState<StatusKey | null>(null);
   const [loadFailed, setLoadFailed] = useState(initial === null);
@@ -91,7 +92,10 @@ export function useHabitManager(userId: string, initial: ManageablePillar[] | nu
     status,
     reload,
     setActive: (id: string, active: boolean) =>
-      run(() => setHabitActive(db(), id, active), active ? "habits.activated" : "habits.paused_done"),
+      run(
+        () => setHabitActive(db(), id, active, todayIn(timezone)), // pause intervals use the user's local day
+        active ? "habits.activated" : "habits.paused_done",
+      ),
     saveTarget: (id: string, target: number) => run(() => updateHabitTarget(db(), id, target), "habits.targetSaved"),
     archive: (id: string) => run(() => archiveHabit(db(), id), "habits.archived"),
     create: (input: NewHabit) => run(() => createCustomHabit(db(), { userId, ...input }), "add.added"),

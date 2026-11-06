@@ -5,11 +5,16 @@ import {
   OFFLINE_OPT_IN_HEADER,
   OFFLINE_OPT_IN_VALUE,
   PAGES_MAX_AGE_MS,
+  PRECACHE_URLS,
+  SHELL_CACHE,
+  STATIC_CACHE,
   classifyRequest,
   isCacheableResponse,
   isExpired,
   isOfflinePagePath,
   offlineFallbackPath,
+  pageCacheKey,
+  rootHojePaths,
   shouldWipeOnNavigation,
   type ResponseFacts,
 } from "./cache-rules";
@@ -191,5 +196,49 @@ describe("constants", () => {
   it("locales match the i18n routing and the opt-in header is lowercase", () => {
     expect([...LOCALES]).toEqual([...routing.locales]);
     expect(OFFLINE_OPT_IN_HEADER).toBe(OFFLINE_OPT_IN_HEADER.toLowerCase());
+  });
+});
+
+describe("precache list", () => {
+  it("includes every installability asset and lives in its own never-trimmed cache", () => {
+    expect(PRECACHE_URLS).toEqual(
+      expect.arrayContaining([
+        "/offline/pt.html",
+        "/offline/en.html",
+        "/manifest.webmanifest",
+        "/icons/icon-192.png",
+        "/icons/icon-512.png",
+        "/icons/icon-maskable-512.png",
+        "/icons/apple-touch-icon.png",
+      ]),
+    );
+    expect(SHELL_CACHE).not.toBe(STATIC_CACHE);
+  });
+});
+
+describe("pageCacheKey", () => {
+  it("drops query and hash so a query URL never creates a separate entry", () => {
+    expect(pageCacheKey(`${ORIGIN}/pt/today`)).toBe(`${ORIGIN}/pt/today`);
+    expect(pageCacheKey(`${ORIGIN}/pt/today?_rsc=abc`)).toBe(`${ORIGIN}/pt/today`);
+    expect(pageCacheKey(`${ORIGIN}/pt/today?utm=x#top`)).toBe(`${ORIGIN}/pt/today`);
+  });
+});
+
+describe("rootHojePaths", () => {
+  it("uses the URL locale for /{locale} launches", () => {
+    expect(rootHojePaths("/en", "pt-PT", "pt-PT")).toEqual(["/en/today", "/pt/today"]);
+    expect(rootHojePaths("/pt/", "en-US", "en-US")).toEqual(["/pt/today", "/en/today"]);
+  });
+  it("uses Accept-Language, then navigator.language, then pt for /", () => {
+    expect(rootHojePaths("/", "en-GB,en;q=0.9", "pt-PT")).toEqual(["/en/today", "/pt/today"]);
+    expect(rootHojePaths("/", "de-DE,en;q=0.5", undefined)).toEqual(["/en/today", "/pt/today"]);
+    expect(rootHojePaths("/", null, "en-US")).toEqual(["/en/today", "/pt/today"]);
+    expect(rootHojePaths("/", "de-DE", "fr-FR")).toEqual(["/pt/today", "/en/today"]);
+    expect(rootHojePaths("/", undefined, undefined)).toEqual(["/pt/today", "/en/today"]);
+  });
+  it("is empty for any other path", () => {
+    for (const p of ["/pt/today", "/pt/wheel", "/fr", "/ptx", "/pt/login", "/offline/pt.html"]) {
+      expect(rootHojePaths(p, "pt", "pt"), p).toEqual([]);
+    }
   });
 });

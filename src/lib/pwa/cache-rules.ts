@@ -12,7 +12,10 @@
 //   errors and Set-Cookie responses are never cached.
 
 export const CACHE_PREFIX = "lifeathlete-";
+/** Runtime static assets (hashed chunks): trimmed to STATIC_MAX_ENTRIES. */
 export const STATIC_CACHE = "lifeathlete-static-v1";
+/** The precached app shell (PRECACHE_URLS): never trimmed, so the offline page always exists. */
+export const SHELL_CACHE = "lifeathlete-shell-v1";
 /** User pages (HTML). Wiped by clearUserCaches() on sign-out. */
 export const PAGES_CACHE = "lifeathlete-pages-v1";
 export const PAGES_MAX_ENTRIES = 10;
@@ -36,6 +39,8 @@ export const PRECACHE_URLS = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  "/icons/icon-maskable-512.png",
+  "/icons/apple-touch-icon.png",
 ];
 
 export type RequestKind = "static" | "navigation" | "never";
@@ -129,6 +134,40 @@ export function shouldWipeOnNavigation(
 ): boolean {
   if (isNeverCachedPath(pathname)) return true;
   return response !== null && (response.type === "opaqueredirect" || response.redirected);
+}
+
+/**
+ * The page cache key: origin + path, without query or hash, so a query URL never creates a
+ * separate entry (Hoje does not read query parameters).
+ */
+export function pageCacheKey(url: string): string {
+  const u = new URL(url);
+  return u.origin + u.pathname;
+}
+
+function firstSupportedLocale(languages: (string | null | undefined)[]): string | null {
+  for (const list of languages) {
+    for (const part of (list ?? "").split(",")) {
+      const tag = part.split(";")[0].trim().toLowerCase().split("-")[0];
+      if ((LOCALES as readonly string[]).indexOf(tag) >= 0) return tag;
+    }
+  }
+  return null;
+}
+
+/**
+ * For a launch at "/" or "/{locale}" (the manifest start_url, which redirects to Hoje when
+ * online): the stored Hoje paths to try offline, in order. The locale comes from the URL,
+ * then Accept-Language, then navigator.language, then pt; the other locale is the fallback.
+ * Empty for any other path.
+ */
+export function rootHojePaths(pathname: string, acceptLanguage: string | null | undefined, language: string | undefined): string[] {
+  const trimmed = pathname.replace(/\/+$/, "") || "/";
+  const urlLocale = trimmed === "/" ? null : localeOf(trimmed);
+  if (trimmed !== "/" && (urlLocale === null || trimmed !== `/${urlLocale}`)) return [];
+  const chosen = urlLocale ?? firstSupportedLocale([acceptLanguage, language]) ?? DEFAULT_LOCALE;
+  const others = LOCALES.filter((l) => l !== chosen);
+  return [chosen, ...others].map((l) => `/${l}/today`);
 }
 
 /** Stored pages older than 24h (or with a missing/future timestamp) are not served. */

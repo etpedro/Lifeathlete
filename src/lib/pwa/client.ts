@@ -35,6 +35,8 @@ function browserClearDeps(): ClearDeps {
 export type RegisterDeps = {
   production: boolean;
   serviceWorker?: {
+    /** null on the very first load, before any worker controls the page. */
+    controller: MessageTarget | null;
     register(url: string, options?: RegistrationOptions): Promise<unknown>;
     ready: Promise<{ active: MessageTarget | null }>;
   };
@@ -44,17 +46,20 @@ export type RegisterDeps = {
 };
 
 /**
- * Registers /sw.js in production builds only. After it is active, sends the URLs this page
- * already loaded so the worker can keep the ones its rules allow (static assets, Hoje).
- * Returns whether a worker was registered.
+ * Registers /sw.js in production builds only. On the first install only (no worker controlled
+ * this load), sends the page URL and the resources it already loaded, so the worker can keep
+ * what its rules allow (static assets; the page itself only if it is Hoje). Later loads go
+ * through the worker anyway, so they send nothing. Returns whether a worker was registered.
  */
 export async function registerServiceWorker(deps: RegisterDeps): Promise<boolean> {
   if (!deps.production || !deps.serviceWorker) return false;
+  const firstInstall = deps.serviceWorker.controller === null;
   try {
     await deps.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
+    if (!firstInstall) return true;
     const registration = await deps.serviceWorker.ready;
     const loaded = deps.performance?.getEntriesByType("resource").map((entry) => entry.name) ?? [];
-    registration.active?.postMessage({ type: WARM_MESSAGE, urls: [deps.href, ...loaded] });
+    registration.active?.postMessage({ type: WARM_MESSAGE, href: deps.href, urls: loaded });
     return true;
   } catch {
     return false;

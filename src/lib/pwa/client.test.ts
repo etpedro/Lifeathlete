@@ -16,7 +16,15 @@ function fakeCaches(fail = false) {
   };
 }
 
-function fakeServiceWorker(withController = true) {
+function fakeServiceWorker(withController = true): {
+  posted: unknown[];
+  registered: [string, RegistrationOptions | undefined][];
+  serviceWorker: {
+    controller: { postMessage(m: unknown): void } | null;
+    ready: Promise<{ active: { postMessage(m: unknown): void } }>;
+    register(url: string, options?: RegistrationOptions): Promise<unknown>;
+  };
+} {
   const posted: unknown[] = [];
   const registered: [string, RegistrationOptions | undefined][] = [];
   const worker = { postMessage: (m: unknown) => posted.push(m) };
@@ -75,16 +83,24 @@ describe("registerServiceWorker", () => {
     expect(await registerServiceWorker({ production: true, serviceWorker: undefined, href: "http://localhost:3000/pt/login", performance })).toBe(false);
   });
 
-  it("registers /sw.js for the whole app without HTTP caching of the script, then warms already-loaded URLs", async () => {
-    const sw = fakeServiceWorker();
+  it("first install (no controller at load): registers /sw.js without HTTP caching of the script, then warms", async () => {
+    const sw = fakeServiceWorker(false);
     expect(await registerServiceWorker({ production: true, serviceWorker: sw.serviceWorker, href: "http://localhost:3000/pt/today", performance })).toBe(true);
     expect(sw.registered).toEqual([["/sw.js", { scope: "/", updateViaCache: "none" }]]);
     expect(sw.posted).toEqual([
       {
         type: WARM_MESSAGE,
-        urls: ["http://localhost:3000/pt/today", "http://localhost:3000/_next/static/chunks/a.js", "https://xyz.supabase.co/rest/v1/x"],
+        href: "http://localhost:3000/pt/today",
+        urls: ["http://localhost:3000/_next/static/chunks/a.js", "https://xyz.supabase.co/rest/v1/x"],
       },
     ]);
+  });
+
+  it("does not warm when a worker already controls the page (every later load)", async () => {
+    const sw = fakeServiceWorker(true);
+    expect(await registerServiceWorker({ production: true, serviceWorker: sw.serviceWorker, href: "http://localhost:3000/pt/today", performance })).toBe(true);
+    expect(sw.registered).toHaveLength(1); // still registers, so updates are checked
+    expect(sw.posted).toEqual([]);
   });
 
   it("reports failure instead of throwing when registration fails", async () => {

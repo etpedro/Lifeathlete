@@ -15,7 +15,10 @@
 // - Non-GET, cross-origin (Supabase), auth/login/onboarding, RSC/data fetches, redirects,
 //   errors and Set-Cookie responses are never cached.
 const CACHE_PREFIX = "lifeathlete-";
+/** Runtime static assets (hashed chunks): trimmed to STATIC_MAX_ENTRIES. */
 const STATIC_CACHE = "lifeathlete-static-v1";
+/** The precached app shell (PRECACHE_URLS): never trimmed, so the offline page always exists. */
+const SHELL_CACHE = "lifeathlete-shell-v1";
 /** User pages (HTML). Wiped by clearUserCaches() on sign-out. */
 const PAGES_CACHE = "lifeathlete-pages-v1";
 const PAGES_MAX_ENTRIES = 10;
@@ -37,6 +40,8 @@ const PRECACHE_URLS = [
     "/manifest.webmanifest",
     "/icons/icon-192.png",
     "/icons/icon-512.png",
+    "/icons/icon-maskable-512.png",
+    "/icons/apple-touch-icon.png",
 ];
 function localeOf(pathname) {
     var _a;
@@ -108,6 +113,40 @@ function shouldWipeOnNavigation(pathname, response) {
     if (isNeverCachedPath(pathname))
         return true;
     return response !== null && (response.type === "opaqueredirect" || response.redirected);
+}
+/**
+ * The page cache key: origin + path, without query or hash, so a query URL never creates a
+ * separate entry (Hoje does not read query parameters).
+ */
+function pageCacheKey(url) {
+    const u = new URL(url);
+    return u.origin + u.pathname;
+}
+function firstSupportedLocale(languages) {
+    for (const list of languages) {
+        for (const part of (list !== null && list !== void 0 ? list : "").split(",")) {
+            const tag = part.split(";")[0].trim().toLowerCase().split("-")[0];
+            if (LOCALES.indexOf(tag) >= 0)
+                return tag;
+        }
+    }
+    return null;
+}
+/**
+ * For a launch at "/" or "/{locale}" (the manifest start_url, which redirects to Hoje when
+ * online): the stored Hoje paths to try offline, in order. The locale comes from the URL,
+ * then Accept-Language, then navigator.language, then pt; the other locale is the fallback.
+ * Empty for any other path.
+ */
+function rootHojePaths(pathname, acceptLanguage, language) {
+    var _a;
+    const trimmed = pathname.replace(/\/+$/, "") || "/";
+    const urlLocale = trimmed === "/" ? null : localeOf(trimmed);
+    if (trimmed !== "/" && (urlLocale === null || trimmed !== `/${urlLocale}`))
+        return [];
+    const chosen = (_a = urlLocale !== null && urlLocale !== void 0 ? urlLocale : firstSupportedLocale([acceptLanguage, language])) !== null && _a !== void 0 ? _a : DEFAULT_LOCALE;
+    const others = LOCALES.filter((l) => l !== chosen);
+    return [chosen, ...others].map((l) => `/${l}/today`);
 }
 /** Stored pages older than 24h (or with a missing/future timestamp) are not served. */
 function isExpired(cachedAt, now) {
@@ -187,26 +226,41 @@ function createWorker(deps) {
         return res;
     }
     async function offlinePage(pathname) {
-        const cache = await caches.open(STATIC_CACHE);
+        const cache = await caches.open(SHELL_CACHE);
         const page = await cache.match(abs(offlineFallbackPath(pathname, deps.language)));
         return page !== null && page !== void 0 ? page : Response.error();
     }
-    function pageKey(url) {
-        const u = new URL(url);
-        u.hash = "";
-        return u.href;
+    /** Stores a Hoje response under its query-less key, if the rules allow it. */
+    function maybeStore(url, res, waitUntil) {
+        if (isOfflinePagePath(new URL(url).pathname) && isCacheableResponse("navigation", factsOf(res))) {
+            waitUntil(storePage(pageCacheKey(url), res.clone()));
+        }
     }
     /** Stores or wipes after a page answered from the network. */
     function afterNavigation(url, res, waitUntil) {
-        const pathname = new URL(url).pathname;
-        if (shouldWipeOnNavigation(pathname, res))
+        if (shouldWipeOnNavigation(new URL(url).pathname, res))
             waitUntil(clearPages());
-        else if (isCacheableResponse("navigation", factsOf(res)))
-            waitUntil(storePage(pageKey(url), res.clone()));
+        else
+            maybeStore(url, res, waitUntil);
+    }
+    /**
+     * The stored page to use when the network is unavailable: the page's own entry, or for a
+     * launch at "/" or "/{locale}" (manifest start_url) the stored Hoje (never stored itself).
+     */
+    async function storedFor(request) {
+        const own = await freshPage(pageCacheKey(request.url));
+        if (own)
+            return own;
+        const candidates = rootHojePaths(new URL(request.url).pathname, request.headers.get("accept-language"), deps.language);
+        for (const path of candidates) {
+            const hoje = await freshPage(abs(path));
+            if (hoje)
+                return hoje;
+        }
+        return undefined;
     }
     async function networkFirst(request, waitUntil) {
         var _a;
-        const key = pageKey(request.url);
         const pathname = new URL(request.url).pathname;
         const network = deps.fetch(request).then((res) => {
             afterNavigation(request.url, res, waitUntil);
@@ -221,13 +275,13 @@ function createWorker(deps) {
             const first = await Promise.race([network, timeout]);
             if (first !== "timeout")
                 return first;
-            const cached = await freshPage(key);
+            const cached = await storedFor(request);
             if (cached)
                 return cached;
             return await network;
         }
         catch {
-            return (_a = (await freshPage(key))) !== null && _a !== void 0 ? _a : offlinePage(pathname);
+            return (_a = (await storedFor(request))) !== null && _a !== void 0 ? _a : offlinePage(pathname);
         }
         finally {
             clearTimeout(timer);
@@ -244,6 +298,9 @@ function createWorker(deps) {
         }
     }
     async function cacheFirst(request, waitUntil) {
+        const shellHit = await (await caches.open(SHELL_CACHE)).match(request.url);
+        if (shellHit)
+            return shellHit;
         const cache = await caches.open(STATIC_CACHE);
         const hit = await cache.match(request.url);
         if (hit)
@@ -253,27 +310,34 @@ function createWorker(deps) {
             waitUntil(storeStatic(request.url, res.clone()));
         return res;
     }
-    async function warm(url) {
-        const kind = classifyRequest({ method: "GET", url, origin: deps.origin, mode: "no-cors" });
-        const asPage = classifyRequest({ method: "GET", url, origin: deps.origin, mode: "navigate" });
-        if (kind === "static") {
-            const cache = await caches.open(STATIC_CACHE);
-            if (await cache.match(url))
-                return;
-            const res = await deps.fetch(url);
-            if (isCacheableResponse("static", factsOf(res)))
-                await storeStatic(url, res);
-        }
-        else if (asPage === "navigation") {
-            const res = await deps.fetch(url, { credentials: "same-origin", redirect: "manual" });
-            const pending = [];
-            afterNavigation(url, res, (p) => void pending.push(p));
-            await Promise.all(pending);
-        }
+    /** Stores an already-loaded static asset (anything else in `urls` is ignored). */
+    async function warmStatic(url) {
+        if (classifyRequest({ method: "GET", url, origin: deps.origin, mode: "no-cors" }) !== "static")
+            return;
+        if (await (await caches.open(SHELL_CACHE)).match(url))
+            return;
+        if (await (await caches.open(STATIC_CACHE)).match(url))
+            return;
+        const res = await deps.fetch(url);
+        if (isCacheableResponse("static", factsOf(res)))
+            await storeStatic(url, res);
+    }
+    /**
+     * Stores the first-visit page when it is Hoje. Never wipes: a redirect here only means
+     * nothing is stored (navigations, not warm-up fetches, decide when to wipe).
+     */
+    async function warmPage(href) {
+        const kind = classifyRequest({ method: "GET", url: href, origin: deps.origin, mode: "navigate" });
+        if (kind !== "navigation" || !isOfflinePagePath(new URL(href).pathname))
+            return;
+        const res = await deps.fetch(pageCacheKey(href), { credentials: "same-origin", redirect: "manual" });
+        const pending = [];
+        maybeStore(href, res, (p) => void pending.push(p));
+        await Promise.all(pending);
     }
     return {
         async install() {
-            const cache = await caches.open(STATIC_CACHE);
+            const cache = await caches.open(SHELL_CACHE);
             for (const url of PRECACHE_URLS) {
                 const res = await deps.fetch(abs(url), { cache: "reload" });
                 if (!res.ok)
@@ -282,7 +346,7 @@ function createWorker(deps) {
             }
         },
         async activate() {
-            const keep = [STATIC_CACHE, PAGES_CACHE];
+            const keep = [SHELL_CACHE, STATIC_CACHE, PAGES_CACHE];
             for (const name of await caches.keys()) {
                 if (name.indexOf(CACHE_PREFIX) === 0 && keep.indexOf(name) < 0)
                     await caches.delete(name);
@@ -313,10 +377,12 @@ function createWorker(deps) {
             if (message.type === CLEAR_USER_CACHES_MESSAGE) {
                 await clearPages();
             }
-            else if (message.type === WARM_MESSAGE && Array.isArray(message.urls)) {
-                const urls = message.urls.filter((x) => typeof x === "string").slice(0, 200);
+            else if (message.type === WARM_MESSAGE) {
+                const urls = Array.isArray(message.urls) ? message.urls.filter((x) => typeof x === "string").slice(0, 200) : [];
                 for (const url of urls)
-                    await swallow(warm(url));
+                    await swallow(warmStatic(url));
+                if (typeof message.href === "string")
+                    await swallow(warmPage(message.href));
             }
         },
     };

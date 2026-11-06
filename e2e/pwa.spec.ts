@@ -3,7 +3,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import en from "../src/messages/en.json";
 import pt from "../src/messages/pt.json";
-import { PAGES_CACHE, STATIC_CACHE } from "../src/lib/pwa/cache-rules";
+import { PAGES_CACHE, PRECACHE_URLS, SHELL_CACHE } from "../src/lib/pwa/cache-rules";
 import { signUpAndOnboard } from "./helpers";
 
 /** Waits until the service worker is activated and controls this page. */
@@ -44,8 +44,8 @@ test("(b) after a first visit to /pt/login the service worker activates and prec
   await waitForControllingWorker(page);
   const scriptUrl = await page.evaluate(async () => (await navigator.serviceWorker.ready).active?.scriptURL);
   expect(new URL(scriptUrl!).pathname).toBe("/sw.js");
-  const statics = await cachedPaths(page, STATIC_CACHE);
-  expect(statics).toEqual(expect.arrayContaining(["/offline/pt.html", "/offline/en.html", "/manifest.webmanifest"]));
+  const shell = await cachedPaths(page, SHELL_CACHE);
+  expect(shell.sort()).toEqual([...PRECACHE_URLS].sort());
   // The login page itself is never stored.
   expect(await cachedPaths(page, PAGES_CACHE)).toEqual([]);
 });
@@ -80,6 +80,12 @@ test("(d) signed in: /pt/today opens offline after a first visit, and sign-out w
   await context.setOffline(true);
   await page.goto("/pt/today");
   await expect(page.getByRole("heading", { name: pt.today.title, level: 1 })).toBeVisible();
+  // Launching the installed app (start_url "/") offline reaches the stored Hoje too.
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: pt.today.title, level: 1 })).toBeVisible();
+  await page.goto("/pt");
+  await expect(page.getByRole("heading", { name: pt.today.title, level: 1 })).toBeVisible();
+  expect(await cachedPaths(page, PAGES_CACHE)).toEqual(["/pt/today"]); // nothing stored under / or /pt
   await context.setOffline(false);
 
   await page.goto("/pt/profile");

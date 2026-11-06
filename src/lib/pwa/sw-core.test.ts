@@ -6,7 +6,9 @@ import {
   PAGES_CACHE,
   PAGES_MAX_ENTRIES,
   PRECACHE_URLS,
+  SHELL_CACHE,
   STATIC_CACHE,
+  STATIC_MAX_ENTRIES,
 } from "./cache-rules";
 import { createWorker } from "./sw-core";
 
@@ -131,7 +133,8 @@ describe("install / activate", () => {
   it("install precaches the offline pages, manifest and icons", async () => {
     const t = setup();
     await t.worker.install();
-    expect(t.caches.urls(STATIC_CACHE).sort()).toEqual([...PRECACHE_URLS].sort());
+    expect(t.caches.urls(SHELL_CACHE).sort()).toEqual([...PRECACHE_URLS].sort());
+    expect(t.caches.urls(STATIC_CACHE)).toEqual([]);
   });
 
   it("install fails when a precache URL is not available", async () => {
@@ -169,6 +172,21 @@ describe("static assets: cache-first", () => {
     t.setOnline(false);
     expect(await (await t.go("/_next/static/chunks/a.js"))!.text()).toBe("chunk-a");
     expect(t.calls.filter((c) => c === "/_next/static/chunks/a.js")).toHaveLength(1); // the 2nd load never reached the network
+  });
+
+  it("the shell (offline pages, manifest, icons) survives any number of stored chunks", async () => {
+    const chunks: Record<string, Route> = {};
+    for (let i = 0; i < STATIC_MAX_ENTRIES + 15; i++) chunks[`/_next/static/chunks/c${i}.js`] = () => js(`c${i}`);
+    const t = setup(chunks);
+    await t.worker.install();
+    for (let i = 0; i < STATIC_MAX_ENTRIES + 15; i++) await t.go(`/_next/static/chunks/c${i}.js`);
+    expect(t.caches.urls(STATIC_CACHE).length).toBe(STATIC_MAX_ENTRIES);
+    expect(t.caches.urls(SHELL_CACHE).sort()).toEqual([...PRECACHE_URLS].sort());
+    t.setOnline(false);
+    expect(await (await t.nav("/pt/wheel"))!.text()).toBe("offline /offline/pt.html");
+    expect(await (await t.go("/manifest.webmanifest"))!.text()).toBe("/manifest.webmanifest");
+    expect(await (await t.go("/icons/apple-touch-icon.png"))!.text()).toBe("/icons/apple-touch-icon.png");
+    expect(await (await t.go("/icons/icon-maskable-512.png"))!.text()).toBe("/icons/icon-maskable-512.png");
   });
 
   it("does not store failed static responses", async () => {
@@ -251,11 +269,30 @@ describe("navigations: NetworkFirst, Hoje only, privacy", () => {
 
   it("keeps at most 10 pages, dropping the oldest", async () => {
     const t = setup({ "/pt/today": () => html("d") });
-    for (let i = 0; i < PAGES_MAX_ENTRIES + 3; i++) await t.nav(`/pt/today?date=2026-11-${String(i + 1).padStart(2, "0")}`);
+    const pages = await t.caches.open(PAGES_CACHE);
+    for (let i = 0; i < PAGES_MAX_ENTRIES + 2; i++) await pages.put(u(`/old/${i}`), html("old"));
+    await t.nav("/pt/today");
     const urls = t.caches.urls(PAGES_CACHE);
     expect(urls).toHaveLength(PAGES_MAX_ENTRIES);
-    expect(urls).not.toContain("/pt/today?date=2026-11-01");
-    expect(urls).toContain("/pt/today?date=2026-11-13");
+    expect(urls).not.toContain("/old/0");
+    expect(urls).toContain("/pt/today");
+  });
+
+  it("stores query URLs under the query-less key, never as a separate entry", async () => {
+    const t = setup({ "/pt/today": () => html("hoje-q") });
+    await t.nav("/pt/today?_rsc=abc");
+    await t.nav("/pt/today?utm_source=home");
+    expect(t.caches.urls(PAGES_CACHE)).toEqual(["/pt/today"]);
+    t.setOnline(false);
+    expect(await (await t.nav("/pt/today?anything=1"))!.text()).toBe("hoje-q");
+  });
+
+  it("never stores a page outside the Hoje paths, even if it carries the opt-in", async () => {
+    const t = setup({ "/": () => html("root"), "/pt": () => html("pt-root"), "/pt/wheel": () => html("wheel") });
+    await t.nav("/");
+    await t.nav("/pt");
+    await t.nav("/pt/wheel");
+    expect(t.caches.urls(PAGES_CACHE)).toEqual([]);
   });
 
   it("navigating to login/auth/onboarding wipes the stored pages (session may change)", async () => {
@@ -280,6 +317,68 @@ describe("navigations: NetworkFirst, Hoje only, privacy", () => {
   });
 });
 
+describe("offline launch at the start_url (/ or /{locale})", () => {
+  async function stored(langs: ("pt" | "en")[], opts: { language?: string } = {}) {
+    const t = setup({ "/pt/today": () => html("hoje-pt"), "/en/today": () => html("hoje-en") }, opts);
+    await t.worker.install();
+    for (const l of langs) await t.nav(`/${l}/today`);
+    t.setOnline(false);
+    return t;
+  }
+
+  it("/{locale} serves that locale's stored Hoje", async () => {
+    const t = await stored(["pt", "en"]);
+    expect(await (await t.nav("/en"))!.text()).toBe("hoje-en");
+    expect(await (await t.nav("/pt/"))!.text()).toBe("hoje-pt");
+  });
+
+  it("/ uses the Accept-Language header locale", async () => {
+    const t = await stored(["pt", "en"], { language: "pt-PT" });
+    const res = await t.go("/", { navigate: true, headers: { "accept-language": "en-US,en;q=0.9" } });
+    expect(await res!.text()).toBe("hoje-en");
+  });
+
+  it("/ uses navigator.language when there is no header", async () => {
+    const t = await stored(["pt", "en"], { language: "en-GB" });
+    expect(await (await t.nav("/"))!.text()).toBe("hoje-en");
+  });
+
+  it("/ defaults to pt", async () => {
+    const t = await stored(["pt", "en"], { language: "de-DE" });
+    expect(await (await t.nav("/"))!.text()).toBe("hoje-pt");
+  });
+
+  it("falls back to the other locale's stored Hoje only when the chosen one is absent", async () => {
+    const t = await stored(["pt"]);
+    expect(await (await t.nav("/en"))!.text()).toBe("hoje-pt");
+  });
+
+  it("an expired Hoje is not served: the localized offline page is", async () => {
+    const t = await stored(["pt", "en"]);
+    t.advance(24 * 60 * 60 * 1000 + 1);
+    expect(await (await t.nav("/en"))!.text()).toBe("offline /offline/en.html");
+    expect(t.caches.urls(PAGES_CACHE)).toEqual([]);
+  });
+
+  it("with nothing stored, the localized offline page", async () => {
+    const t = await stored([], { language: "en-US" });
+    expect(await (await t.nav("/"))!.text()).toBe("offline /offline/en.html");
+    expect(await (await t.nav("/pt"))!.text()).toBe("offline /offline/pt.html");
+  });
+
+  it("other paths never get a stored Hoje", async () => {
+    const t = await stored(["pt"]);
+    expect(await (await t.nav("/pt/wheel"))!.text()).toBe("offline /offline/pt.html");
+  });
+
+  it("nothing is ever stored under / or /{locale}", async () => {
+    const t = await stored(["pt"]);
+    await t.nav("/");
+    await t.nav("/pt");
+    expect(t.caches.urls(PAGES_CACHE)).toEqual(["/pt/today"]);
+  });
+});
+
 describe("messages", () => {
   it("CLEAR_USER_CACHES deletes stored pages but keeps static assets", async () => {
     const t = setup({ "/pt/today": () => html("hoje-A") });
@@ -287,23 +386,52 @@ describe("messages", () => {
     await t.nav("/pt/today");
     await t.worker.handleMessage({ type: "CLEAR_USER_CACHES" });
     expect(await t.caches.has(PAGES_CACHE)).toBe(false);
-    expect(t.caches.urls(STATIC_CACHE).length).toBeGreaterThan(0);
+    expect(t.caches.urls(SHELL_CACHE).length).toBeGreaterThan(0);
   });
 
-  it("WARM stores already-loaded static assets and the opted-in current page, and ignores the rest", async () => {
+  it("WARM stores already-loaded static assets and Hoje (as href) and fetches nothing else", async () => {
     const t = setup({
       "/_next/static/chunks/w.js": () => js("w"),
       "/pt/today": () => html("hoje-W"),
-      "/pt/wheel": () => html("wheel", false),
     });
     await t.worker.handleMessage({
       type: "WARM",
-      urls: [u("/_next/static/chunks/w.js"), u("/pt/today"), u("/pt/wheel"), u("/pt/login"), "https://xyz.supabase.co/rest/v1/x", 42],
+      href: u("/pt/today"),
+      urls: [
+        u("/_next/static/chunks/w.js"),
+        u("/pt/today?_rsc=abc"),
+        u("/pt/wheel?_rsc=def"),
+        u("/_next/image?url=%2Ficons%2Ficon-192.png&w=96&q=75"),
+        u("/pt/login"),
+        "https://xyz.supabase.co/rest/v1/x",
+        42,
+      ],
     });
     expect(t.caches.urls(STATIC_CACHE)).toEqual(["/_next/static/chunks/w.js"]);
     expect(t.caches.urls(PAGES_CACHE)).toEqual(["/pt/today"]);
-    expect(t.calls).not.toContain("/pt/login");
-    expect(t.calls).not.toContain("/rest/v1/x");
+    expect(t.calls.sort()).toEqual(["/_next/static/chunks/w.js", "/pt/today"]);
+  });
+
+  it("WARM does not fetch a non-Hoje href", async () => {
+    const t = setup({ "/pt/wheel": () => html("wheel") });
+    await t.worker.handleMessage({ type: "WARM", href: u("/pt/wheel"), urls: [u("/pt/wheel")] });
+    expect(t.calls).toEqual([]);
+  });
+
+  it("WARM stores a Hoje href with a query under the query-less key", async () => {
+    const t = setup({ "/pt/today": () => html("hoje-W") });
+    await t.worker.handleMessage({ type: "WARM", href: u("/pt/today?from=home"), urls: [] });
+    expect(t.caches.urls(PAGES_CACHE)).toEqual(["/pt/today"]);
+  });
+
+  it("a redirecting WARM fetch cannot wipe a stored good Hoje", async () => {
+    let redirect = false;
+    const t = setup({ "/pt/today": () => (redirect ? net("", { type: "opaqueredirect", status: 0 }) : html("hoje-good")) });
+    await t.nav("/pt/today");
+    redirect = true;
+    await t.worker.handleMessage({ type: "WARM", href: u("/pt/today"), urls: [] });
+    t.setOnline(false);
+    expect(await (await t.nav("/pt/today"))!.text()).toBe("hoje-good");
   });
 
   it("ignores unknown or malformed messages", async () => {

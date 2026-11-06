@@ -8,3 +8,7 @@ playwright-report
 .superpowers/
 next-env.d.ts
 *.tsbuildinfo
+
+# Supabase CLI local state
+supabase/.branches
+supabase/.temp

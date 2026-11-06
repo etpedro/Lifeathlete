@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install PostgreSQL 16 (for npm run test:db)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-16
+          test -x /usr/lib/postgresql/16/bin/initdb
+
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      # No Supabase env vars: every page that reads Supabase is dynamic.
+      - run: npm run build
+      # Throwaway local cluster (supabase/tests/run.sh), runs as the non-root runner user.
+      - run: npm run test:db

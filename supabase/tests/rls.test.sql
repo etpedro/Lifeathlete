@@ -60,7 +60,32 @@ begin
     'meditation PT template';
   assert (select kind from public.habit_templates t join public.habit_templates_i18n i on i.template_id = t.id
            where i.title = 'Menos de 2h de ecrã') = 'check', 'screens template is check';
-  assert (select count(*) from public.achievements where code <> 'test_ach') = 0, 'achievements must not be seeded here';
+  -- achievement seed (0004): 6 codes, pt+en i18n, rule JSON uses pillar SLUGS (ruling L)
+  assert (select array_agg(code order by code) from public.achievements where code <> 'test_ach') = array[
+    'balance_week_10','streak_exercise_30','streak_global_100','streak_meditation_30','streak_reading_30','total_100'],
+    'expected the 6 seeded achievements';
+  select count(*) into bad from public.achievements a
+   where a.code <> 'test_ach'
+     and (select count(distinct locale) from public.achievements_i18n i where i.achievement_id = a.id and i.locale in ('pt','en')) <> 2;
+  assert bad = 0, 'every seeded achievement needs pt+en i18n';
+  assert (select rule from public.achievements where code = 'streak_meditation_30') = '{"type":"streak","days":30,"pillar":"meditation"}'::jsonb,
+    'streak_meditation_30 rule';
+  assert (select rule from public.achievements where code = 'streak_reading_30') = '{"type":"streak","days":30,"pillar":"reading"}'::jsonb,
+    'streak_reading_30 rule';
+  assert (select rule from public.achievements where code = 'streak_exercise_30') = '{"type":"streak","days":30,"pillar":"exercise"}'::jsonb,
+    'streak_exercise_30 rule';
+  assert (select rule from public.achievements where code = 'streak_global_100') = '{"type":"streak","days":100}'::jsonb,
+    'streak_global_100 rule';
+  assert (select rule from public.achievements where code = 'balance_week_10') = '{"type":"balance","pillars":10}'::jsonb,
+    'balance_week_10 rule';
+  assert (select rule from public.achievements where code = 'total_100') = '{"type":"total","count":100}'::jsonb,
+    'total_100 rule';
+  -- pillar_id column agrees with the rule's pillar slug; global rules have null pillar_id
+  select count(*) into bad from public.achievements a left join public.pillars p on p.id = a.pillar_id
+   where a.code <> 'test_ach' and (a.rule ->> 'pillar') is distinct from p.slug;
+  assert bad = 0, 'achievements.pillar_id must match rule.pillar slug';
+  assert (select name from public.achievements_i18n i join public.achievements a on a.id = i.achievement_id
+           where a.code = 'total_100' and i.locale = 'pt') is not null, 'total_100 PT name';
   assert pg_temp.fails($f$insert into public.habit_templates(pillar_id, slug, kind) select id, 'x', 'bogus' from public.pillars limit 1$f$, '23514'),
     'invalid template kind must violate check';
 end $$;
@@ -88,6 +113,27 @@ begin
     values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', '2026-01-02', 1);
   update public.profiles set display_name = 'A2' where user_id = auth.uid();
   assert (select display_name from public.profiles) = 'A2', 'A updated own profile';
+
+  -- habit_logs hardening (0005, ruling F): non-negative value, client may only write source 'manual'
+  assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value)
+      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', '2026-01-03', -1)$f$, '23514'),
+    'negative habit_logs.value must violate check';
+  assert pg_temp.fails($f$update public.habit_logs set value = -5 where date = '2026-01-02'$f$, '23514'),
+    'updating habit_logs.value to negative must violate check';
+  assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value, source)
+      values (auth.uid(), 'a1a1a1a1-0000-0000-0000-000000000001', '2026-01-04', 1, 'strava')$f$, '42501'),
+    'authenticated insert with source strava must be denied';
+  assert pg_temp.fails($f$update public.habit_logs set source = 'strava' where date = '2026-01-02'$f$, '42501'),
+    'authenticated update setting source to strava must be denied';
+  assert (select source from public.habit_logs where date = '2026-01-02') = 'manual', 'source unchanged after denied update';
+  update public.habit_logs set value = 0 where date = '2026-01-02';
+  get diagnostics n = row_count;
+  assert n = 1, 'A can still update own manual log (value 0 allowed, un-tick)';
+  update public.habit_logs set value = 1, source = 'manual' where date = '2026-01-02';
+  get diagnostics n = row_count;
+  assert n = 1, 'A can still update own manual log back to 1';
+  assert pg_temp.fails($f$delete from public.habit_logs where date = '2026-01-02'$f$, '42501'),
+    'A still cannot delete logs (no delete grant)';
 
   -- cannot touch B's rows
   update public.user_habits set title = 'hacked' where id = 'b1b1b1b1-0000-0000-0000-000000000001';
@@ -135,7 +181,7 @@ begin
   assert (select count(*) from public.pillar_i18n) = 20, 'A reads pillar_i18n';
   assert (select count(*) from public.habit_templates) >= 20, 'A reads habit_templates';
   assert (select count(*) from public.habit_templates_i18n) >= 40, 'A reads habit_templates_i18n';
-  assert (select count(*) from public.achievements) = 1, 'A reads achievements';
+  assert (select count(*) from public.achievements) = 7, 'A reads achievements (6 seeded + test_ach)';
   perform 1 from public.achievements_i18n;
   assert pg_temp.fails($f$insert into public.pillars(slug, icon, color, sort) values ('z','z','#000',99)$f$), 'A cannot insert pillars';
   assert pg_temp.fails($f$update public.pillars set color = '#000'$f$), 'A cannot update pillars';
@@ -212,6 +258,14 @@ begin
   assert (select access_token_enc from public.provider_connections) = 'SECRET-ACCESS', 'service_role reads tokens';
   update public.provider_connections set last_synced_at = now();
   insert into public.provider_activity(user_id, provider, date) values ('aaaaaaaa-0000-0000-0000-00000000000a','strava','2026-01-02');
+  -- service_role CAN write provider-sourced logs (ruling F)
+  insert into public.habit_logs(user_id, user_habit_id, date, value, source)
+    values ('bbbbbbbb-0000-0000-0000-00000000000b','b1b1b1b1-0000-0000-0000-000000000001','2026-01-03', 5000, 'strava');
+  assert (select source from public.habit_logs where date = '2026-01-03'
+            and user_habit_id = 'b1b1b1b1-0000-0000-0000-000000000001') = 'strava', 'service_role inserted strava log';
+  assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value, source)
+      values ('bbbbbbbb-0000-0000-0000-00000000000b','b1b1b1b1-0000-0000-0000-000000000001','2026-01-04', -1, 'strava')$f$, '23514'),
+    'negative value rejected for service_role too';
 end $$;
 
 reset role;

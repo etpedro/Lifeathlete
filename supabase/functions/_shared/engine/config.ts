@@ -7,4 +7,9 @@ export const ENGINE_CONFIG = {
   freezePerWeek: 1,
   wheelWindowDays: 30,
   backfillDays: 2,
+  /** Balance index = 1 - stddev / this divisor. */
+  balanceStdDevDivisor: 50,
+  balanceBrightThreshold: 0.75,
+  balanceDimThreshold: 0.4,
+  levelsPerStage: 5,
 } as const;

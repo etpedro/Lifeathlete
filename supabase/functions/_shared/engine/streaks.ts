@@ -4,7 +4,7 @@ const DAY_MS = 86_400_000;
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** YYYY-MM-DD -> integer day number since 1970-01-01 (UTC arithmetic only). */
-function dayNumber(date: string): number {
+export function dayNumber(date: string): number {
   const m = DATE_RE.exec(date);
   if (!m) throw new Error(`Invalid date: "${date}" (expected YYYY-MM-DD)`);
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
@@ -17,7 +17,7 @@ function dayNumber(date: string): number {
 }
 
 /** Day number of the Monday of the ISO week containing `day` (1970-01-01 was a Thursday). */
-function isoWeekStart(day: number): number {
+export function isoWeekStart(day: number): number {
   const weekdayFromMonday = (((day + 3) % 7) + 7) % 7;
   return day - weekdayFromMonday;
 }

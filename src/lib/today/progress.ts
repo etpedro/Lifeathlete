@@ -77,15 +77,39 @@ export function blankDay(data: TodayData): TodayData {
   };
 }
 
+/** How many loaded days the Today screen remembers (today, a few days back, a day ahead of a stale clock). */
+const REMEMBERED_DAYS = 5;
+
+/** `loaded` plus `date`'s data, keeping only the newest {@link REMEMBERED_DAYS} days (input not mutated). */
+export function rememberLoaded(
+  loaded: Readonly<Record<string, TodayData>>,
+  date: string,
+  data: TodayData,
+): Record<string, TodayData> {
+  const dates = Object.keys({ ...loaded, [date]: data }).sort().slice(-REMEMBERED_DAYS);
+  return Object.fromEntries(dates.map((d) => [d, d === date ? data : loaded[d]]));
+}
+
 /**
- * What to show when `date` could not be loaded (offline the next morning, or "yesterday"
- * offline): the habits of the last day that did load, blank, with `date`'s queued values on
- * top, so taps still work and are queued. Null when no day was ever loaded.
+ * What to show when `date` could not be loaded (offline the next morning, a failed reload, or
+ * "yesterday" offline):
+ * - a day that loaded earlier in this session keeps its REAL values (a done habit must never
+ *   look undone, and a value picker must start from the real value — otherwise confirming it
+ *   would queue a lower absolute value that last-write-wins then writes over the real one),
+ *   with that date's queued values on top (`valuesKnown: true`);
+ * - a day that never loaded shows the newest loaded day's habits blank, flagged
+ *   `valuesKnown: false` so the UI can warn that already logged values are unavailable;
+ * - null when no day was ever loaded (the load error is shown instead).
+ * Taps keep working and are queued in every case.
  */
 export function fallbackDay(
-  lastGood: TodayData | null,
+  loaded: Readonly<Record<string, TodayData>>,
   queued: readonly Pick<LogInput, "userHabitId" | "date" | "value">[],
   date: string,
-): { data: TodayData; pendingIds: Set<string> } | null {
-  return lastGood ? overlayQueued(blankDay(lastGood), queued, date) : null;
+): { data: TodayData; pendingIds: Set<string>; valuesKnown: boolean } | null {
+  const known = loaded[date];
+  if (known) return { ...overlayQueued(known, queued, date), valuesKnown: true };
+  const newest = Object.keys(loaded).sort().at(-1);
+  if (newest === undefined) return null;
+  return { ...overlayQueued(blankDay(loaded[newest]), queued, date), valuesKnown: false };
 }

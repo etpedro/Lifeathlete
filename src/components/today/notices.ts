@@ -2,8 +2,10 @@
 export type TodayNotice =
   | { kind: "save" }
   | { kind: "load" }
-  /** The day could not be loaded; the last loaded habits are shown blank so taps still queue. */
+  /** The day could not be loaded and never loaded before: the habits are shown blank (logged values unknown) so taps still queue. */
   | { kind: "fallback" }
+  /** The day could not be reloaded: its last loaded (real) values are shown; new taps queue. */
+  | { kind: "fallbackStale" }
   /** A tap arrived just after midnight: the view moved to the new day and the tap was not saved. */
   | { kind: "rolledOver" }
   | { kind: "outsideWindow" }
@@ -11,5 +13,5 @@ export type TodayNotice =
 
 /** Informational notices are announced politely; failures that need the user's attention are alerts. */
 export function noticeRole(notice: TodayNotice): "status" | "alert" {
-  return notice.kind === "fallback" || notice.kind === "rolledOver" ? "status" : "alert";
+  return notice.kind === "fallback" || notice.kind === "fallbackStale" || notice.kind === "rolledOver" ? "status" : "alert";
 }

@@ -27,7 +27,7 @@ import {
   type AchievementWatcher,
   type StatsFeedback,
 } from "@/lib/today/feedback";
-import { applyValue, fallbackDay, overlayQueued } from "@/lib/today/progress";
+import { applyValue, fallbackDay, overlayQueued, rememberLoaded } from "@/lib/today/progress";
 import { createStatsRefresher, type StatsRefresher } from "@/lib/today/stats-refresh";
 import type { TodayNotice } from "./notices";
 
@@ -75,8 +75,8 @@ export function useTodayController({ userId, timezone, today, initialData, initi
   const statsRef = useRef(initialStats);
   const dateRef = useRef(today);
   const todayRef = useRef(today);
-  /** The last day that loaded: its habits are reused (blank) when a later load fails. */
-  const lastGoodRef = useRef<TodayData | null>(initialData);
+  /** The days that loaded (by date): a later failed load of the same day keeps its real values; another day reuses the habit structure blank. */
+  const loadedRef = useRef<Record<string, TodayData>>(initialData ? { [today]: initialData } : {});
   /** The shown day is a fallback (not the server's data): reload it when back online. */
   const fallbackRef = useRef(false);
   const directWrites = useRef<Promise<void>>(Promise.resolve());
@@ -115,28 +115,29 @@ export function useTodayController({ userId, timezone, today, initialData, initi
 
   /**
    * Re-reads a day from the server and shows still-queued values on top. When that fails
-   * (offline the next morning, "yesterday" offline, a transient error), the last loaded
-   * day's habits are shown blank with the queued values, so taps keep working and queue.
+   * (offline the next morning, "yesterday" offline, a transient error): a day that loaded
+   * before keeps its real values, a day that never loaded shows the habits blank (and says
+   * so); queued values go on top and taps keep working and queue.
    */
   const reload = useCallback(
     async (date: string) => {
       const queuedFor = () => listQueued(undefined, userId).catch(() => []);
       try {
         const fresh = await getToday(db(), date);
-        lastGoodRef.current = fresh;
+        loadedRef.current = rememberLoaded(loadedRef.current, date, fresh);
         const { data, pendingIds } = overlayQueued(fresh, await queuedFor(), date);
         if (dateRef.current !== date) return;
         fallbackRef.current = false;
         setView({ date, data, pendingIds });
-        setNotice((n) => (n?.kind === "fallback" ? null : n));
+        setNotice((n) => (n?.kind === "fallback" || n?.kind === "fallbackStale" ? null : n));
       } catch {
         if (dateRef.current !== date) return;
-        const fallback = fallbackDay(lastGoodRef.current, await queuedFor(), date);
+        const fallback = fallbackDay(loadedRef.current, await queuedFor(), date);
         if (dateRef.current !== date) return;
         if (!fallback) return setNotice({ kind: "load" });
         fallbackRef.current = true;
-        setView({ date, ...fallback });
-        setNotice({ kind: "fallback" });
+        setView({ date, data: fallback.data, pendingIds: fallback.pendingIds });
+        setNotice({ kind: fallback.valuesKnown ? "fallbackStale" : "fallback" });
       }
     },
     [db, userId],

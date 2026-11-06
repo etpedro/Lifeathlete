@@ -169,7 +169,8 @@
       "outsideWindow": "You can only fill in today and the 2 previous days.",
       "dropped": "{count, plural, one {# offline check-in could not be sent.} other {# offline check-ins could not be sent.}}",
       "stats": "Couldn't update your stats right now. We'll try again later.",
-      "fallback": "Couldn't load this day (offline?). Your habits are shown: what you log is saved and sent later.",
+      "fallback": "Couldn't load this day (offline?). Your habits are shown, but values already logged for this day aren't available. What you log is saved and sent later.",
+      "fallbackStale": "Offline: showing the last saved record for this day. What you log is saved and sent later.",
       "rolledOver": "It's a new day: today is shown now. Your last tap was not saved; tap again.",
       "page": "Couldn't load today. Please try again."
     }

@@ -5,6 +5,7 @@ describe("noticeRole", () => {
   it("informational notices are polite (status); failures that need action are alerts", () => {
     expect(noticeRole({ kind: "rolledOver" })).toBe("status");
     expect(noticeRole({ kind: "fallback" })).toBe("status");
+    expect(noticeRole({ kind: "fallbackStale" })).toBe("status");
     expect(noticeRole({ kind: "load" })).toBe("alert");
     expect(noticeRole({ kind: "save" })).toBe("alert");
     expect(noticeRole({ kind: "outsideWindow" })).toBe("alert");

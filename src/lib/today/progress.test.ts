@@ -8,6 +8,7 @@ import {
   isComplete,
   overlayQueued,
   progressPercent,
+  rememberLoaded,
   remainingCount,
   valueStep,
 } from "./progress";
@@ -112,39 +113,73 @@ describe("overlayQueued", () => {
 });
 
 describe("fallbackDay (a day that could not be loaded, e.g. offline the next morning)", () => {
-  const lastGood: TodayData = {
+  const habits = (a: number, b: number): TodayData => ({
     pillars: [
       {
         pillarId: "p1",
         slug: "exercise",
         habits: [
-          { id: "a", title: "Treino", kind: "check", target: 1, value: 1, source: "manual" },
-          { id: "b", title: "Caminhar", kind: "value", target: 30, value: 12, source: "strava" },
+          { id: "a", title: "Treino", kind: "check", target: 1, value: a, source: "manual" },
+          { id: "b", title: "Caminhar", kind: "value", target: 30, value: b, source: "strava" },
         ],
       },
     ],
-  };
+  });
+  const today = habits(1, 12);
 
   it("blankDay keeps the habit structure with values reset to 0 and no source", () => {
-    const blank = blankDay(lastGood);
+    const blank = blankDay(today);
     expect(blank.pillars[0].habits.map((h) => [h.id, h.title, h.kind, h.target, h.value, h.source])).toEqual([
       ["a", "Treino", "check", 1, 0, "none"],
       ["b", "Caminhar", "value", 30, 0, "none"],
     ]);
-    expect(lastGood.pillars[0].habits[0].value).toBe(1); // not mutated
+    expect(today.pillars[0].habits[0].value).toBe(1); // not mutated
   });
 
-  it("shows the last loaded day's habits for the new date, with that date's queued values on top", () => {
-    const queued = [
-      { userHabitId: "b", date: "2026-11-07", value: 20 },
-      { userHabitId: "a", date: "2026-11-06", value: 0 }, // another day: ignored
-    ];
-    const out = fallbackDay(lastGood, queued, "2026-11-07");
+  it("keeps the REAL values of a day that loaded before, with its queued values on top (same-day offline reload)", () => {
+    const out = fallbackDay({ "2026-11-07": today }, [{ userHabitId: "b", date: "2026-11-07", value: 20 }], "2026-11-07");
+    expect(out?.valuesKnown).toBe(true);
+    expect(out?.data.pillars[0].habits.map((h) => [h.value, h.source])).toEqual([
+      [1, "manual"], // done habit stays done
+      [20, "manual"], // the queued tap is a manual log (manual prevails over the sensor)
+    ]);
+    expect(out?.pendingIds).toEqual(new Set(["b"]));
+  });
+
+  it("does not let a stale queued value of another day leak into the shown day", () => {
+    const out = fallbackDay({ "2026-11-07": today }, [{ userHabitId: "a", date: "2026-11-06", value: 0 }], "2026-11-07");
+    expect(out?.data.pillars[0].habits.map((h) => h.value)).toEqual([1, 12]);
+    expect(out?.pendingIds.size).toBe(0);
+  });
+
+  it("a day that never loaded shows the newest loaded day's habits blank, flagged as unknown values, with queued values on top", () => {
+    const loaded = { "2026-11-05": habits(1, 5), "2026-11-07": today };
+    const out = fallbackDay(loaded, [{ userHabitId: "b", date: "2026-11-08", value: 20 }], "2026-11-08");
+    expect(out?.valuesKnown).toBe(false);
     expect(out?.data.pillars[0].habits.map((h) => h.value)).toEqual([0, 20]);
     expect(out?.pendingIds).toEqual(new Set(["b"]));
   });
 
+  it("yesterday offline: yesterday's loaded values are kept when it loaded before, blank otherwise", () => {
+    expect(fallbackDay({ "2026-11-06": habits(1, 7) }, [], "2026-11-06")?.data.pillars[0].habits.map((h) => h.value)).toEqual([1, 7]);
+    expect(fallbackDay({ "2026-11-07": today }, [], "2026-11-06")?.data.pillars[0].habits.map((h) => h.value)).toEqual([0, 0]);
+  });
+
   it("is null when no day was ever loaded (the load error is shown instead)", () => {
-    expect(fallbackDay(null, [], "2026-11-07")).toBeNull();
+    expect(fallbackDay({}, [], "2026-11-07")).toBeNull();
+  });
+});
+
+describe("rememberLoaded (small per-date memory of loaded days)", () => {
+  const d = (id: string): TodayData => ({ pillars: [{ pillarId: "p", slug: "s", habits: [{ id, title: id, kind: "check", target: 1, value: 0, source: "none" }] }] });
+  it("stores by date, replaces the same date, and keeps only the newest few", () => {
+    let m: Record<string, TodayData> = {};
+    for (const date of ["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"]) {
+      m = rememberLoaded(m, date, d(date));
+    }
+    expect(Object.keys(m)).toEqual(["2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"]);
+    const again = rememberLoaded(m, "2026-11-07", d("new"));
+    expect(again["2026-11-07"].pillars[0].habits[0].id).toBe("new");
+    expect(m["2026-11-07"].pillars[0].habits[0].id).toBe("2026-11-07"); // input not mutated
   });
 });

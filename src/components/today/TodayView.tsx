@@ -14,6 +14,7 @@ const NOTICE_KEYS = {
   save: "errors.save",
   load: "errors.load",
   fallback: "errors.fallback",
+  fallbackStale: "errors.fallbackStale",
   rolledOver: "errors.rolledOver",
   outsideWindow: "errors.outsideWindow",
 } as const;
@@ -46,7 +47,7 @@ export function TodayView(props: TodayControllerProps) {
       {c.notice && (
         <div role={noticeRole(c.notice)} className={styles.notice}>
           <p>{noticeText(c.notice)}</p>
-          {(c.notice.kind === "load" || c.notice.kind === "fallback") && (
+          {(c.notice.kind === "load" || c.notice.kind === "fallback" || c.notice.kind === "fallbackStale") && (
             <button type="button" className={styles.target} onClick={c.retry}>
               {tCommon("errors.retry")}
             </button>

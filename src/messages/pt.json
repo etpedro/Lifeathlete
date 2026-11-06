@@ -208,6 +208,12 @@
     "links": {
       "habits": "Gerir hábitos"
     },
+    "language": {
+      "title": "Idioma",
+      "saved": "Idioma guardado.",
+      "failed": "Não foi possível mudar o idioma. Tenta de novo.",
+      "working": "A mudar o idioma…"
+    },
     "habits": {
       "title": "Gerir hábitos",
       "back": "Voltar ao perfil",

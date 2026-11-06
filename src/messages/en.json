@@ -208,6 +208,12 @@
     "links": {
       "habits": "Manage habits"
     },
+    "language": {
+      "title": "Language",
+      "saved": "Language saved.",
+      "failed": "Couldn't change the language. Please try again.",
+      "working": "Changing the language…"
+    },
     "habits": {
       "title": "Manage habits",
       "back": "Back to profile",

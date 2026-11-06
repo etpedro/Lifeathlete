@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 import { routing } from "./i18n/routing";
-import { proxyRedirect } from "./lib/auth/access";
+import { PATHNAME_HEADER, proxyRedirect } from "./lib/auth/access";
 import { OFFLINE_OPT_IN_HEADER, OFFLINE_OPT_IN_VALUE, isOfflinePagePath } from "./lib/pwa/cache-rules";
 import { getSupabaseEnv } from "./lib/supabase/env";
 
@@ -17,7 +17,8 @@ type CookieToSet = { name: string; value: string; options: Parameters<NextRespon
  * 2. Signed-out users on protected paths go to /{locale}/login.
  * 3. Otherwise next-intl handles locale routing. Onboarding redirects happen in the
  *    server layouts, not here.
- * 4. The Hoje screen is marked as the only page the service worker may keep for offline use.
+ * 4. The request path is forwarded to the layouts (stored-locale redirect).
+ * 5. The Hoje screen is marked as the only page the service worker may keep for offline use.
  */
 export default async function proxy(request: NextRequest) {
   const { url, anonKey } = getSupabaseEnv();
@@ -41,6 +42,9 @@ export default async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
 
   const target = proxyRedirect(request.nextUrl.pathname, Boolean(data?.claims));
+  // Forwarded to the server layouts (next-intl copies the request headers) so the
+  // stored-locale redirect keeps the page; always overwritten, never taken from the client.
+  request.headers.set(PATHNAME_HEADER, request.nextUrl.pathname);
   const response = target ? NextResponse.redirect(new URL(target, request.url)) : handleI18nRouting(request);
 
   pendingCookies.forEach(({ name, value, options }) => response.cookies.set(name, value, options));

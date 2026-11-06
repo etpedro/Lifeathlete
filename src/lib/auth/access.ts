@@ -4,6 +4,9 @@ import { routing } from "@/i18n/routing";
 
 export type Locale = (typeof routing.locales)[number];
 
+/** Request header set by the proxy with the request path (read by the server guard). */
+export const PATHNAME_HEADER = "x-lifeathlete-pathname";
+
 /** Paths (after the locale) reachable without a session. */
 const PUBLIC_PREFIXES = ["/login", "/auth"];
 
@@ -32,14 +35,35 @@ export function proxyRedirect(pathname: string, authenticated: boolean): string 
 }
 
 export type Area = "app" | "onboarding" | "login";
-export type AccessState = { authenticated: boolean; onboarded: boolean };
+export type AccessState = {
+  authenticated: boolean;
+  onboarded: boolean;
+  /** profiles.locale, the language chosen in onboarding or on Perfil (null: none/unknown). */
+  locale?: Locale | null;
+};
 
-/** Server-side rule for each area of the app. Returns the redirect path or null. */
-export function pageRedirect(area: Area, locale: Locale, state: AccessState): string | null {
+/**
+ * Where a signed-in, onboarded user on `urlLocale` belongs when their stored locale
+ * differs: the same page (from `pathname`, when it is a safe path of `urlLocale`) in the
+ * stored locale, else its Today. Null when nothing is stored or the locales match (no loop).
+ */
+export function localeRedirect(pathname: string | null, urlLocale: Locale, stored: Locale | null | undefined): string | null {
+  if (!stored || stored === urlLocale) return null;
+  const parts = pathname ? splitLocale(pathname) : null;
+  const safe = parts && parts.locale === urlLocale && parts.rest !== "/" && !parts.rest.startsWith("//");
+  return `/${stored}${safe ? parts.rest : "/today"}`;
+}
+
+/**
+ * Server-side rule for each area of the app. Returns the redirect path or null. Onboarded
+ * users land in their stored locale (`pathname`, when known, keeps the page in the app area).
+ */
+export function pageRedirect(area: Area, locale: Locale, state: AccessState, pathname: string | null = null): string | null {
   const to = (path: string) => `/${locale}${path}`;
   if (!state.authenticated) return area === "login" ? null : to("/login");
   if (!state.onboarded) return area === "onboarding" ? null : to("/onboarding");
-  return area === "app" ? null : to("/today");
+  if (area === "app") return localeRedirect(pathname, locale, state.locale);
+  return `/${state.locale ?? locale}/today`;
 }
 
 /** Where the auth callback sends the user after exchanging the code. */

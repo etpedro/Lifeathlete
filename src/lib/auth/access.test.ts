@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { callbackRedirect, pageRedirect, proxyRedirect, splitLocale } from "./access";
+import { callbackRedirect, localeRedirect, pageRedirect, proxyRedirect, splitLocale } from "./access";
 
 describe("splitLocale", () => {
   it.each([
@@ -65,6 +65,40 @@ describe("pageRedirect", () => {
     expect(pageRedirect("login", "pt", anon)).toBeNull();
     expect(pageRedirect("login", "en", fresh)).toBe("/en/onboarding");
     expect(pageRedirect("login", "en", done)).toBe("/en/today");
+  });
+});
+
+describe("stored locale (profiles.locale) after sign-in", () => {
+  const en = { authenticated: true, onboarded: true, locale: "en" as const };
+  const pt = { authenticated: true, onboarded: true, locale: "pt" as const };
+
+  it("app area on another locale goes to the same page in the stored locale", () => {
+    expect(pageRedirect("app", "pt", en, "/pt/profile/habits")).toBe("/en/profile/habits");
+    expect(pageRedirect("app", "pt", en, "/pt/today")).toBe("/en/today");
+    expect(pageRedirect("app", "pt", en)).toBe("/en/today"); // path unknown
+  });
+
+  it("never redirects when the URL already has the stored locale (no loop) or none is stored", () => {
+    expect(pageRedirect("app", "en", en, "/en/today")).toBeNull();
+    expect(pageRedirect("app", "pt", { authenticated: true, onboarded: true, locale: null }, "/pt/today")).toBeNull();
+    expect(pageRedirect("app", "pt", { authenticated: true, onboarded: true }, "/pt/today")).toBeNull();
+  });
+
+  it("signed-in landing on login or onboarding goes to Today in the stored locale", () => {
+    expect(pageRedirect("login", "pt", en)).toBe("/en/today");
+    expect(pageRedirect("onboarding", "en", pt)).toBe("/pt/today");
+  });
+
+  it("onboarding is never moved to the stored locale while not onboarded (the user picks it there)", () => {
+    expect(pageRedirect("onboarding", "en", { authenticated: true, onboarded: false, locale: "pt" })).toBeNull();
+  });
+
+  it("localeRedirect ignores a path from another locale or an unsafe path", () => {
+    expect(localeRedirect("/en/profile", "pt", "en")).toBe("/en/today");
+    expect(localeRedirect("/pt//evil.example", "pt", "en")).toBe("/en/today");
+    expect(localeRedirect("/pt", "pt", "en")).toBe("/en/today");
+    expect(localeRedirect(null, "pt", "en")).toBe("/en/today");
+    expect(localeRedirect("/pt/wheel", "pt", "pt")).toBeNull();
   });
 });
 

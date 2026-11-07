@@ -6,6 +6,15 @@
   box-sizing: border-box;
 }
 
+/*
+ * The one rule that is NOT wrapped in :where(): the `hidden` attribute must always win over
+ * a component's `display` (e.g. `.habits { display: grid }`), which would otherwise override
+ * the browser's built-in `[hidden] { display: none }` and leave collapsed content visible.
+ */
+[hidden] {
+  display: none !important;
+}
+
 :where(html) {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

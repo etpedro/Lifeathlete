@@ -324,6 +324,114 @@ begin
     'invalid timezone: the UTC window still applies';
 end $$;
 
+-- ---------- health sync (0011): automatic steps ----------
+-- B gets a value habit (as superuser) so A can try to write another user's value habit.
+reset role;
+insert into public.user_habits(id, user_id, pillar_id, title, kind, target)
+select 'b2b2b2b2-0000-0000-0000-000000000002', 'bbbbbbbb-0000-0000-0000-00000000000b', id, 'B steps', 'value', 8000
+  from public.pillars where slug = 'active-lifestyle';
+update public.provider_connections set consented_at = now() where provider = 'strava';
+set role authenticated;
+set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-00000000000a';
+do $$
+declare n int;
+begin
+  -- server-written integration tables: no client insert / update / delete
+  assert pg_temp.fails($f$insert into public.provider_activity(user_id, provider, date, payload)
+      values (auth.uid(), 'health_connect', pg_temp.d(0), '{"steps":1}')$f$, '42501'),
+    'A cannot insert provider_activity (health_connect)';
+  assert pg_temp.fails($f$update public.provider_activity set payload = '{"steps":99999}'$f$, '42501'),
+    'A cannot update provider_activity';
+  assert pg_temp.fails($f$delete from public.provider_activity$f$, '42501'), 'A cannot delete provider_activity';
+  assert pg_temp.fails($f$insert into public.provider_connections(user_id, provider, status)
+      values (auth.uid(), 'health_connect', 'connected')$f$, '42501'),
+    'A cannot insert a health_connect connection';
+  assert pg_temp.fails($f$update public.provider_connections set consented_at = now()$f$, '42501'),
+    'A cannot grant itself consent';
+  assert pg_temp.fails($f$update public.provider_connections set last_synced_at = now()$f$, '42501'),
+    'A cannot update last_synced_at';
+  assert pg_temp.fails($f$delete from public.provider_connections$f$, '42501'), 'A cannot delete provider_connections';
+  -- the column grant still exposes status columns only
+  perform id, user_id, provider, status, last_synced_at from public.provider_connections;
+  assert pg_temp.fails($f$select consented_at from public.provider_connections$f$, '42501'), 'A cannot read consented_at';
+  assert pg_temp.fails($f$select expires_at from public.provider_connections$f$, '42501'), 'A cannot read expires_at';
+  assert pg_temp.fails($f$select access_token_enc, refresh_token_enc from public.provider_connections$f$, '42501'),
+    'A still cannot read the token columns';
+  -- the client cannot write automatic logs
+  assert pg_temp.fails($f$insert into public.habit_logs(user_id, user_habit_id, date, value, source)
+      select auth.uid(), id, pg_temp.d(0), 5000, 'health_connect' from public.user_habits where title = 'Mine'$f$, '42501'),
+    'A cannot insert a health_connect log';
+
+  -- auto_source on own habits
+  assert (select auto_source from public.user_habits where title = 'Mine') is null, 'auto_source defaults to null';
+  update public.user_habits set auto_source = 'steps' where title = 'Mine';
+  get diagnostics n = row_count;
+  assert n = 1, 'A can set auto_source = steps on its own value habit';
+  assert (select auto_source from public.user_habits where title = 'Mine') = 'steps', 'auto_source stored';
+  assert pg_temp.fails($f$update public.user_habits set kind = 'check' where title = 'Mine'$f$, '23514'),
+    'a steps habit cannot become a check habit';
+  update public.user_habits set auto_source = null where title = 'Mine';
+  get diagnostics n = row_count;
+  assert n = 1, 'A can clear auto_source';
+  insert into public.user_habits(user_id, pillar_id, title, kind, target)
+    select auth.uid(), id, 'Check 0011', 'check', 1 from public.pillars where slug = 'nature';
+  assert pg_temp.fails($f$update public.user_habits set auto_source = 'steps' where title = 'Check 0011'$f$, '23514'),
+    'auto_source on a check habit must violate the check';
+  assert pg_temp.fails($f$insert into public.user_habits(user_id, pillar_id, title, kind, auto_source)
+      select auth.uid(), id, 'Bad', 'check', 'steps' from public.pillars where slug = 'nature'$f$, '23514'),
+    'inserting a check habit with auto_source must violate the check';
+  assert pg_temp.fails($f$update public.user_habits set auto_source = 'calories' where title = 'Mine'$f$, '23514'),
+    'an unknown auto_source must violate the check';
+  update public.user_habits set auto_source = 'steps' where id = 'b2b2b2b2-0000-0000-0000-000000000002';
+  get diagnostics n = row_count;
+  assert n = 0, 'A cannot set auto_source on B value habit';
+end $$;
+
+reset role;
+do $$
+begin
+  assert (select auto_source from public.user_habits where id = 'b2b2b2b2-0000-0000-0000-000000000002') is null,
+    'B habit unchanged';
+end $$;
+
+-- service_role (the health-sync function) writes automatic logs and provider rows
+set role service_role;
+do $$
+begin
+  insert into public.provider_connections(user_id, provider, status, consented_at)
+    values ('bbbbbbbb-0000-0000-0000-00000000000b', 'health_connect', 'connected', now());
+  update public.provider_connections set last_synced_at = now()
+   where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and provider = 'health_connect';
+  assert (select consented_at from public.provider_connections
+           where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and provider = 'health_connect') is not null,
+    'service_role records consent';
+  update public.user_habits set auto_source = 'steps' where id = 'b2b2b2b2-0000-0000-0000-000000000002';
+  insert into public.provider_activity(user_id, provider, date, payload)
+    values ('bbbbbbbb-0000-0000-0000-00000000000b', 'health_connect', '2026-11-01', '{"steps":6543}');
+  insert into public.habit_logs(user_id, user_habit_id, date, value, source, target)
+    values ('bbbbbbbb-0000-0000-0000-00000000000b', 'b2b2b2b2-0000-0000-0000-000000000002', '2026-11-01', 6543,
+            'health_connect', 8000);
+  assert (select source from public.habit_logs where user_habit_id = 'b2b2b2b2-0000-0000-0000-000000000002'
+            and date = '2026-11-01') = 'health_connect', 'service_role wrote an automatic log';
+  assert pg_temp.fails($f$insert into public.provider_activity(user_id, provider, date, payload)
+      values ('bbbbbbbb-0000-0000-0000-00000000000b', 'health_connect', '2026-11-01', '{"steps":1}')$f$, '23505'),
+    'a duplicate (user_id, provider, date) must violate unique';
+  assert pg_temp.fails($f$insert into public.provider_connections(user_id, provider, status)
+      values ('bbbbbbbb-0000-0000-0000-00000000000b', 'health_connect', 'connected')$f$, '23505'),
+    'one connection per (user_id, provider)';
+end $$;
+
+-- B reads its own status columns (not consented_at) and its own steps
+set role authenticated;
+set request.jwt.claim.sub = 'bbbbbbbb-0000-0000-0000-00000000000b';
+do $$
+begin
+  assert (select status from public.provider_connections where provider = 'health_connect') = 'connected',
+    'B reads its connection status';
+  assert (select count(*) from public.provider_activity where provider = 'health_connect') = 1, 'B reads its steps';
+  assert pg_temp.fails($f$select consented_at from public.provider_connections$f$, '42501'), 'B cannot read consented_at';
+end $$;
+
 -- ---------- anon ----------
 reset role;
 set role anon;
@@ -355,7 +463,7 @@ begin
     select 'bbbbbbbb-0000-0000-0000-00000000000b', id from public.achievements limit 1;
   insert into public.mascot_state(user_id) values ('bbbbbbbb-0000-0000-0000-00000000000b');
   update public.mascot_state set stage = 2 where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b';
-  assert (select access_token_enc from public.provider_connections) = 'SECRET-ACCESS', 'service_role reads tokens';
+  assert (select access_token_enc from public.provider_connections where provider = 'strava') = 'SECRET-ACCESS', 'service_role reads tokens';
   update public.provider_connections set last_synced_at = now();
   insert into public.provider_activity(user_id, provider, date) values ('aaaaaaaa-0000-0000-0000-00000000000a','strava','2026-01-02');
   -- service_role CAN write provider-sourced logs (ruling F), on any date (no client window, 0009)

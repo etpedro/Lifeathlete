@@ -7,6 +7,7 @@ import {
   listPillars,
   MAX_TITLE_LENGTH,
   setHabitActive,
+  setHabitAutoSource,
   updateHabitTarget,
 } from "./habits";
 import { createFakeDb, type Row } from "./testing/fake-db";
@@ -322,8 +323,8 @@ describe("listManageableHabits", () => {
   it("maps fields, fromTemplate and active; orders habits by creation inside a pillar", async () => {
     const out = await listManageableHabits(setup().db);
     expect(out[0].habits).toEqual([
-      { id: "h-workout", title: "Treino", kind: "check", target: 1, active: true, fromTemplate: true },
-      { id: "h-walk", title: "Caminhar", kind: "value", target: 30, active: true, fromTemplate: false },
+      { id: "h-workout", title: "Treino", kind: "check", target: 1, active: true, fromTemplate: true, autoSource: null },
+      { id: "h-walk", title: "Caminhar", kind: "value", target: 30, active: true, fromTemplate: false, autoSource: null },
     ]);
     expect(out[1].habits[0]).toMatchObject({ id: "h-paused", active: false, fromTemplate: false });
   });
@@ -350,5 +351,71 @@ describe("listPillars", () => {
     const out = await listPillars(setup().db);
     expect(out.map((p) => p.slug)).toEqual(["exercise", "meditation", "reading", "family"]);
     expect(out[0]).toEqual({ id: "p-exercise", slug: "exercise" });
+  });
+});
+
+describe("setHabitAutoSource", () => {
+  it("turns automatic steps on and off for a value habit", async () => {
+    const f = setup();
+    await setHabitAutoSource(f.db, "h-walk", "steps");
+    expect(row(f, "h-walk").auto_source).toBe("steps");
+    expect(f.writes.at(-1)).toMatchObject({ table: "user_habits", op: "update", payload: { auto_source: "steps" } });
+    const listed = (await listManageableHabits(f.db)).flatMap((p) => p.habits).find((h) => h.id === "h-walk");
+    expect(listed?.autoSource).toBe("steps");
+    await setHabitAutoSource(f.db, "h-walk", null);
+    expect(row(f, "h-walk").auto_source).toBeNull();
+  });
+
+  it("works on a paused value habit too", async () => {
+    const f = setup();
+    row(f, "h-paused").kind = "value";
+    await setHabitAutoSource(f.db, "h-paused", "steps");
+    expect(row(f, "h-paused").auto_source).toBe("steps");
+  });
+
+  it("rejects a check habit with invalid_kind (no write)", async () => {
+    const f = setup();
+    expect(await codeOf(setHabitAutoSource(f.db, "h-workout", "steps"))).toBe("invalid_kind");
+    expect(f.writes).toEqual([]);
+  });
+
+  it("rejects an unknown source (no write)", async () => {
+    const f = setup();
+    expect(await codeOf(setHabitAutoSource(f.db, "h-walk", "calories" as never))).toBe("save_failed");
+    expect(f.writes).toEqual([]);
+  });
+
+  it("unknown or archived habit -> not_found", async () => {
+    const f = setup();
+    expect(await codeOf(setHabitAutoSource(f.db, "nope", "steps"))).toBe("not_found");
+    expect(await codeOf(setHabitAutoSource(f.db, "h-archived", null))).toBe("not_found");
+  });
+
+  it("an update that matched no row (RLS, archived meanwhile) -> not_found", async () => {
+    const f = setup();
+    const db = f.db;
+    const realFrom = db.from.bind(db);
+    let n = 0;
+    (db as { from: unknown }).from = (table: string) => {
+      const q = realFrom(table);
+      if (table === "user_habits" && ++n === 2) row(f, "h-walk").deleted_at = "2026-11-06T00:00:00Z";
+      return q;
+    };
+    expect(await codeOf(setHabitAutoSource(db, "h-walk", "steps"))).toBe("not_found");
+  });
+
+  it("a failed write -> save_failed", async () => {
+    const f = setup();
+    f.failNext("user_habits", "update");
+    expect(await codeOf(setHabitAutoSource(f.db, "h-walk", "steps"))).toBe("save_failed");
+  });
+
+  it("lists autoSource as null unless it is steps", async () => {
+    const f = setup();
+    row(f, "h-walk").auto_source = "steps";
+    row(f, "h-read").auto_source = "weird";
+    const all = (await listManageableHabits(f.db)).flatMap((p) => p.habits);
+    expect(all.find((h) => h.id === "h-walk")?.autoSource).toBe("steps");
+    expect(all.find((h) => h.id === "h-read")?.autoSource).toBeNull();
   });
 });

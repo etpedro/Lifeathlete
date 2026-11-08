@@ -23,6 +23,8 @@ export type FakeDbOptions = {
   /** Column defaults applied to inserted rows, like SQL `default`. */
   defaults?: Record<string, Row>;
   now?: () => string;
+  /** Stand-in for `db.functions.invoke` (Edge Function calls); absent = not stubbed. */
+  invoke?: (name: string, options?: { body?: unknown; method?: string }) => Promise<{ data: unknown; error: unknown }>;
 };
 
 export type FakeDb = {
@@ -194,6 +196,12 @@ export function createFakeDb(options: FakeDbOptions): FakeDb {
 
   const db = {
     from: (table: string) => new Query(table),
+    functions: {
+      invoke: (name: string, opts?: { body?: unknown; method?: string }) => {
+        if (!options.invoke) throw new Error(`fake-db: functions.invoke(${name}) is not stubbed`);
+        return options.invoke(name, opts);
+      },
+    },
     auth: {
       getUser: async () => ({
         data: { user: options.userId ? { id: options.userId } : null },

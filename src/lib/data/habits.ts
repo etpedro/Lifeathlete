@@ -115,6 +115,21 @@ export async function updateHabitTarget(db: Db, id: string, target: number): Pro
   await updateLive(db, id, { target }, "update habit target");
 }
 
+/** Automatic sources a value habit can be filled from (user_habits.auto_source, 0011). */
+export type AutoSource = "steps";
+
+/**
+ * Fills a value habit from the phone's steps ("steps") or stops it (null). Check habits ->
+ * `invalid_kind`; unknown or archived -> `not_found`. The data arrives through the
+ * health-sync function once the Android app is connected.
+ */
+export async function setHabitAutoSource(db: Db, id: string, source: AutoSource | null): Promise<void> {
+  if (source !== null && source !== "steps") throw new HabitError("save_failed", `Unknown auto source: ${String(source)}`);
+  const habit = await findLive(db, id);
+  if (habit.kind !== "value") throw new HabitError("invalid_kind", "Only value habits can be filled automatically");
+  await updateLive(db, id, { auto_source: source }, "update habit auto source");
+}
+
 export type CustomHabitInput = {
   userId: string;
   pillarId: string;
@@ -162,6 +177,8 @@ export type ManageableHabit = {
   target: number;
   active: boolean;
   fromTemplate: boolean;
+  /** "steps" when the habit is filled from the phone's steps. */
+  autoSource: AutoSource | null;
 };
 export type ManageablePillar = { pillarId: string; slug: string; habits: ManageableHabit[] };
 
@@ -175,6 +192,7 @@ type HabitRow = {
   target: number | string | null;
   active: boolean;
   created_at: string;
+  auto_source?: string | null;
 };
 
 function num(value: unknown): number {
@@ -188,7 +206,7 @@ export async function listManageableHabits(db: Db): Promise<ManageablePillar[]> 
     db.from("pillars").select("id, slug, sort").order("sort"),
     db
       .from("user_habits")
-      .select("id, pillar_id, template_id, title, kind, target, active, created_at")
+      .select("id, pillar_id, template_id, title, kind, target, active, created_at, auto_source")
       .is("deleted_at", null)
       .order("created_at"),
   ]);
@@ -212,6 +230,7 @@ export async function listManageableHabits(db: Db): Promise<ManageablePillar[]> 
           target: h.kind === "check" ? 1 : num(h.target),
           active: h.active,
           fromTemplate: h.template_id !== null,
+          autoSource: h.auto_source === "steps" ? ("steps" as const) : null,
         })),
     }))
     .filter((p) => p.habits.length > 0);

@@ -24,6 +24,7 @@ const habit = (over: Partial<ManageableHabit> = {}): ManageableHabit => ({
   target: 30,
   active: true,
   fromTemplate: false,
+  autoSource: null,
   ...over,
 });
 const item = (h: ManageableHabit, busy = false) => (

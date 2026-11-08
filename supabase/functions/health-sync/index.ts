@@ -1,25 +1,29 @@
-// Deno Edge Function: POST /health-sync (automatic steps, phase 1)
+// Deno Edge Function: POST /health-sync (automatic data collection, v2)
 // Thin adapter: authenticates the caller from `Authorization: Bearer <jwt>` ONLY (never
 // from the body or query), writes with a service-role client and filters every query by
-// the verified user id. All decisions live in health-sync.ts. Excluded from tsc/eslint
-// (Deno code). Steps are client-supplied and cannot be verified (documented limitation).
+// the verified user id. All decisions live in health-sync.ts; ingest, source priority and
+// manual precedence live in the SQL functions of migration 0012. Excluded from tsc/eslint
+// (Deno code). Values are client-supplied and cannot be verified (documented limitation).
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
-  consentGiven,
+  consentCovers,
   consentRecord,
   consentWithdrawal,
   errorStatus,
-  MAX_STEPS_HABITS,
-  parseApplied,
+  metricsOf,
+  parseFilled,
   parseRequest,
   planSync,
   PROVIDER,
   recalculateUrl,
   shouldRecalculate,
+  statusResponse,
   syncResponse,
   todayFor,
+  type AutoMetric,
+  type Connection,
   type ErrorCode,
-  type StepDay,
+  type MetricDay,
 } from "./health-sync.ts";
 
 const CORS_HEADERS = {
@@ -42,16 +46,39 @@ function check<T>(res: { data: T; error: unknown }): T {
   return res.data;
 }
 
-/** Consent was not given (or was withdrawn): the sync is refused before anything is written. */
+/** Consent was not given, was withdrawn, or does not cover a metric sent: nothing is written. */
 class ConsentRequired extends Error {}
 
-async function connect(admin: SupabaseClient, userId: string, version: string, now: string): Promise<Response> {
+type ConnectionRow = {
+  status: string;
+  consented_at: string | null;
+  consent_version: string | null;
+  consented_categories: unknown;
+  last_synced_at: string | null;
+};
+
+async function loadConnection(admin: SupabaseClient, userId: string): Promise<Connection> {
+  const row = check(await admin.from("provider_connections")
+    .select("status, consented_at, consent_version, consented_categories, last_synced_at")
+    .eq("user_id", userId).eq("provider", PROVIDER).maybeSingle()) as ConnectionRow | null;
+  return row && {
+    status: row.status,
+    consentedAt: row.consented_at,
+    consentVersion: row.consent_version,
+    categories: row.consented_categories,
+    lastSyncedAt: row.last_synced_at,
+  };
+}
+
+async function connect(
+  admin: SupabaseClient, userId: string, version: string, categories: AutoMetric[], now: string,
+): Promise<Response> {
   // Consent record + status only: tokens stay null (Health Connect is read on the phone).
   check(await admin.from("provider_connections").upsert(
-    { user_id: userId, provider: PROVIDER, ...consentRecord(version, now) },
+    { user_id: userId, provider: PROVIDER, ...consentRecord(version, categories, now) },
     { onConflict: "user_id,provider" },
   ));
-  return json({ ok: true, status: "connected" }, 200);
+  return json({ ok: true, status: "connected", categories }, 200);
 }
 
 async function disconnect(admin: SupabaseClient, userId: string, now: string): Promise<Response> {
@@ -64,58 +91,23 @@ async function disconnect(admin: SupabaseClient, userId: string, now: string): P
 
 type SyncOutcome = { body: ReturnType<typeof syncResponse>; recalculate: boolean };
 
-async function sync(admin: SupabaseClient, userId: string, days: StepDay[], now: string): Promise<SyncOutcome> {
-  const connection = check(await admin.from("provider_connections")
-    .select("status, consented_at, consent_version, last_synced_at")
-    .eq("user_id", userId).eq("provider", PROVIDER).maybeSingle()) as {
-      status: string; consented_at: string | null; consent_version: string | null; last_synced_at: string | null;
-    } | null;
-  if (!consentGiven(connection && {
-    status: connection.status,
-    consentedAt: connection.consented_at,
-    consentVersion: connection.consent_version,
-  })) {
-    throw new ConsentRequired();
-  }
+async function sync(admin: SupabaseClient, userId: string, days: MetricDay[], now: string): Promise<SyncOutcome> {
+  const connection = await loadConnection(admin, userId);
+  // Data minimization: a category the user did not consent to is never stored.
+  if (!consentCovers(connection, metricsOf(days))) throw new ConsentRequired();
 
-  // At most MAX_STEPS_HABITS habits per sync (oldest first); `count` reports the rest as ignored.
-  const habitsRes = await admin.from("user_habits")
-    .select("id, kind, target, active, deleted_at, auto_source", { count: "exact" })
-    .eq("user_id", userId).eq("auto_source", "steps").eq("kind", "value")
-    .eq("active", true).is("deleted_at", null)
-    .order("created_at").order("id").limit(MAX_STEPS_HABITS);
-  const habits = check(habitsRes) as {
-    id: string; kind: "check" | "value"; target: number | string | null; active: boolean;
-    deleted_at: string | null; auto_source: string | null;
-  }[];
-
-  const plan = planSync({
-    days,
-    habits: habits.map((h) => ({
-      id: h.id,
-      kind: h.kind,
-      target: h.target === null ? null : Number(h.target), // numeric may arrive as string
-      active: h.active,
-      deletedAt: h.deleted_at,
-      autoSource: h.auto_source,
-    })),
-    totalHabits: habitsRes.count,
-    now,
-  });
-
-  check(await admin.from("provider_activity").upsert(
-    plan.activityRows.map((r) => ({ user_id: userId, ...r })),
-    { onConflict: "user_id,provider,date" },
-  ));
-
-  // One atomic statement; the database never overwrites a manual log (migration 0011).
-  const applied = plan.logRows.length === 0
-    ? parseApplied(null)
-    : parseApplied(check(await admin.rpc("apply_health_logs", { p_user_id: userId, p_rows: plan.logRows })));
+  const plan = planSync({ days, now });
+  // (a) ingest, merged per day; (b) fill from every provider by priority, manual prevails.
+  check(await admin.rpc("upsert_provider_activity", {
+    p_user_id: userId, p_provider: PROVIDER, p_rows: plan.activityRows,
+  }));
+  const filled = parseFilled(check(await admin.rpc("fill_habits_from_activity", {
+    p_user_id: userId, p_from: plan.fillFrom, p_to: plan.fillTo,
+  })));
 
   check(await admin.from("provider_connections").update({ last_synced_at: now })
     .eq("user_id", userId).eq("provider", PROVIDER));
-  return { body: syncResponse(plan, applied), recalculate: shouldRecalculate(connection!.last_synced_at, now) };
+  return { body: syncResponse(plan, filled), recalculate: shouldRecalculate(connection!.lastSyncedAt ?? null, now) };
 }
 
 /** Best effort: stats also refresh on the next app open, so a failure never fails the sync. */
@@ -167,8 +159,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (!parsed.ok) return fail(parsed.error);
 
     const request = parsed.request;
-    if (request.action === "connect") return await connect(admin, userId, request.consentVersion, now);
+    if (request.action === "connect") {
+      return await connect(admin, userId, request.consentVersion, request.categories, now);
+    }
     if (request.action === "disconnect") return await disconnect(admin, userId, now);
+    if (request.action === "status") return json(statusResponse(await loadConnection(admin, userId)), 200);
 
     const result = await sync(admin, userId, request.days, now);
     // Throttled: repeated syncs within a minute do not each trigger a recalculation.

@@ -516,6 +516,254 @@ begin
          = '{"written": 0, "skippedManual": 0, "habitsUpdated": 0}'::jsonb, 'empty batch';
 end $$;
 
+-- ---------- automatic data collection (0012): metrics, consent categories, ingest + fill ----------
+-- The client: any of the four metrics on its own value habit; nothing else.
+set role authenticated;
+set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-00000000000a';
+do $$
+declare n int; m text;
+begin
+  foreach m in array array['steps','workout_minutes','sleep_hours','mindful_minutes'] loop
+    update public.user_habits set auto_source = m where title = 'Mine';
+    get diagnostics n = row_count;
+    assert n = 1, 'A can fill its own value habit from ' || m;
+    assert (select auto_source from public.user_habits where title = 'Mine') = m, m || ' stored';
+  end loop;
+  update public.user_habits set auto_source = null where title = 'Mine';
+  assert pg_temp.fails($f$update public.user_habits set auto_source = 'sleep_hours' where title = 'Check 0011'$f$, '23514'),
+    'a metric on a check habit must violate the check';
+  assert pg_temp.fails($f$update public.user_habits set auto_source = 'calories' where title = 'Mine'$f$, '23514'),
+    'an unknown metric must violate the check';
+  assert pg_temp.fails($f$update public.user_habits set auto_source = 'Steps' where title = 'Mine'$f$, '23514'),
+    'metric keys are exact';
+  update public.user_habits set auto_source = 'mindful_minutes' where id = 'b2b2b2b2-0000-0000-0000-000000000002';
+  get diagnostics n = row_count;
+  assert n = 0, 'A cannot set a metric on B value habit';
+  -- the consent categories stay server-side
+  assert pg_temp.fails($f$select consented_categories from public.provider_connections$f$, '42501'),
+    'A cannot read consented_categories';
+  assert pg_temp.fails($f$update public.provider_connections set consented_categories = '{steps}'$f$, '42501'),
+    'A cannot write consented_categories';
+  perform id, user_id, provider, status, last_synced_at from public.provider_connections;
+  assert pg_temp.fails($f$select * from public.provider_connections$f$, '42501'), 'select * still denied (0012)';
+  -- ingest and fill are for the health-sync function only
+  assert pg_temp.fails($f$select public.upsert_provider_activity(auth.uid(), 'health_connect',
+      '[{"date":"2026-10-01","metrics":{"steps":1}}]'::jsonb)$f$, '42501'),
+    'authenticated cannot execute upsert_provider_activity';
+  assert pg_temp.fails($f$select public.fill_habits_from_activity(auth.uid(), '2026-10-01', '2026-10-01')$f$, '42501'),
+    'authenticated cannot execute fill_habits_from_activity';
+end $$;
+
+reset role;
+set role anon;
+reset request.jwt.claim.sub;
+do $$
+begin
+  assert pg_temp.fails($f$select public.upsert_provider_activity('aaaaaaaa-0000-0000-0000-00000000000a', 'health_connect',
+      '[]'::jsonb)$f$, '42501'), 'anon cannot execute upsert_provider_activity';
+  assert pg_temp.fails($f$select public.fill_habits_from_activity('aaaaaaaa-0000-0000-0000-00000000000a',
+      '2026-10-01', '2026-10-01')$f$, '42501'), 'anon cannot execute fill_habits_from_activity';
+end $$;
+
+-- fixtures: user C with one habit per case, user D with 52 steps habits (as superuser)
+reset role;
+insert into auth.users(id) values ('cccccccc-0000-0000-0000-00000000000c'), ('dddddddd-0000-0000-0000-00000000000d');
+insert into public.user_habits(id, user_id, pillar_id, title, kind, target, auto_source, active, deleted_at, created_at)
+select v.id::uuid, 'cccccccc-0000-0000-0000-00000000000c', p.id, v.title, v.kind, v.target, v.src, v.active, v.deleted,
+       '2026-01-01'::timestamptz + v.n * interval '1 minute'
+  from public.pillars p,
+       (values
+         (1, 'c1c1c1c1-0000-0000-0000-000000000001', 'C steps', 'value', 8000::numeric, 'steps', true, null::timestamptz),
+         (2, 'c2c2c2c2-0000-0000-0000-000000000002', 'C sleep', 'value', 7.5, 'sleep_hours', true, null),
+         (3, 'c3c3c3c3-0000-0000-0000-000000000003', 'C workout', 'value', null, 'workout_minutes', true, null),
+         (4, 'c4c4c4c4-0000-0000-0000-000000000004', 'C paused mindful', 'value', 10, 'mindful_minutes', false, null),
+         (5, 'c5c5c5c5-0000-0000-0000-000000000005', 'C deleted steps', 'value', 10, 'steps', true, now()),
+         (6, 'c6c6c6c6-0000-0000-0000-000000000006', 'C plain value', 'value', 10, null, true, null),
+         (7, 'c7c7c7c7-0000-0000-0000-000000000007', 'C check', 'check', 1, null, true, null)
+       ) as v(n, id, title, kind, target, src, active, deleted)
+ where p.slug = 'active-lifestyle';
+insert into public.user_habits(user_id, pillar_id, title, kind, target, auto_source, created_at)
+select 'dddddddd-0000-0000-0000-00000000000d', p.id, 'D steps ' || i, 'value', 1000, 'steps',
+       '2026-01-01'::timestamptz + i * interval '1 minute'
+  from public.pillars p, generate_series(1, 52) i
+ where p.slug = 'active-lifestyle';
+-- a manual log (must prevail) and an older automatic one from a lower-priority provider (must be replaced)
+insert into public.habit_logs(user_id, user_habit_id, date, value, source) values
+  ('cccccccc-0000-0000-0000-00000000000c', 'c1c1c1c1-0000-0000-0000-000000000001', '2026-10-02', 1, 'manual'),
+  ('cccccccc-0000-0000-0000-00000000000c', 'c2c2c2c2-0000-0000-0000-000000000002', '2026-10-01', 5, 'huawei_health');
+-- rows of providers the function does not ingest yet (written directly here)
+insert into public.provider_activity(user_id, provider, date, payload) values
+  ('cccccccc-0000-0000-0000-00000000000c', 'strava', '2026-10-03', '{"steps":1111}'),
+  ('cccccccc-0000-0000-0000-00000000000c', 'other_app', '2026-10-04', '{"steps":2222}'),
+  ('cccccccc-0000-0000-0000-00000000000c', 'apple_health', '2026-10-05', '{"steps":-5}'),
+  ('cccccccc-0000-0000-0000-00000000000c', 'fitbit', '2026-10-05', '{"steps":"abc"}'),
+  ('cccccccc-0000-0000-0000-00000000000c', 'garmin', '2026-10-05', '{"steps":777}'),
+  ('cccccccc-0000-0000-0000-00000000000c', 'oura', '2026-10-06', '{"steps":100001}');
+create function pg_temp.c_logs() returns jsonb language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('h', h.title, 'd', l.date, 'v', l.value, 's', l.source, 't', l.target)
+                  order by h.title, l.date), '[]'::jsonb)
+    from public.habit_logs l join public.user_habits h on h.id = l.user_habit_id
+   where l.user_id = 'cccccccc-0000-0000-0000-00000000000c'
+$$;
+grant execute on function pg_temp.c_logs() to public;
+create function pg_temp.log_of(p_title text, p_date date) returns text language sql stable as $$
+  select l.value || '/' || l.source || '/' || coalesce(l.target::text, 'null')
+    from public.habit_logs l join public.user_habits h on h.id = l.user_habit_id
+   where h.title = p_title and l.date = p_date
+$$;
+grant execute on function pg_temp.log_of(text, date) to public;
+create function pg_temp.payload_of(p_user uuid, p_provider text, p_date date) returns jsonb language sql stable as $$
+  select payload from public.provider_activity where user_id = p_user and provider = p_provider and date = p_date
+$$;
+grant execute on function pg_temp.payload_of(uuid, text, date) to public;
+
+set role service_role;
+do $$
+declare c uuid := 'cccccccc-0000-0000-0000-00000000000c'; n int; res jsonb; snap jsonb; others jsonb;
+begin
+  -- upsert_provider_activity: validated, rounded, merged per day
+  n := public.upsert_provider_activity(c, 'health_connect',
+    '[{"date":"2026-10-01","metrics":{"steps":5000.4,"sleep_hours":7.256}},
+      {"date":"2026-10-02","metrics":{"workout_minutes":45}}]'::jsonb);
+  assert n = 2, 'two day-rows written: ' || n;
+  assert pg_temp.payload_of(c, 'health_connect', '2026-10-01') = '{"steps":5000,"sleep_hours":7.26}'::jsonb,
+    'integers rounded, hours to 2 decimals: ' || pg_temp.payload_of(c, 'health_connect', '2026-10-01')::text;
+  n := public.upsert_provider_activity(c, 'health_connect', '[{"date":"2026-10-01","metrics":{"mindful_minutes":12}}]');
+  assert n = 1, 'one day-row merged';
+  assert pg_temp.payload_of(c, 'health_connect', '2026-10-01')
+         = '{"steps":5000,"sleep_hours":7.26,"mindful_minutes":12}'::jsonb,
+    'a sync of one metric keeps the other metrics of that day';
+  n := public.upsert_provider_activity(c, 'health_connect', '[{"date":"2026-10-01","metrics":{"steps":5100}}]');
+  assert pg_temp.payload_of(c, 'health_connect', '2026-10-01')
+         = '{"steps":5100,"sleep_hours":7.26,"mindful_minutes":12}'::jsonb, 'a newer value replaces only its metric';
+  n := public.upsert_provider_activity(c, 'huawei_health',
+    '[{"date":"2026-10-01","metrics":{"steps":4000,"workout_minutes":60}},{"date":"2026-10-02","metrics":{"steps":3000}}]');
+  assert n = 2, 'huawei_health is an accepted provider';
+  assert pg_temp.payload_of(c, 'health_connect', '2026-10-02') = '{"workout_minutes":45}'::jsonb, 'providers kept apart';
+  assert public.upsert_provider_activity(c, 'health_connect', '[]') = 0, 'an empty batch writes nothing';
+  assert public.upsert_provider_activity(c, 'health_connect',
+    '[{"date":"2026-10-07","metrics":{"steps":100000,"workout_minutes":1440,"sleep_hours":24,"mindful_minutes":0}}]') = 1,
+    'the limits themselves are accepted';
+  delete from public.provider_activity where user_id = c and date = '2026-10-07';
+
+  -- invalid input: 22023 and nothing written
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'strava',
+      '[{"date":"2026-10-08","metrics":{"steps":1}}]')$f$, '22023'), 'provider outside the allow-list';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'apple_health',
+      '[{"date":"2026-10-08","metrics":{"steps":1}}]')$f$, '22023'), 'apple_health is not ingested';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', null,
+      '[{"date":"2026-10-08","metrics":{"steps":1}}]')$f$, '22023'), 'null provider';
+  assert pg_temp.fails($f$select public.upsert_provider_activity(null, 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"steps":1}}]')$f$, '22023'), 'null user';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '{"date":"2026-10-08"}')$f$, '22023'), 'rows must be an array';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"calories":1}}]')$f$, '22023'), 'unknown metric key';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"steps":1,"calories":1}}]')$f$, '22023'), 'unknown key beside a known one';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{}}]')$f$, '22023'), 'empty metrics';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":[1]}]')$f$, '22023'), 'metrics must be an object';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"steps":-1}}]')$f$, '22023'), 'negative value';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"steps":100001}}]')$f$, '22023'), 'steps over the limit';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"workout_minutes":1441}}]')$f$, '22023'), 'workout minutes over the limit';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"mindful_minutes":1441}}]')$f$, '22023'), 'mindful minutes over the limit';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"sleep_hours":24.01}}]')$f$, '22023'), 'sleep hours over the limit';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"steps":"5"}}]')$f$, '22023'), 'a string is not a number';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"steps":null}}]')$f$, '22023'), 'null is not a number';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-02-30","metrics":{"steps":1}}]')$f$, '22023'), 'not a calendar date';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"8/10/2026","metrics":{"steps":1}}]')$f$, '22023'), 'malformed date';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"steps":1}},{"date":"2026-10-08","metrics":{"sleep_hours":1}}]')$f$, '22023'),
+    'duplicate dates';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('cccccccc-0000-0000-0000-00000000000c', 'health_connect',
+      '[{"date":"2026-10-08","metrics":{"steps":1}},{"date":"2026-10-09","metrics":{"steps":-1}}]')$f$, '22023'),
+    'one bad day rejects the batch';
+  assert (select count(*) from public.provider_activity where user_id = c and date >= '2026-10-08') = 0,
+    'nothing written by a rejected call';
+
+  -- fill_habits_from_activity
+  others := (select coalesce(jsonb_agg(l order by l.id), '[]') from public.habit_logs l where l.user_id <> c);
+  res := public.fill_habits_from_activity(c, '2026-10-01', '2026-10-08');
+  assert res = '{"written": 6, "skippedManual": 1, "habitsUpdated": 3, "habitsIgnored": 0}'::jsonb, 'counts: ' || res::text;
+  assert pg_temp.log_of('C steps', '2026-10-01') = '5100/health_connect/8000', 'health_connect beats huawei_health';
+  assert pg_temp.log_of('C steps', '2026-10-02') = '1/manual/null', 'a manual log is never overwritten';
+  assert pg_temp.log_of('C steps', '2026-10-03') = '1111/strava/8000', 'falls back to strava when it is the only one';
+  assert pg_temp.log_of('C steps', '2026-10-04') is null, 'a provider outside the priority list never fills';
+  assert pg_temp.log_of('C steps', '2026-10-05') = '777/garmin/8000', 'invalid stored values are skipped (falls back)';
+  assert pg_temp.log_of('C steps', '2026-10-06') is null, 'a stored value over the limit never fills';
+  assert pg_temp.log_of('C sleep', '2026-10-01') = '7.26/health_connect/7.5', 'an older lower-priority automatic log is replaced';
+  assert pg_temp.log_of('C workout', '2026-10-01') = '60/huawei_health/null',
+    'falls back to huawei_health when health_connect has not that metric (target null)';
+  assert pg_temp.log_of('C workout', '2026-10-02') = '45/health_connect/null', 'health_connect workout';
+  assert (select count(*) from public.habit_logs where user_habit_id in ('c4c4c4c4-0000-0000-0000-000000000004',
+      'c5c5c5c5-0000-0000-0000-000000000005', 'c6c6c6c6-0000-0000-0000-000000000006',
+      'c7c7c7c7-0000-0000-0000-000000000007')) = 0,
+    'paused, deleted, check habits and habits without auto_source are untouched';
+  assert (select coalesce(jsonb_agg(l order by l.id), '[]') from public.habit_logs l where l.user_id <> c) = others,
+    'no other user''s log is touched';
+
+  snap := pg_temp.c_logs();
+  res := public.fill_habits_from_activity(c, '2026-10-01', '2026-10-08');
+  assert res = '{"written": 6, "skippedManual": 1, "habitsUpdated": 3, "habitsIgnored": 0}'::jsonb, 'same counts: ' || res::text;
+  assert pg_temp.c_logs() = snap, 'fill_habits_from_activity is idempotent';
+
+  -- a newer, higher-priority value replaces an automatic log
+  perform public.upsert_provider_activity(c, 'health_connect', '[{"date":"2026-10-03","metrics":{"steps":9999}}]');
+  res := public.fill_habits_from_activity(c, '2026-10-03', '2026-10-03');
+  assert res = '{"written": 1, "skippedManual": 0, "habitsUpdated": 1, "habitsIgnored": 0}'::jsonb, 'one day: ' || res::text;
+  assert pg_temp.log_of('C steps', '2026-10-03') = '9999/health_connect/8000', 'replaced by the higher-priority provider';
+  assert pg_temp.log_of('C steps', '2026-10-01') = '5100/health_connect/8000', 'days outside the range are left alone';
+
+  -- another user's id fills nothing of C, and a user without data gets zeros
+  snap := pg_temp.c_logs();
+  res := public.fill_habits_from_activity('aaaaaaaa-0000-0000-0000-00000000000a', '2026-10-01', '2026-10-08');
+  assert res = '{"written": 0, "skippedManual": 0, "habitsUpdated": 0, "habitsIgnored": 0}'::jsonb, 'foreign: ' || res::text;
+  assert pg_temp.c_logs() = snap, 'nothing of C written for another user id';
+
+  -- the range is at most 8 days
+  assert public.fill_habits_from_activity(c, '2026-10-01', '2026-10-08') ->> 'written' = '6', 'an 8-day range is accepted';
+  assert pg_temp.fails($f$select public.fill_habits_from_activity('cccccccc-0000-0000-0000-00000000000c',
+      '2026-10-01', '2026-10-09')$f$, '22023'), 'a 9-day range is rejected';
+  assert pg_temp.fails($f$select public.fill_habits_from_activity('cccccccc-0000-0000-0000-00000000000c',
+      '2026-10-02', '2026-10-01')$f$, '22023'), 'an inverted range is rejected';
+  assert pg_temp.fails($f$select public.fill_habits_from_activity(null, '2026-10-01', '2026-10-01')$f$, '22023'),
+    'null user';
+  assert pg_temp.fails($f$select public.fill_habits_from_activity('cccccccc-0000-0000-0000-00000000000c',
+      null, '2026-10-01')$f$, '22023'), 'null date';
+
+  -- at most 50 habits per call (oldest first); the rest is reported
+  perform public.upsert_provider_activity('dddddddd-0000-0000-0000-00000000000d', 'health_connect',
+    '[{"date":"2026-10-01","metrics":{"steps":100}}]');
+  res := public.fill_habits_from_activity('dddddddd-0000-0000-0000-00000000000d', '2026-10-01', '2026-10-01');
+  assert res = '{"written": 50, "skippedManual": 0, "habitsUpdated": 50, "habitsIgnored": 2}'::jsonb, 'cap: ' || res::text;
+  assert (select count(*) from public.habit_logs l join public.user_habits h on h.id = l.user_habit_id
+           where h.title in ('D steps 51', 'D steps 52')) = 0, 'the two newest habits are the ignored ones';
+
+  -- consent categories: server-written, known metrics only
+  update public.provider_connections set consented_categories = '{steps,sleep_hours}'
+   where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and provider = 'health_connect';
+  assert (select consented_categories from public.provider_connections
+           where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and provider = 'health_connect') = '{steps,sleep_hours}',
+    'service_role records the consented categories';
+  assert pg_temp.fails($f$update public.provider_connections set consented_categories = '{steps,calories}'
+      where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b'$f$, '23514'), 'an unknown category must violate the check';
+  assert pg_temp.fails($f$update public.provider_connections set consented_categories = null
+      where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b'$f$, '23502'), 'consented_categories is not null';
+  assert (select consented_categories from public.provider_connections where provider = 'strava') = '{}',
+    'consented_categories defaults to empty';
+end $$;
+
 -- ---------- anon ----------
 reset role;
 set role anon;

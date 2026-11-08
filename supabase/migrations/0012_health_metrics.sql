@@ -17,6 +17,10 @@
 --    fill_habits_from_activity fills the habits from the stored metrics, taking each
 --    value from the highest-priority provider that has it, and never overwrites a manual
 --    log.
+--    Both only ever use what the user currently consents to: a provider counts only while
+--    its provider_connections row is 'connected' and the metric is in its
+--    consented_categories. Stored data of a revoked category or a disconnected provider
+--    is kept but never used.
 -- apply_health_logs (0011) is kept untouched: the deployed health-sync v1 calls it until
 -- v2 is deployed. A later cleanup migration may drop it.
 
@@ -51,14 +55,19 @@ $$;
 -- { "<metric>": number, ... } }, ...]. Every row is validated first (known provider,
 -- real calendar date, unique dates, a non-empty metrics object with only known keys and
 -- numbers within the limits): any violation raises 22023 and nothing is written. Values
--- are rounded per metric. An existing day is MERGED (payload || new), so a sync of one
--- metric never erases the other metrics already stored for that day. Returns the number
--- of day-rows written.
+-- are rounded per metric. Then, in the same transaction as the write, the provider's
+-- connection row is locked (FOR SHARE) and must be 'connected' with every metric key of
+-- p_rows in consented_categories; otherwise it raises SQLSTATE P0001 with the message
+-- exactly 'consent_required' and nothing is written (a disconnect committed before this
+-- point, or racing with it, can never let unconsented data in). An existing day is
+-- MERGED (payload || new), so a sync of one metric never erases the other metrics
+-- already stored for that day. Returns the number of day-rows written.
 create or replace function public.upsert_provider_activity(p_user_id uuid, p_provider text, p_rows jsonb)
 returns int
 language plpgsql
 security definer
 set search_path = ''
+set jit = off
 as $$
 declare
   r jsonb;
@@ -66,6 +75,8 @@ declare
   v_day date;
   v_days date[] := '{}';
   v_limit record;
+  v_metrics text[] := '{}';
+  v_consented text[];
   v_written int;
 begin
   if p_user_id is null or p_rows is null or jsonb_typeof(p_rows) <> 'array' then
@@ -98,8 +109,18 @@ begin
          or (m.value #>> '{}')::numeric < 0 or (m.value #>> '{}')::numeric > v_limit.max_value then
         raise exception 'upsert_provider_activity: invalid metric %', m.key using errcode = '22023';
       end if;
+      v_metrics := v_metrics || m.key;
     end loop;
   end loop;
+
+  -- consent is the authority here, atomically with the write
+  select c.consented_categories into v_consented
+    from public.provider_connections c
+   where c.user_id = p_user_id and c.provider = p_provider and c.status = 'connected'
+     for share;
+  if not found or not (v_metrics <@ v_consented) then
+    raise exception 'consent_required' using errcode = 'P0001';
+  end if;
 
   insert into public.provider_activity (user_id, provider, date, payload)
   select p_user_id, p_provider, (e ->> 'date')::date,
@@ -119,9 +140,11 @@ end $$;
 --
 -- SOURCE PRIORITY (default, highest first):
 --   health_connect, apple_health, huawei_health, fitbit, garmin, oura, strava
--- For each habit and day the value comes from the highest-priority provider whose stored
--- payload has that metric as a number within the metric's limits that day; providers
--- outside this list never fill a habit; with no provider, nothing is done for that
+-- For each habit and day the value comes from the highest-priority provider that is
+-- CONNECTED with that metric in its consented_categories and whose stored payload has
+-- that metric as a number within the metric's limits that day; providers outside this
+-- list, disconnected providers, providers without a connection row and revoked
+-- categories never fill a habit (already written logs are left alone); with no provider, nothing is done for that
 -- habit/day. The log gets source = that provider, the value and the habit's target
 -- when finite > 0 (else null). One statement: a MANUAL log always prevails; an automatic
 -- log is replaced (higher-priority or newer value). Idempotent. Returns
@@ -131,6 +154,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
+set jit = off
 as $$
 declare
   c_priority constant text[] := array['health_connect', 'apple_health', 'huawei_health', 'fitbit', 'garmin', 'oura', 'strava'];
@@ -170,6 +194,9 @@ begin
                   case when jsonb_typeof(a.payload -> h.metric) = 'number'
                        then (a.payload ->> h.metric)::numeric end as value
              from public.provider_activity a
+             join public.provider_connections pc
+               on pc.user_id = a.user_id and pc.provider = a.provider
+              and pc.status = 'connected' and h.metric = any (pc.consented_categories)
             where a.user_id = p_user_id
               and a.date = d.day::date
               and a.provider = any (c_priority)

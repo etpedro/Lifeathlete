@@ -591,6 +591,12 @@ select 'dddddddd-0000-0000-0000-00000000000d', p.id, 'D steps ' || i, 'value', 1
 insert into public.habit_logs(user_id, user_habit_id, date, value, source) values
   ('cccccccc-0000-0000-0000-00000000000c', 'c1c1c1c1-0000-0000-0000-000000000001', '2026-10-02', 1, 'manual'),
   ('cccccccc-0000-0000-0000-00000000000c', 'c2c2c2c2-0000-0000-0000-000000000002', '2026-10-01', 5, 'huawei_health');
+-- connections: only connected providers with the metric consented ever fill (or ingest)
+insert into public.provider_connections(user_id, provider, status, consented_categories)
+select 'cccccccc-0000-0000-0000-00000000000c', p, 'connected', '{steps,workout_minutes,sleep_hours,mindful_minutes}'
+  from unnest(array['health_connect','huawei_health','strava','apple_health','fitbit','garmin','oura']) p;
+insert into public.provider_connections(user_id, provider, status, consented_categories)
+  values ('dddddddd-0000-0000-0000-00000000000d', 'health_connect', 'connected', '{steps}');
 -- rows of providers the function does not ingest yet (written directly here)
 insert into public.provider_activity(user_id, provider, date, payload) values
   ('cccccccc-0000-0000-0000-00000000000c', 'strava', '2026-10-03', '{"steps":1111}'),
@@ -760,8 +766,113 @@ begin
       where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b'$f$, '23514'), 'an unknown category must violate the check';
   assert pg_temp.fails($f$update public.provider_connections set consented_categories = null
       where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b'$f$, '23502'), 'consented_categories is not null';
-  assert (select consented_categories from public.provider_connections where provider = 'strava') = '{}',
+  assert (select consented_categories from public.provider_connections
+           where provider = 'strava' and user_id = 'aaaaaaaa-0000-0000-0000-00000000000a') = '{}',
     'consented_categories defaults to empty';
+end $$;
+
+-- ---------- 0012 fix round 1: consent and connection state are enforced in SQL ----------
+reset role;
+insert into auth.users(id) values ('eeeeeeee-0000-0000-0000-00000000000e'), ('ffffffff-0000-0000-0000-00000000000f');
+insert into public.user_habits(id, user_id, pillar_id, title, kind, target, auto_source, created_at)
+select v.id::uuid, v.u::uuid, p.id, v.title, 'value', 10, v.src, '2026-01-01'::timestamptz + v.n * interval '1 minute'
+  from public.pillars p,
+       (values (1, 'e1e1e1e1-0000-0000-0000-000000000001', 'eeeeeeee-0000-0000-0000-00000000000e', 'E steps', 'steps'),
+               (2, 'e2e2e2e2-0000-0000-0000-000000000002', 'eeeeeeee-0000-0000-0000-00000000000e', 'E sleep', 'sleep_hours'),
+               (3, 'f1f1f1f1-0000-0000-0000-000000000001', 'ffffffff-0000-0000-0000-00000000000f', 'F steps', 'steps')
+       ) as v(n, id, u, title, src)
+ where p.slug = 'active-lifestyle';
+insert into public.provider_connections(user_id, provider, status, consented_categories) values
+  ('eeeeeeee-0000-0000-0000-00000000000e', 'health_connect', 'connected', '{steps,sleep_hours}'),
+  ('eeeeeeee-0000-0000-0000-00000000000e', 'huawei_health', 'disconnected', '{steps}');
+-- F has data but no connection row at all
+insert into public.provider_activity(user_id, provider, date, payload)
+  values ('ffffffff-0000-0000-0000-00000000000f', 'health_connect', '2026-10-01', '{"steps":4242}');
+create function pg_temp.e_logs() returns jsonb language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('h', h.title, 'd', l.date, 'v', l.value, 's', l.source)
+                  order by h.title, l.date), '[]'::jsonb)
+    from public.habit_logs l join public.user_habits h on h.id = l.user_habit_id
+   where l.user_id = 'eeeeeeee-0000-0000-0000-00000000000e'
+$$;
+grant execute on function pg_temp.e_logs() to public;
+
+set role service_role;
+do $$
+declare e uuid := 'eeeeeeee-0000-0000-0000-00000000000e'; res jsonb; snap jsonb;
+begin
+  assert (select count(*) from pg_proc
+           where proname in ('upsert_provider_activity', 'fill_habits_from_activity')
+             and proconfig @> array['search_path=""', 'jit=off']) = 2, 'both functions: search_path empty and jit off';
+  -- upsert_provider_activity: the consent check is part of the write
+  assert public.upsert_provider_activity(e, 'health_connect',
+    '[{"date":"2026-10-01","metrics":{"steps":1000,"sleep_hours":7}},
+      {"date":"2026-10-02","metrics":{"steps":2000,"sleep_hours":8}}]') = 2, 'connected + consented writes';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('eeeeeeee-0000-0000-0000-00000000000e', 'huawei_health',
+      '[{"date":"2026-10-03","metrics":{"steps":1}}]')$f$, 'P0001'), 'a disconnected provider raises consent_required';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('eeeeeeee-0000-0000-0000-00000000000e', 'health_connect',
+      '[{"date":"2026-10-03","metrics":{"steps":1}},{"date":"2026-10-04","metrics":{"mindful_minutes":5}}]')$f$, 'P0001'),
+    'an unconsented metric raises consent_required';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('ffffffff-0000-0000-0000-00000000000f', 'health_connect',
+      '[{"date":"2026-10-03","metrics":{"steps":1}}]')$f$, 'P0001'), 'no connection row raises consent_required';
+  begin
+    perform public.upsert_provider_activity(e, 'health_connect', '[{"date":"2026-10-03","metrics":{"workout_minutes":1}}]');
+    assert false, 'unreachable';
+  exception when sqlstate 'P0001' then
+    assert sqlerrm = 'consent_required', 'the error message is exactly consent_required: ' || sqlerrm;
+  end;
+  assert (select count(*) from public.provider_activity where user_id = e and date >= '2026-10-03') = 0,
+    'nothing written by a refused call (not even its consented metric)';
+  assert (select count(*) from public.provider_activity where user_id = e and provider = 'huawei_health') = 0,
+    'nothing written for the disconnected provider';
+  assert pg_temp.fails($f$select public.upsert_provider_activity('eeeeeeee-0000-0000-0000-00000000000e', 'strava',
+      '[{"date":"2026-10-03","metrics":{"steps":1}}]')$f$, '22023'), 'argument validation still comes first';
+  perform public.upsert_provider_activity(e, 'health_connect', '[{"date":"2026-10-01","metrics":{"steps":1100}}]');
+  assert (select payload from public.provider_activity where user_id = e and date = '2026-10-01' and provider = 'health_connect')
+         = '{"steps":1100,"sleep_hours":7}'::jsonb, 'merge semantics unchanged';
+
+  res := public.fill_habits_from_activity(e, '2026-10-01', '2026-10-01');
+  assert res = '{"written": 2, "skippedManual": 0, "habitsUpdated": 2, "habitsIgnored": 0}'::jsonb, 'both consented: ' || res::text;
+
+  -- (a) reconnect with {steps} only: the stored sleep values are never used again
+  update public.provider_connections set consented_categories = '{steps}' where user_id = e and provider = 'health_connect';
+  update public.provider_activity set payload = payload || '{"sleep_hours":9}' where user_id = e and date = '2026-10-01';
+  res := public.fill_habits_from_activity(e, '2026-10-01', '2026-10-02');
+  assert res = '{"written": 2, "skippedManual": 0, "habitsUpdated": 1, "habitsIgnored": 0}'::jsonb, 'steps only: ' || res::text;
+  assert pg_temp.log_of('E sleep', '2026-10-01') = '7.00/health_connect/10', 'the sleep log already written is left alone';
+  assert pg_temp.log_of('E sleep', '2026-10-02') is null, 'the stored sleep value of a revoked category is not used';
+  assert pg_temp.log_of('E steps', '2026-10-02') = '2000/health_connect/10', 'steps still filled';
+  assert (select payload ->> 'sleep_hours' from public.provider_activity where user_id = e and date = '2026-10-02') = '8.00',
+    'stored data is kept';
+  -- (e) idempotence unchanged
+  snap := pg_temp.e_logs();
+  assert public.fill_habits_from_activity(e, '2026-10-01', '2026-10-02') = res, 'same counts';
+  assert pg_temp.e_logs() = snap, 'idempotent';
+
+  -- (b) a disconnected provider fills nothing
+  update public.provider_connections set status = 'disconnected' where user_id = e and provider = 'health_connect';
+  res := public.fill_habits_from_activity(e, '2026-10-01', '2026-10-02');
+  assert res = '{"written": 0, "skippedManual": 0, "habitsUpdated": 0, "habitsIgnored": 0}'::jsonb, 'disconnected: ' || res::text;
+  assert pg_temp.e_logs() = snap, 'logs untouched after a disconnect';
+
+  -- (c) data without any connection row fills nothing
+  res := public.fill_habits_from_activity('ffffffff-0000-0000-0000-00000000000f', '2026-10-01', '2026-10-01');
+  assert res = '{"written": 0, "skippedManual": 0, "habitsUpdated": 0, "habitsIgnored": 0}'::jsonb, 'no row: ' || res::text;
+  assert (select count(*) from public.habit_logs where user_id = 'ffffffff-0000-0000-0000-00000000000f') = 0, 'F untouched';
+
+  -- (d) priority resolves among connected + consented providers only
+  update public.provider_connections set status = 'connected' where user_id = e and provider = 'huawei_health';
+  perform public.upsert_provider_activity(e, 'huawei_health', '[{"date":"2026-10-03","metrics":{"steps":500}}]');
+  update public.provider_connections set status = 'connected' where user_id = e and provider = 'health_connect';
+  perform public.upsert_provider_activity(e, 'health_connect', '[{"date":"2026-10-03","metrics":{"steps":900}}]');
+  perform public.fill_habits_from_activity(e, '2026-10-03', '2026-10-03');
+  assert pg_temp.log_of('E steps', '2026-10-03') = '900/health_connect/10', 'both connected: health_connect wins';
+  update public.provider_connections set status = 'disconnected' where user_id = e and provider = 'health_connect';
+  perform public.fill_habits_from_activity(e, '2026-10-03', '2026-10-03');
+  assert pg_temp.log_of('E steps', '2026-10-03') = '500/huawei_health/10', 'best provider disconnected: the next connected one wins';
+  update public.provider_connections set status = 'connected', consented_categories = '{sleep_hours}'
+   where user_id = e and provider = 'health_connect';
+  perform public.fill_habits_from_activity(e, '2026-10-03', '2026-10-03');
+  assert pg_temp.log_of('E steps', '2026-10-03') = '500/huawei_health/10', 'best provider without the metric consented: skipped';
 end $$;
 
 -- ---------- anon ----------
@@ -795,7 +906,8 @@ begin
     select 'bbbbbbbb-0000-0000-0000-00000000000b', id from public.achievements limit 1;
   insert into public.mascot_state(user_id) values ('bbbbbbbb-0000-0000-0000-00000000000b');
   update public.mascot_state set stage = 2 where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b';
-  assert (select access_token_enc from public.provider_connections where provider = 'strava') = 'SECRET-ACCESS', 'service_role reads tokens';
+  assert (select access_token_enc from public.provider_connections where provider = 'strava'
+            and user_id = 'aaaaaaaa-0000-0000-0000-00000000000a') = 'SECRET-ACCESS', 'service_role reads tokens';
   update public.provider_connections set last_synced_at = now();
   insert into public.provider_activity(user_id, provider, date) values ('aaaaaaaa-0000-0000-0000-00000000000a','strava','2026-01-02');
   -- service_role CAN write provider-sourced logs (ruling F), on any date (no client window, 0009)

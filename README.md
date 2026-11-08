@@ -26,10 +26,11 @@ Next.js 16 app (App Router, TypeScript, next-intl PT/EN, PWA)
         ▼
 Supabase
   Auth                        email + password, Google and Apple OAuth
-  Postgres + RLS              supabase/migrations/0001..0010 (each user sees only own rows)
+  Postgres + RLS              supabase/migrations/0001..0011 (each user sees only own rows)
   Edge Functions              recalculate      rebuilds XP, level, streaks, pillar scores,
                                                achievements and mascot from habit_logs
                               weekly-summary   share card SVG for the caller
+                              health-sync      daily steps from the Android app (Health Connect)
   supabase/functions/_shared/engine/   the pure gamification engine (XP, levels, streaks,
                                        achievements, wheel, mascot), unit-tested with Vitest
 ```
@@ -76,7 +77,7 @@ npm run dev                   # http://localhost:3000
 `site_url = http://localhost:3000`, and the Auth redirect allow-list for
 `/{pt,en}/auth/callback`. It turns off email confirmation (`[auth.email]
 enable_confirmations = false`), which the e2e tests assume, and configures the
-`recalculate` and `weekly-summary` functions. The file was generated with
+`recalculate`, `weekly-summary` and `health-sync` functions. The file was generated with
 `supabase init` (CLI 2.122) and then edited. The CLI loads it without errors, but
 `supabase start` itself was not run while writing this README, because Docker was not
 available.
@@ -89,10 +90,10 @@ No `seed.sql` exists.
 
 ```bash
 npx supabase functions serve                      # local, uses the running stack
-npx supabase functions deploy recalculate weekly-summary --project-ref <ref>
+npx supabase functions deploy recalculate weekly-summary health-sync --project-ref <ref>
 ```
 
-Both functions authenticate the caller from the `Authorization: Bearer <jwt>` header. The
+The functions authenticate the caller from the `Authorization: Bearer <jwt>` header. The
 app calls `recalculate` through `supabase.functions.invoke("recalculate")` after every
 check-in and when Hoje opens with stats computed for an earlier day. The functions
 import the engine from `supabase/functions/_shared/engine/`.
@@ -131,6 +132,45 @@ browser where the reset was requested.
 CI (`.github/workflows/ci.yml`) runs `npm ci`, `npm test`, `npx tsc --noEmit`,
 `npm run lint`, `npm run build` and `npm run test:db`. It installs PostgreSQL 16 with apt.
 It does not run the e2e tests.
+
+## Passos automáticos (Android)
+
+Automatic steps fill the value habits the user chooses ("Preencher com os passos do
+telemóvel" in Gerir hábitos) with the phone's daily step total from Android Health Connect.
+
+**Phase 1 (this repository, no phone needed):**
+
+- Migration `0011_health_sync.sql`: `user_habits.auto_source` (`'steps'`, value habits
+  only) and `provider_connections.consented_at` (server-side only: like the tokens, it is
+  not in the client's column grant).
+- Edge Function `supabase/functions/health-sync/` (`npx supabase functions deploy
+  health-sync --project-ref <ref>`). The user comes only from the `Authorization: Bearer`
+  JWT. `POST` bodies, all with `source: "health_connect"`:
+  `{ action: "connect", consent: true, consentVersion }` records the consent;
+  `{ action: "sync", days: [{ date, steps }] }` (1 to 7 unique dates within the last
+  7 local days, 0 to 100000 steps; anything else is rejected, nothing is clamped) stores one
+  number per day in `provider_activity`, fills the chosen habits (`habit_logs.source =
+  'health_connect'`; a value logged by hand always prevails) and asks `recalculate` for
+  fresh stats; `{ action: "disconnect" }` stops it and keeps the imported history. Errors
+  are codes only (`unauthorized`, `invalid_request`, `unsupported_source`,
+  `consent_required`, `sync_failed`). The pure logic is `health-sync.ts` (unit-tested).
+- Web: Perfil > Integrações (`/{locale}/profile/integrations`) with the consent text,
+  connect, "Sincronizar agora" and "Desligar"; the native bridge
+  (`src/lib/health/bridge.ts`) is null in the browser and the PWA, so there the screen
+  only explains that automatic steps need the Android app. Hoje shows "via Health
+  Connect" on filled habits.
+
+**Consent and limitation:** the user explicitly accepts what is read (the daily step total
+only), what is stored (one number per day), what it is used for (only the habits they
+choose), and that they can disconnect at any time. The steps are sent by the user's own
+phone and **cannot be verified** by the server, so a modified client can send any number
+within the limits above (the same trust level as a manual log, which already is
+self-reported).
+
+**Phase 2 (not built yet):** a thin native Android shell (Capacitor plugin over Health
+Connect) that registers a `HealthBridge` with `registerHealthBridge` and calls the same
+sync flow. Nothing is published to an app store yet. iOS / Apple Health is not supported:
+the function answers `unsupported_source` for any other source.
 
 ## Landing page
 

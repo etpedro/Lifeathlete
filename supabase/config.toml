@@ -422,6 +422,10 @@ verify_jwt = true
 enabled = true
 verify_jwt = true
 
+[functions.health-sync]
+enabled = true
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

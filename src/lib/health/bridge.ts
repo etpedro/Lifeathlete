@@ -15,6 +15,9 @@ export type HealthBridge = {
   /**
    * Daily totals/durations (local dates, YYYY-MM-DD) of the last `days` days, for the
    * given categories only. Steps: daily total; workout/mindful: minutes; sleep: hours.
+   * Leave a metric out when there is no data for that day; NEVER send 0 to mean "no
+   * records" (a 0 from the highest-priority provider wins over a non-zero value from a
+   * lower one). Sleep of a date is the sleep that ENDS on that local date.
    */
   readMetrics(
     days: number,

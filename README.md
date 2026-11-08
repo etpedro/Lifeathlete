@@ -176,7 +176,16 @@ The habit's target should use the metric's unit.
   `habit_logs.source` is the chosen provider. A manual log always prevails; an automatic
   one is replaced by a higher-priority or newer value. It returns `{ written,
   skippedManual, habitsUpdated, habitsIgnored }` and is idempotent.
-- Both functions are `security definer` and can be executed by `service_role` only.
+- Both functions only use what the user consents to now. A provider counts only while
+  its `provider_connections` row is `connected` and the metric is in its
+  `consented_categories`. `upsert_provider_activity` checks this in the same transaction
+  as the write (it locks the connection row `FOR SHARE`). Otherwise it raises SQLSTATE
+  `P0001` with the message exactly `consent_required` and writes nothing.
+  `fill_habits_from_activity` ignores activity of disconnected providers, providers without
+  a connection row and revoked categories. That data stays stored but is never used, and
+  logs that were already written are left as they are.
+- Both functions are `security definer`, use `set search_path = ''` and `set jit = off`,
+  and can be executed by `service_role` only.
 - `public.apply_health_logs` (0011) is kept unchanged, because the deployed health-sync v1
   calls it until v2 is deployed. A later cleanup migration may drop it.
 
@@ -197,7 +206,10 @@ true`). The user comes only from the `Authorization: Bearer` JWT. Every `POST` b
   **legacy** phase 1 day `{ date, steps }` is still accepted as `metrics: { steps }`. The
   connection must be connected, with consent to the current version that covers **every
   metric sent**. Otherwise the answer is 403 `consent_required` and nothing is written, so
-  an unconsented category is never stored. The function then calls
+  an unconsented category is never stored. This early check is the fast path. The
+  authority is `upsert_provider_activity`, and its `P0001 consent_required` error (for
+  example after a disconnect that commits during the request) is also answered with 403
+  `consent_required`. Any other database error is `sync_failed`. The function then calls
   `upsert_provider_activity` and `fill_habits_from_activity` for the request's date range,
   updates `last_synced_at` and asks `recalculate` for fresh stats (at most once a minute).
   The response is `200 { ok, status, lastSyncedAt, days, metricsReceived, habitsUpdated,
@@ -220,7 +232,10 @@ consent text. It also has connect, "Sincronizar agora" and "Desligar". The conne
 state lists the consented categories. The native bridge (`src/lib/health/bridge.ts`:
 `isAvailable`, `requestPermission(categories)` resolving to the granted subset, and
 `readMetrics(days, categories)`) is null in the browser and the PWA, so there the screen
-only explains that collection needs the Android app. The sync flow drops invalid,
+only explains that collection needs the Android app. A native `readMetrics` must leave a
+metric out when there is no data for that day, and must NEVER send 0 to mean "no
+records": a 0 from the highest-priority provider wins over a non-zero value from a lower
+one. The sleep of a date is the sleep that ENDS on that local date. The sync flow drops invalid,
 unconsented or out-of-window values before sending. Hoje shows "via Health Connect" or
 "via Huawei Saúde" on filled habits.
 
@@ -247,7 +262,13 @@ store.
 functions deploy health-sync --project-ref <ref>`). Health-sync v1 keeps working during the
 switch: it still calls `apply_health_logs` and writes `provider_activity` itself, and
 0012 keeps both valid. After v2 is live, every user connected with the steps-only consent
-is asked to consent again.
+is asked to consent again. **There is no rollback to v1 once v2 has stored multi-metric
+payloads**: v1 replaces `provider_activity.payload` instead of merging it, so it would
+erase the other metrics of every day it syncs.
+
+**Changing a habit's metric** (or turning it off) leaves the automatic logs already
+written for that habit as they are. They keep the unit of the old metric, and the user
+can correct them by hand.
 
 ## Landing page
 

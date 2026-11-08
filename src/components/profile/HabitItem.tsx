@@ -2,7 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
-import type { AutoSource, ManageableHabit } from "@/lib/data/habits";
+import type { ManageableHabit } from "@/lib/data/habits";
+import { AUTO_METRICS, isAutoMetric, type AutoMetric } from "@/lib/health/metrics";
 import { parseTargetInput, type ProfileErrorKey } from "@/lib/profile/habit-form";
 import type { MutationResult } from "./useHabitManager";
 import styles from "./profile.module.css";
@@ -13,18 +14,20 @@ type Props = {
   onSetActive: (id: string, active: boolean) => Promise<MutationResult>;
   onSaveTarget: (id: string, target: number) => Promise<MutationResult>;
   onArchive: (id: string) => Promise<MutationResult>;
-  onSetAutoSource: (id: string, source: AutoSource | null) => Promise<MutationResult>;
+  onSetAutoSource: (id: string, metric: AutoMetric | null) => Promise<MutationResult>;
 };
 
 /**
- * One habit: pause switch, target editor and phone-steps switch (value habits) and
+ * One habit: pause switch, target editor and automatic-fill metric (value habits) and
  * archive with a confirmation step.
  */
 export function HabitItem({ habit, busy, onSetActive, onSaveTarget, onArchive, onSetAutoSource }: Props) {
   const t = useTranslations("profile");
   const errorId = useId();
-  const stepsHintId = useId();
-  const autoSteps = habit.autoSource === "steps";
+  const titleId = useId();
+  const autoId = useId();
+  const autoHintId = useId();
+  const tMetrics = useTranslations("profile.metrics");
   const [targetText, setTargetText] = useState(String(habit.target));
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<ProfileErrorKey | null>(null);
@@ -44,7 +47,9 @@ export function HabitItem({ habit, busy, onSetActive, onSaveTarget, onArchive, o
   return (
     <li className={`${styles.habit} ${habit.active ? "" : styles.paused}`}>
       <div className={styles.row}>
-        <strong className={styles.grow}>{habit.title}</strong>
+        <strong id={titleId} className={styles.grow}>
+          {habit.title}
+        </strong>
         <span className={styles.badge}>
           {habit.fromTemplate ? t("habits.fromTemplate") : t("habits.custom")} ·{" "}
           {habit.kind === "check" ? t("habits.kindCheck") : t("habits.kindValue")}
@@ -82,21 +87,29 @@ export function HabitItem({ habit, busy, onSetActive, onSaveTarget, onArchive, o
       )}
 
       {habit.kind === "value" && (
-        <div className={styles.row}>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={autoSteps}
-            aria-label={t("habits.autoStepsLabel", { title: habit.title })}
-            aria-describedby={stepsHintId}
-            className={styles.switch}
+        <div className={styles.field}>
+          <label id={`${autoId}-label`} htmlFor={autoId}>
+            {t("habits.autoFill")}
+          </label>
+          <select
+            id={autoId}
+            className={styles.select}
+            aria-labelledby={`${autoId}-label ${titleId}`}
+            aria-describedby={autoHintId}
+            value={habit.autoSource ?? ""}
             disabled={busy}
-            onClick={() => void settle(onSetAutoSource(habit.id, autoSteps ? null : "steps"))}
+            onChange={(e) => void settle(onSetAutoSource(habit.id, isAutoMetric(e.target.value) ? e.target.value : null))}
           >
-            {t("habits.autoSteps")}
-          </button>
-          <p id={stepsHintId} className={`${styles.grow} ${styles.hint}`}>
-            {t("habits.autoStepsHint")}
+            <option value="">{t("habits.autoFillNone")}</option>
+            {AUTO_METRICS.map((m) => (
+              <option key={m} value={m}>
+                {tMetrics(`${m}.name`)}
+              </option>
+            ))}
+          </select>
+          <p id={autoHintId} className={styles.hint}>
+            {t("habits.autoFillHint")}
+            {habit.autoSource && ` ${t("habits.autoFillUnit", { unit: tMetrics(`${habit.autoSource}.unit`) })}`}
           </p>
         </div>
       )}

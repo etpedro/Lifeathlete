@@ -73,18 +73,43 @@ describe("HabitItem (first paint)", () => {
     expect(render(item(habit()), "en")).toContain(en.profile.habits.archive);
   });
 
-  it("value habits get a labelled phone-steps switch with a hint", () => {
-    const off = render(item(habit()));
-    expect(off).toContain(pt.profile.habits.autoSteps);
-    expect(off).toContain(pt.profile.habits.autoStepsHint);
-    expect(off).toMatch(/role="switch" aria-checked="false" aria-label="Preencher Caminhar com os passos do telemóvel" aria-describedby="[^"]+"/);
-    const on = render(item(habit({ autoSource: "steps" })));
-    expect(on).toMatch(/role="switch" aria-checked="true" aria-label="Preencher Caminhar/);
-    expect(render(item(habit()), "en")).toContain(en.profile.habits.autoSteps);
+  it("value habits get a labelled 'Preencher automaticamente' select (default Não) with a hint", () => {
+    const html = render(item(habit()));
+    const h = pt.profile.habits;
+    expect(html).toContain(h.autoFill);
+    expect(html).toContain(h.autoFillHint);
+    expect(html).toMatch(/<select[^>]*aria-labelledby="[^"]+ [^"]+"[^>]*aria-describedby="[^"]+"/);
+    expect(html).toMatch(new RegExp(`<option value="" selected="">${h.autoFillNone}</option>`));
+    const m = pt.profile.metrics;
+    for (const [key, name] of [
+      ["steps", "Passos"],
+      ["workout_minutes", "Minutos de treino"],
+      ["sleep_hours", "Horas de sono"],
+      ["mindful_minutes", "Minutos de meditação"],
+    ]) {
+      expect(m[key as keyof typeof m].name).toBe(name);
+      expect(html).toContain(`<option value="${key}">${name}</option>`);
+    }
+    expect(html).not.toContain(h.autoFillUnit.replace("{unit}.", ""));
   });
 
-  it("check habits have no phone-steps switch", () => {
-    expect(render(item(habit({ kind: "check", target: 1 })))).not.toContain(pt.profile.habits.autoSteps);
+  it("shows the chosen metric selected and the unit the target should use", () => {
+    const html = render(item(habit({ autoSource: "sleep_hours" })));
+    expect(html).toContain('<option value="sleep_hours" selected="">Horas de sono</option>');
+    expect(html).toContain("Meta em horas.");
+    expect(render(item(habit({ autoSource: "steps" })))).toContain("Meta em passos.");
+    const en_ = render(item(habit({ autoSource: "mindful_minutes" })), "en");
+    expect(en_).toContain(en.profile.habits.autoFill);
+    expect(en_).toContain('<option value="mindful_minutes" selected="">Meditation minutes</option>');
+    expect(en_).toContain("Target in minutes.");
+  });
+
+  it("the select is disabled while a mutation is in flight", () => {
+    expect(render(item(habit(), true))).toMatch(/<select[^>]*disabled=""/);
+  });
+
+  it("check habits have no automatic fill", () => {
+    expect(render(item(habit({ kind: "check", target: 1 })))).not.toContain(pt.profile.habits.autoFill);
   });
 });
 

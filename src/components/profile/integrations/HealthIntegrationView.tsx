@@ -4,6 +4,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useId } from "react";
 import type { HealthConnection } from "@/lib/data/integrations";
 import { safeTimeZone, type IntegrationErrorKey } from "@/lib/health/messages";
+import { AUTO_METRICS, type AutoMetric } from "@/lib/health/metrics";
 import styles from "../profile.module.css";
 
 /** pending = not known yet (server render); none = browser/PWA without the native bridge. */
@@ -14,20 +15,29 @@ export type StatusMessage = {
   values?: Record<string, number>;
   /** Days logged by hand that the sync left alone. */
   skippedManual?: number;
-  /** Steps habits beyond the per-sync limit. */
+  /** Automatically filled habits beyond the per-sync limit. */
   habitsIgnored?: number;
 };
+
+/**
+ * The connection as the screen knows it. `categories` / `consentCurrent` come from the
+ * server (status action or connect); null = not known yet (first paint, or not loaded).
+ */
+export type HealthView = HealthConnection & { categories: AutoMetric[] | null; consentCurrent: boolean | null };
 
 export type HealthViewProps = {
   device: DeviceState;
   /** null = the connection status could not be loaded. */
-  connection: HealthConnection | null;
+  connection: HealthView | null;
   /** The profile's IANA timezone (the last sync time is shown in it). */
   timezone: string;
   busy: BusyAction;
   confirming: boolean;
   error: IntegrationErrorKey | null;
   status: StatusMessage | null;
+  /** The categories ticked in the consent step (none by default). */
+  selected: AutoMetric[];
+  onToggleCategory: (metric: AutoMetric) => void;
   onConnect: () => void;
   onSync: () => void;
   onAskDisconnect: () => void;
@@ -36,12 +46,14 @@ export type HealthViewProps = {
   onRetryLoad: () => void;
 };
 
-/** Presentational "Passos do telemóvel" card: one state at a time, all copy localized. */
+/** Presentational "Dados do telemóvel" card: one state at a time, all copy localized. */
 export function HealthIntegrationView(props: HealthViewProps) {
   const t = useTranslations("profile.integrations");
   const tCommon = useTranslations("common");
+  const tMetrics = useTranslations("profile.metrics");
   const format = useFormatter();
   const headingId = useId();
+  const pickOneId = useId();
   const { device, connection, busy, status, error } = props;
   const working = busy !== null;
 
@@ -74,10 +86,33 @@ export function HealthIntegrationView(props: HealthViewProps) {
         </button>
       </div>
     );
-  } else if (connection.status !== "connected") {
+  } else if (connection.status !== "connected" || connection.consentCurrent === false) {
+    const renew = connection.status === "connected";
+    const nothing = props.selected.length === 0;
     content = (
       <>
         <h3 className={styles.subheading}>{t("consent.title")}</h3>
+        {renew && <p>{t("consent.renew")}</p>}
+        <fieldset className={styles.field}>
+          <legend>{t("consent.choose")}</legend>
+          <div className={styles.fieldset}>
+            {AUTO_METRICS.map((m) => (
+              <label key={m} className={styles.radioLabel}>
+                <input
+                  type="checkbox"
+                  className={styles.radio}
+                  checked={props.selected.includes(m)}
+                  disabled={working}
+                  onChange={() => props.onToggleCategory(m)}
+                />
+                <span className={styles.choice}>
+                  <span>{tMetrics(`${m}.name`)}</span>
+                  <span className={styles.hint}>{tMetrics(`${m}.reads`)}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <ul className={styles.consent}>
           <li>{t("consent.read")}</li>
           <li>{t("consent.sent")}</li>
@@ -87,11 +122,17 @@ export function HealthIntegrationView(props: HealthViewProps) {
           <li>{t("consent.use")}</li>
           <li>{t("consent.disconnect")}</li>
         </ul>
+        {nothing && (
+          <p id={pickOneId} className={styles.hint}>
+            {t("consent.pickOne")}
+          </p>
+        )}
         <button
           type="button"
           className={`${styles.button} ${styles.primary} ${styles.block}`}
           aria-busy={busy === "connect"}
-          disabled={working}
+          aria-describedby={nothing ? pickOneId : undefined}
+          disabled={working || nothing}
           onClick={props.onConnect}
         >
           {busy === "connect" ? t("connecting") : t("connect")}
@@ -111,6 +152,13 @@ export function HealthIntegrationView(props: HealthViewProps) {
     content = (
       <>
         <p>{t("connected")}</p>
+        {connection.categories && connection.categories.length > 0 && (
+          <p>
+            {t("connectedCategories", {
+              list: format.list(connection.categories.map((m) => tMetrics(`${m}.name`))),
+            })}
+          </p>
+        )}
         <p>{lastSync}</p>
         <p className={styles.hint}>{t("habitsHint")}</p>
         {props.confirming ? (
@@ -158,7 +206,7 @@ export function HealthIntegrationView(props: HealthViewProps) {
   return (
     <section className={`${styles.card} ${styles.field}`} aria-labelledby={headingId}>
       <h2 id={headingId} className={styles.pillarHeading}>
-        {t("stepsTitle")}
+        {t("phoneTitle")}
       </h2>
       {content}
       <p role="status" className={styles.status}>

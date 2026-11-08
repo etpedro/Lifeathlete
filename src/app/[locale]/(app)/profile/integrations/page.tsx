@@ -8,10 +8,11 @@ import { DEFAULT_TIMEZONE, getProfileTimezone } from "@/lib/data/today";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Integrações (automatic steps, phase 1). Server side: the verified user, the connection
+ * Integrações (automatic data collection). Server side: the verified user, the connection
  * status (granted columns only) and the profile timezone; reading cookies (createClient)
  * keeps the page dynamic, so `next build` never touches Supabase. Whether this device has
- * the native health bridge is only known on the client.
+ * the native health bridge, and the consented categories (status action), are only known
+ * on the client.
  */
 export default async function IntegrationsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

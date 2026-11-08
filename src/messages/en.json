@@ -161,6 +161,7 @@
       "garmin": "Garmin",
       "fitbit": "Fitbit",
       "health_connect": "Health Connect",
+      "huawei_health": "Huawei Health",
       "other": "a connected app"
     },
     "offline": "You are offline. Check-ins are saved and sent when you are back online.",
@@ -278,62 +279,67 @@
       "archiveYes": "Yes, archive",
       "archiveCancel": "Cancel",
       "archived": "Habit archived.",
-      "autoSteps": "Fill with phone steps",
-      "autoStepsLabel": "Fill {title} with phone steps",
-      "autoStepsHint": "Needs the Android app connected in Integrations.",
-      "autoStepsOn": "This habit is now filled with your phone's steps.",
-      "autoStepsOff": "This habit is no longer filled with your phone's steps."
+      "autoFill": "Fill automatically",
+      "autoFillNone": "No",
+      "autoFillHint": "Needs a source connected in Integrations. The habit's target should use the metric's unit: steps, minutes or hours.",
+      "autoFillUnit": "Target in {unit}.",
+      "autoFillOn": "This habit is now filled automatically.",
+      "autoFillOff": "This habit is no longer filled automatically."
     },
     "integrations": {
       "title": "Integrations",
       "back": "Back to profile",
       "intro": "Connect automatic sources to fill habits without logging them by hand.",
-      "stepsTitle": "Phone steps",
+      "phoneTitle": "Phone health data",
       "loading": "Checking this device…",
-      "unavailable": "Automatic steps are available in the Lifeathlete Android app, through Health Connect. In this browser you can keep logging your steps by hand in Today.",
+      "unavailable": "Automatic collection (steps, workouts, sleep and meditation) is available in the Lifeathlete Android app, through Health Connect. In this browser you can keep logging everything by hand in Today.",
       "unavailableIos": "iPhone (Apple Health) is not supported yet.",
       "consent": {
         "title": "Before you connect",
-        "read": "What we read: only the daily step total from Health Connect.",
-        "sent": "What we send and store: one number per day; each sync sends the last 7 days.",
-        "storedWithoutHabit": "Steps are stored even if you have not chosen a habit to fill yet.",
+        "choose": "Choose what Lifeathlete may read from Health Connect:",
+        "pickOne": "Choose at least one category to continue.",
+        "read": "What we read: only the categories you choose, as one total or duration per day.",
+        "sent": "What we send and store: one number per day and category; each sync sends the last 7 days.",
+        "storedWithoutHabit": "The values are stored even if you have not chosen a habit to fill yet.",
         "kept": "They are kept while your account exists, including after you disconnect.",
         "unverified": "The numbers come from your phone and are not verified by Lifeathlete.",
         "use": "We use them to fill the habits you choose in Manage habits.",
-        "disconnect": "You can disconnect at any time here in Integrations; the history already imported is kept."
+        "disconnect": "You can disconnect at any time here in Integrations; the history already imported is kept.",
+        "renew": "The consent text has changed. Choose again what you want to share to keep syncing."
       },
-      "connect": "Connect phone steps",
+      "connect": "Connect phone data",
       "connecting": "Connecting…",
       "connected": "Connected to Health Connect.",
+      "connectedCategories": "Reading: {list}.",
       "lastSync": "Last sync: {time}",
       "neverSynced": "Not synced yet.",
       "habitsHint": "Choose which habits to fill in Manage habits.",
       "syncNow": "Sync now",
       "syncing": "Syncing…",
       "disconnect": "Disconnect",
-      "disconnectLabel": "Disconnect phone steps",
-      "disconnectConfirm": "Disconnect phone steps? Habits stop being filled automatically; the imported history is kept.",
+      "disconnectLabel": "Disconnect phone health data",
+      "disconnectConfirm": "Disconnect phone health data? Habits stop being filled automatically; the imported history is kept.",
       "disconnectYes": "Yes, disconnect",
       "disconnectCancel": "Cancel",
       "disconnecting": "Disconnecting…",
       "load": "Could not load the connection status. Please try again.",
       "status": {
-        "connected": "Phone steps connected.",
+        "connected": "Phone health data connected.",
         "synced": "{days, plural, one {# day synced.} other {# days synced.}}",
-        "nothing": "No new steps to send.",
+        "nothing": "No new data to send.",
         "skippedManual": "{count, plural, one {# day logged by hand was kept.} other {# days logged by hand were kept.}}",
-        "disconnected": "Phone steps disconnected. Your history was kept.",
-        "habitsIgnored": "{count, plural, one {# habit beyond the limit of 20 was not filled.} other {# habits beyond the limit of 20 were not filled.}}"
+        "disconnected": "Phone health data disconnected. Your history was kept.",
+        "habitsIgnored": "{count, plural, one {# habit beyond the limit of 50 was not filled.} other {# habits beyond the limit of 50 were not filled.}}"
       },
       "errors": {
-        "consentRequired": "The connection is not active. Connect phone steps again.",
+        "consentRequired": "The connection is not active or does not include this data. Connect phone data again.",
         "invalidRequest": "The phone sent invalid data. Try syncing again.",
         "unauthorized": "Your session has expired. Please sign in again.",
         "unsupportedSource": "This source is not supported yet.",
         "syncFailed": "Could not sync. Please try again.",
         "network": "No connection. Check the network and try again.",
-        "permissionDenied": "No permission to read steps. Allow Lifeathlete in Health Connect.",
-        "readFailed": "Could not read the phone's steps. Please try again."
+        "permissionDenied": "No permission to read the chosen data. Allow Lifeathlete in Health Connect.",
+        "readFailed": "Could not read the phone's data. Please try again."
       }
     },
     "add": {
@@ -360,6 +366,28 @@
       "button": "Sign out",
       "working": "Signing out…",
       "failed": "We couldn't sign you out. Check your connection and try again."
+    },
+    "metrics": {
+      "steps": {
+        "name": "Steps",
+        "unit": "steps",
+        "reads": "Your daily step total."
+      },
+      "workout_minutes": {
+        "name": "Workout minutes",
+        "unit": "minutes",
+        "reads": "The total duration of your workouts each day."
+      },
+      "sleep_hours": {
+        "name": "Sleep hours",
+        "unit": "hours",
+        "reads": "Your sleep duration each day."
+      },
+      "mindful_minutes": {
+        "name": "Meditation minutes",
+        "unit": "minutes",
+        "reads": "The total duration of meditation (mindfulness) each day."
+      }
     }
   },
   "pillars": {

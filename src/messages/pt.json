@@ -161,6 +161,7 @@
       "garmin": "Garmin",
       "fitbit": "Fitbit",
       "health_connect": "Health Connect",
+      "huawei_health": "Huawei Saúde",
       "other": "app ligada"
     },
     "offline": "Sem ligação. Os registos ficam guardados e são enviados quando voltares a estar online.",
@@ -278,62 +279,67 @@
       "archiveYes": "Sim, arquivar",
       "archiveCancel": "Cancelar",
       "archived": "Hábito arquivado.",
-      "autoSteps": "Preencher com os passos do telemóvel",
-      "autoStepsLabel": "Preencher {title} com os passos do telemóvel",
-      "autoStepsHint": "Precisa da app Android ligada em Integrações.",
-      "autoStepsOn": "Este hábito passa a ser preenchido com os passos do telemóvel.",
-      "autoStepsOff": "Este hábito deixa de ser preenchido com os passos do telemóvel."
+      "autoFill": "Preencher automaticamente",
+      "autoFillNone": "Não",
+      "autoFillHint": "Precisa de uma fonte ligada em Integrações. A meta do hábito deve usar a unidade da métrica: passos, minutos ou horas.",
+      "autoFillUnit": "Meta em {unit}.",
+      "autoFillOn": "Este hábito passa a ser preenchido automaticamente.",
+      "autoFillOff": "Este hábito deixa de ser preenchido automaticamente."
     },
     "integrations": {
       "title": "Integrações",
       "back": "Voltar ao perfil",
       "intro": "Liga fontes automáticas para preencher hábitos sem os registares à mão.",
-      "stepsTitle": "Passos do telemóvel",
+      "phoneTitle": "Dados do telemóvel",
       "loading": "A verificar este dispositivo…",
-      "unavailable": "Os passos automáticos estão disponíveis na app Android do Lifeathlete, através do Health Connect. Neste navegador continuas a poder registar os passos à mão em Hoje.",
+      "unavailable": "A recolha automática (passos, treino, sono e meditação) está disponível na app Android do Lifeathlete, através do Health Connect. Neste navegador continuas a poder registar tudo à mão em Hoje.",
       "unavailableIos": "O iPhone (Apple Saúde) ainda não é suportado.",
       "consent": {
         "title": "Antes de ligares",
-        "read": "O que lemos: apenas o total diário de passos do Health Connect.",
-        "sent": "O que enviamos e guardamos: um número por dia; cada sincronização envia os últimos 7 dias.",
-        "storedWithoutHabit": "Os passos são guardados mesmo que ainda não tenhas escolhido nenhum hábito para preencher.",
+        "choose": "Escolhe o que o Lifeathlete pode ler do Health Connect:",
+        "pickOne": "Escolhe pelo menos uma categoria para continuar.",
+        "read": "O que lemos: apenas as categorias que escolheres, como um total ou uma duração por dia.",
+        "sent": "O que enviamos e guardamos: um número por dia e por categoria; cada sincronização envia os últimos 7 dias.",
+        "storedWithoutHabit": "Os valores são guardados mesmo que ainda não tenhas escolhido nenhum hábito para preencher.",
         "kept": "Ficam guardados enquanto a tua conta existir, incluindo depois de desligares.",
         "unverified": "Os números vêm do teu telemóvel e não são verificados pelo Lifeathlete.",
         "use": "Usamo-los para preencher os hábitos que escolheres em Gerir hábitos.",
-        "disconnect": "Podes desligar a qualquer momento aqui em Integrações; o histórico já importado é mantido."
+        "disconnect": "Podes desligar a qualquer momento aqui em Integrações; o histórico já importado é mantido.",
+        "renew": "O texto de consentimento mudou. Escolhe de novo o que queres partilhar para continuar a sincronizar."
       },
-      "connect": "Ligar passos do telemóvel",
+      "connect": "Ligar dados do telemóvel",
       "connecting": "A ligar…",
       "connected": "Ligado ao Health Connect.",
+      "connectedCategories": "A ler: {list}.",
       "lastSync": "Última sincronização: {time}",
       "neverSynced": "Ainda não sincronizado.",
       "habitsHint": "Escolhe os hábitos a preencher em Gerir hábitos.",
       "syncNow": "Sincronizar agora",
       "syncing": "A sincronizar…",
       "disconnect": "Desligar",
-      "disconnectLabel": "Desligar os passos do telemóvel",
-      "disconnectConfirm": "Desligar os passos do telemóvel? Os hábitos deixam de ser preenchidos automaticamente; o histórico importado é mantido.",
+      "disconnectLabel": "Desligar os dados do telemóvel",
+      "disconnectConfirm": "Desligar os dados do telemóvel? Os hábitos deixam de ser preenchidos automaticamente; o histórico importado é mantido.",
       "disconnectYes": "Sim, desligar",
       "disconnectCancel": "Cancelar",
       "disconnecting": "A desligar…",
       "load": "Não foi possível carregar o estado da ligação. Tenta novamente.",
       "status": {
-        "connected": "Passos do telemóvel ligados.",
+        "connected": "Dados do telemóvel ligados.",
         "synced": "{days, plural, one {# dia sincronizado.} other {# dias sincronizados.}}",
-        "nothing": "Não há passos novos para enviar.",
+        "nothing": "Não há dados novos para enviar.",
         "skippedManual": "{count, plural, one {# dia registado à mão foi mantido.} other {# dias registados à mão foram mantidos.}}",
-        "disconnected": "Passos do telemóvel desligados. O histórico foi mantido.",
-        "habitsIgnored": "{count, plural, one {# hábito além do limite de 20 não foi preenchido.} other {# hábitos além do limite de 20 não foram preenchidos.}}"
+        "disconnected": "Dados do telemóvel desligados. O histórico foi mantido.",
+        "habitsIgnored": "{count, plural, one {# hábito além do limite de 50 não foi preenchido.} other {# hábitos além do limite de 50 não foram preenchidos.}}"
       },
       "errors": {
-        "consentRequired": "A ligação não está ativa. Liga de novo os passos do telemóvel.",
+        "consentRequired": "A ligação não está ativa ou não inclui estes dados. Liga de novo os dados do telemóvel.",
         "invalidRequest": "O telemóvel enviou dados inválidos. Tenta sincronizar de novo.",
         "unauthorized": "A tua sessão expirou. Entra de novo.",
         "unsupportedSource": "Esta fonte ainda não é suportada.",
         "syncFailed": "Não foi possível sincronizar. Tenta novamente.",
         "network": "Sem ligação. Verifica a rede e tenta novamente.",
-        "permissionDenied": "Sem permissão para ler os passos. Autoriza o Lifeathlete no Health Connect.",
-        "readFailed": "Não foi possível ler os passos do telemóvel. Tenta novamente."
+        "permissionDenied": "Sem permissão para ler os dados escolhidos. Autoriza o Lifeathlete no Health Connect.",
+        "readFailed": "Não foi possível ler os dados do telemóvel. Tenta novamente."
       }
     },
     "add": {
@@ -360,6 +366,28 @@
       "button": "Terminar sessão",
       "working": "A terminar sessão…",
       "failed": "Não foi possível terminar a sessão. Verifica a ligação e tenta novamente."
+    },
+    "metrics": {
+      "steps": {
+        "name": "Passos",
+        "unit": "passos",
+        "reads": "O total diário de passos."
+      },
+      "workout_minutes": {
+        "name": "Minutos de treino",
+        "unit": "minutos",
+        "reads": "A duração total dos treinos de cada dia."
+      },
+      "sleep_hours": {
+        "name": "Horas de sono",
+        "unit": "horas",
+        "reads": "A duração do sono de cada dia."
+      },
+      "mindful_minutes": {
+        "name": "Minutos de meditação",
+        "unit": "minutos",
+        "reads": "A duração total de meditação (mindfulness) de cada dia."
+      }
     }
   },
   "pillars": {

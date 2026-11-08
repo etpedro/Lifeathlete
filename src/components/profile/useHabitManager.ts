@@ -8,7 +8,7 @@ import {
   setHabitActive,
   setHabitAutoSource,
   updateHabitTarget,
-  type AutoSource,
+  type AutoMetric,
   type ManageablePillar,
 } from "@/lib/data/habits";
 import { createDefaultRecalcScheduler, type RecalcScheduler } from "@/lib/data/recalc";
@@ -24,8 +24,8 @@ export type StatusKey =
   | "habits.activated"
   | "habits.paused_done"
   | "habits.archived"
-  | "habits.autoStepsOn"
-  | "habits.autoStepsOff"
+  | "habits.autoFillOn"
+  | "habits.autoFillOff"
   | "add.added";
 
 /** Result of a mutation: `null` = done, otherwise the message key of the error to show. */
@@ -107,8 +107,8 @@ export function useHabitManager(userId: string, timezone: string, initial: Manag
       ),
     saveTarget: (id: string, target: number) => run(() => updateHabitTarget(db(), id, target), "habits.targetSaved"),
     archive: (id: string) => run(() => archiveHabit(db(), id), "habits.archived"),
-    setAutoSource: (id: string, source: AutoSource | null) =>
-      run(() => setHabitAutoSource(db(), id, source), source ? "habits.autoStepsOn" : "habits.autoStepsOff"),
+    setAutoSource: (id: string, metric: AutoMetric | null) =>
+      run(() => setHabitAutoSource(db(), id, metric), metric ? "habits.autoFillOn" : "habits.autoFillOff"),
     create: (input: NewHabit) => run(() => createCustomHabit(db(), { userId, ...input }), "add.added"),
   };
 }

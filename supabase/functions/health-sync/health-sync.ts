@@ -1,35 +1,51 @@
-// Pure decisions of the health-sync Edge Function (automatic steps, phase 1).
+// Pure decisions of the health-sync Edge Function (automatic data collection, phase 1b).
 // Runtime-agnostic: no Deno/Node globals, relative imports with explicit .ts extensions,
 // so it runs under Vitest and in the Deno entrypoint (index.ts), which is only I/O glue.
-// Steps come from the user's phone and cannot be verified server-side (documented limitation).
+// Values come from the user's phone and cannot be verified server-side (documented limitation).
 import { localDate } from "../_shared/engine/dates.ts";
 import { dayNumber } from "../_shared/engine/streaks.ts";
 
-/** The only supported source/provider for now (Android Health Connect). */
+/** The only source this function accepts for now (Android Health Connect). */
 export const PROVIDER = "health_connect";
+
+/**
+ * The metrics a habit can be filled from (user_habits.auto_source, consent categories,
+ * provider_activity payload keys). Mirrored by src/lib/health/metrics.ts (a test fails if
+ * they differ) and by the checks of migration 0012.
+ */
+export const AUTO_METRICS = ["steps", "workout_minutes", "sleep_hours", "mindful_minutes"] as const;
+export type AutoMetric = (typeof AUTO_METRICS)[number];
+/** Per metric: accepted range 0..max (outside -> rejected, never clamped) and rounding. */
+export const METRIC_LIMITS: Record<AutoMetric, { max: number; decimals: number }> = {
+  steps: { max: 100_000, decimals: 0 },
+  workout_minutes: { max: 1440, decimals: 0 },
+  sleep_hours: { max: 24, decimals: 2 },
+  mindful_minutes: { max: 1440, decimals: 0 },
+};
+
 /** Days per sync request, and how far back (days before local today) a day may be. */
 export const MAX_DAYS = 7;
 export const WINDOW_DAYS = 7;
-/** Daily steps above this are rejected as implausible (never clamped). */
-export const MAX_STEPS = 100_000;
 export const MAX_CONSENT_VERSION = 32;
 /**
  * Version of the consent text the app shows (mirrored by HEALTH_CONSENT_VERSION in
  * src/lib/data/integrations.ts; a test fails if they differ). connect accepts only this
  * version and sync requires it, so changing the text makes every user consent again.
  */
-export const CURRENT_CONSENT_VERSION = "steps-2026-11-v2";
-/** Steps habits handled per sync (bounds the queries and writes to 20 habits x 7 days). */
-export const MAX_STEPS_HABITS = 20;
+export const CURRENT_CONSENT_VERSION = "metrics-2026-11-v3";
+/** Habits filled per sync by fill_habits_from_activity (the SQL constant is authoritative). */
+export const MAX_FILL_HABITS = 50;
 /** A recalculation is forwarded at most once per this interval (repeated syncs). */
 export const RECALC_MIN_INTERVAL_MS = 60_000;
 
-export type StepDay = { date: string; steps: number };
+export type Metrics = Partial<Record<AutoMetric, number>>;
+export type MetricDay = { date: string; metrics: Metrics };
 
 export type HealthSyncRequest =
-  | { action: "connect"; source: typeof PROVIDER; consentVersion: string }
-  | { action: "sync"; source: typeof PROVIDER; days: StepDay[] }
-  | { action: "disconnect"; source: typeof PROVIDER };
+  | { action: "connect"; source: typeof PROVIDER; consentVersion: string; categories: AutoMetric[] }
+  | { action: "sync"; source: typeof PROVIDER; days: MetricDay[] }
+  | { action: "disconnect"; source: typeof PROVIDER }
+  | { action: "status"; source: typeof PROVIDER };
 
 export type ErrorCode = "unauthorized" | "invalid_request" | "unsupported_source" | "consent_required" | "sync_failed";
 
@@ -37,11 +53,25 @@ export type ParseResult =
   | { ok: true; request: HealthSyncRequest }
   | { ok: false; error: "invalid_request" | "unsupported_source" };
 
-const ACTIONS = ["connect", "sync", "disconnect"] as const;
+const ACTIONS = ["connect", "sync", "disconnect", "status"] as const;
 const invalid = { ok: false, error: "invalid_request" } as const;
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
+
+export const isAutoMetric = (v: unknown): v is AutoMetric => (AUTO_METRICS as readonly unknown[]).includes(v);
+
+/** The stored value of a metric (rounded), or null when it is not a number within 0..max. */
+export function normalizeMetric(metric: unknown, value: unknown): number | null {
+  if (!isAutoMetric(metric)) return null;
+  const { max, decimals } = METRIC_LIMITS[metric];
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > max) return null;
+  const f = 10 ** decimals;
+  return Math.round(value * f) / f;
+}
+
+/** Known metrics in canonical (AUTO_METRICS) order. */
+const canonical = (set: ReadonlySet<unknown>): AutoMetric[] => AUTO_METRICS.filter((m) => set.has(m));
 
 function dayOrNull(date: unknown): number | null {
   if (typeof date !== "string") return null;
@@ -52,11 +82,29 @@ function dayOrNull(date: unknown): number | null {
   }
 }
 
-function parseDays(raw: unknown, today: string): StepDay[] | null {
+/** A day's metrics: the v2 `metrics` object, or the phase 1 (legacy) `steps` number. */
+function parseMetrics(entry: Record<string, unknown>): Metrics | null {
+  const hasMetrics = "metrics" in entry;
+  const hasLegacy = "steps" in entry;
+  if (hasMetrics === hasLegacy) return null; // neither, or an ambiguous mix
+  const raw = hasMetrics ? entry.metrics : { steps: entry.steps };
+  if (!isObject(raw)) return null;
+  const keys = Object.keys(raw);
+  if (keys.length === 0) return null;
+  const out: Metrics = {};
+  for (const key of canonical(new Set(keys))) {
+    const value = normalizeMetric(key, raw[key]);
+    if (value === null) return null;
+    out[key] = value;
+  }
+  return Object.keys(out).length === keys.length ? out : null; // an unknown key rejects the day
+}
+
+function parseDays(raw: unknown, today: string): MetricDay[] | null {
   if (!Array.isArray(raw) || raw.length < 1 || raw.length > MAX_DAYS) return null;
   const todayN = dayNumber(today);
   const seen = new Set<string>();
-  const days: StepDay[] = [];
+  const days: MetricDay[] = [];
   for (const entry of raw) {
     if (!isObject(entry)) return null;
     const n = dayOrNull(entry.date);
@@ -64,17 +112,25 @@ function parseDays(raw: unknown, today: string): StepDay[] | null {
     const date = entry.date as string;
     if (seen.has(date)) return null;
     seen.add(date);
-    const steps = entry.steps;
-    if (typeof steps !== "number" || !Number.isFinite(steps) || steps < 0 || steps > MAX_STEPS) return null;
-    days.push({ date, steps: Math.round(steps) });
+    const metrics = parseMetrics(entry);
+    if (!metrics) return null;
+    days.push({ date, metrics });
   }
   return days;
 }
 
+function parseCategories(raw: unknown): AutoMetric[] | null {
+  if (!Array.isArray(raw) || raw.length < 1) return null;
+  const set = new Set(raw);
+  if (set.size !== raw.length || !raw.every(isAutoMetric)) return null;
+  return canonical(set);
+}
+
 /**
  * Validates a request body. `today` is the user's local date (todayFor). Any violation
- * rejects the whole request: nothing is clamped and nothing is written. Unknown keys
- * (a user id included: the user only comes from the JWT) are ignored.
+ * rejects the whole request: nothing is clamped and nothing is written. Unknown envelope
+ * keys (a user id included: the user only comes from the JWT) are ignored; unknown metric
+ * keys are rejected.
  */
 export function parseRequest(body: unknown, today: string): ParseResult {
   if (!isObject(body)) return invalid;
@@ -90,7 +146,9 @@ export function parseRequest(body: unknown, today: string): ParseResult {
       if (body.consent !== true) return invalid;
       if (typeof version !== "string" || version.trim() === "" || version.length > MAX_CONSENT_VERSION) return invalid;
       if (version !== CURRENT_CONSENT_VERSION) return invalid; // a stale client cannot consent to an old text
-      return { ok: true, request: { action: "connect", source, consentVersion: version } };
+      const categories = parseCategories(body.categories);
+      if (!categories) return invalid;
+      return { ok: true, request: { action: "connect", source, consentVersion: version, categories } };
     }
     case "sync": {
       const days = parseDays(body.days, today);
@@ -98,6 +156,8 @@ export function parseRequest(body: unknown, today: string): ParseResult {
     }
     case "disconnect":
       return { ok: true, request: { action: "disconnect", source } };
+    case "status":
+      return { ok: true, request: { action: "status", source } };
   }
 }
 
@@ -110,9 +170,20 @@ export function todayFor(now: string, timezone: string | null | undefined): stri
   }
 }
 
-export type Connection = { status: string; consentedAt: string | null; consentVersion: string | null } | null;
+/** A provider_connections row as the entrypoint reads it (service role). */
+export type Connection = {
+  status: string;
+  consentedAt: string | null;
+  consentVersion: string | null;
+  /** consented_categories as stored (validated here, never trusted). */
+  categories?: unknown;
+  lastSyncedAt?: string | null;
+} | null;
 
-/** Sync is allowed only for a connected row whose consent to the CURRENT text was recorded. */
+const storedCategories = (c: Connection): AutoMetric[] =>
+  c && Array.isArray(c.categories) ? canonical(new Set(c.categories)) : [];
+
+/** A connected row whose consent to the CURRENT text was recorded. */
 export function consentGiven(connection: Connection): boolean {
   return (
     connection !== null &&
@@ -122,14 +193,38 @@ export function consentGiven(connection: Connection): boolean {
   );
 }
 
-/** The provider_connections columns connect writes (tokens are never touched). */
-export function consentRecord(version: string, now: string) {
-  return { status: "connected", consented_at: now, consent_version: version, consent_withdrawn_at: null };
+/** Sync is allowed only with current consent covering EVERY metric in the request. */
+export function consentCovers(connection: Connection, metrics: readonly AutoMetric[]): boolean {
+  if (!consentGiven(connection)) return false;
+  const consented = new Set(storedCategories(connection));
+  return metrics.every((m) => consented.has(m));
 }
 
-/** The columns disconnect writes; consented_at/consent_version stay as the record of what was accepted. */
+/** The provider_connections columns connect writes (categories replaced; tokens never touched). */
+export function consentRecord(version: string, categories: AutoMetric[], now: string) {
+  return {
+    status: "connected",
+    consented_at: now,
+    consent_version: version,
+    consented_categories: categories,
+    consent_withdrawn_at: null,
+  };
+}
+
+/** The columns disconnect writes; what was accepted (version, categories) stays as the record. */
 export function consentWithdrawal(now: string) {
   return { status: "disconnected", consent_withdrawn_at: now };
+}
+
+/** The 200 body of the status action: what the screen needs after a reload, nothing more. */
+export function statusResponse(connection: Connection) {
+  return {
+    ok: true as const,
+    status: connection === null ? "none" : connection.status === "connected" ? "connected" : "disconnected",
+    categories: storedCategories(connection),
+    consentCurrent: consentGiven(connection),
+    lastSyncedAt: connection?.lastSyncedAt ?? null,
+  };
 }
 
 /** False when the previous sync was less than RECALC_MIN_INTERVAL_MS ago (unreadable/future -> true). */
@@ -157,87 +252,64 @@ export function recalculateUrl(supabaseUrl: string): string {
   return `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/recalculate`;
 }
 
-/** A user habit as loaded by the entrypoint (numeric target already converted). */
-export type StepHabit = {
-  id: string;
-  kind: "check" | "value";
-  target: number | null;
-  active: boolean;
-  deletedAt: string | null;
-  autoSource: string | null;
-};
-
-export type ActivityRow = { provider: typeof PROVIDER; date: string; payload: { steps: number } };
-
-/**
- * A row for public.apply_health_logs (the entrypoint passes the verified user id beside
- * it). The database writes it atomically and never overwrites a manual log.
- */
-export type LogRow = { user_habit_id: string; date: string; value: number; target: number | null };
+/** The distinct metrics of the days, in canonical order. */
+export function metricsOf(days: readonly MetricDay[]): AutoMetric[] {
+  return canonical(new Set(days.flatMap((d) => Object.keys(d.metrics))));
+}
 
 export type SyncPlan = {
-  activityRows: ActivityRow[];
-  logRows: LogRow[];
-  /** Steps habits beyond MAX_STEPS_HABITS, not filled by this sync. */
-  habitsIgnored: number;
+  /** p_rows of public.upsert_provider_activity: only the metrics sent (the database merges). */
+  activityRows: MetricDay[];
+  /** p_from / p_to of public.fill_habits_from_activity: the request's oldest and newest day. */
+  fillFrom: string;
+  fillTo: string;
+  metricsReceived: AutoMetric[];
   /** `now` as given (null when absent): provider_connections.last_synced_at. */
   lastSyncedAt: string | null;
 };
 
-/** Counts returned by public.apply_health_logs. */
-export type Applied = { written: number; skippedManual: number; habitsUpdated: number };
-
-/** Habits filled by steps: value kind, auto_source 'steps', active and not archived. */
-export function isStepsHabit(h: StepHabit): boolean {
-  return h.autoSource === "steps" && h.kind === "value" && h.active && h.deletedAt === null;
-}
-
-const snapshot = (t: number | null): number | null =>
-  typeof t === "number" && Number.isFinite(t) && t > 0 ? t : null;
+/** Counts returned by public.fill_habits_from_activity. */
+export type Filled = { written: number; skippedManual: number; habitsUpdated: number; habitsIgnored: number };
 
 /**
- * What a validated sync writes: one provider_activity row per day and one log row per
- * eligible habit (the first MAX_STEPS_HABITS, in the given order) and day. Manual
- * precedence is enforced by the database (apply_health_logs), not by a read snapshot.
- * `totalHabits` = how many steps habits the database has (the loaded list may be capped).
- * Deterministic, so a repeated sync writes the same rows.
+ * What a validated sync writes. Manual precedence, source priority and the habit cap are
+ * enforced by the database functions (migration 0012). Deterministic, so a repeated sync
+ * writes the same rows. The range spans at most WINDOW_DAYS + 1 = 8 days (the SQL limit).
  */
-export function planSync(input: {
-  days: StepDay[];
-  habits: StepHabit[];
-  totalHabits?: number | null;
-  now?: string;
-}): SyncPlan {
-  const eligible = input.habits.filter(isStepsHabit);
-  const used = eligible.slice(0, MAX_STEPS_HABITS);
-  const total = Math.max(eligible.length, input.totalHabits ?? 0);
+export function planSync(input: { days: MetricDay[]; now?: string }): SyncPlan {
+  const dates = input.days.map((d) => d.date).sort();
   return {
-    activityRows: input.days.map((d) => ({ provider: PROVIDER, date: d.date, payload: { steps: d.steps } })),
-    logRows: used.flatMap((h) =>
-      input.days.map((d) => ({ user_habit_id: h.id, date: d.date, value: d.steps, target: snapshot(h.target) })),
-    ),
-    habitsIgnored: total - used.length,
+    activityRows: input.days.map((d) => ({ date: d.date, metrics: { ...d.metrics } })),
+    fillFrom: dates[0],
+    fillTo: dates[dates.length - 1],
+    metricsReceived: metricsOf(input.days),
     lastSyncedAt: input.now ?? null,
   };
 }
 
 const count = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : 0);
 
-/** The jsonb result of apply_health_logs (anything malformed counts as 0). */
-export function parseApplied(data: unknown): Applied {
+/** The jsonb result of fill_habits_from_activity (anything malformed counts as 0). */
+export function parseFilled(data: unknown): Filled {
   const d = isObject(data) ? data : {};
-  return { written: count(d.written), skippedManual: count(d.skippedManual), habitsUpdated: count(d.habitsUpdated) };
+  return {
+    written: count(d.written),
+    skippedManual: count(d.skippedManual),
+    habitsUpdated: count(d.habitsUpdated),
+    habitsIgnored: count(d.habitsIgnored),
+  };
 }
 
-/** The 200 body of a sync. */
-export function syncResponse(plan: SyncPlan, applied: Applied) {
+/** The 200 body of a sync (every v1 field name kept; metricsReceived added). */
+export function syncResponse(plan: SyncPlan, filled: Filled) {
   return {
     ok: true as const,
     status: "connected" as const,
     lastSyncedAt: plan.lastSyncedAt,
     days: plan.activityRows.length,
-    habitsUpdated: applied.habitsUpdated,
-    habitsIgnored: plan.habitsIgnored,
-    skippedManual: applied.skippedManual,
+    metricsReceived: plan.metricsReceived,
+    habitsUpdated: filled.habitsUpdated,
+    skippedManual: filled.skippedManual,
+    habitsIgnored: filled.habitsIgnored,
   };
 }

@@ -247,6 +247,19 @@ export function errorStatus(code: ErrorCode): number {
   return STATUS[code];
 }
 
+/** SQLSTATE and message raised by public.upsert_provider_activity when consent does not cover the write. */
+export const CONSENT_ERROR = { code: "P0001", message: "consent_required" } as const;
+
+/**
+ * True for exactly the consent error of upsert_provider_activity (as PostgREST returns it
+ * through supabase-js: `{ code, message, ... }`). The entrypoint maps it to 403
+ * consent_required; any other error stays sync_failed.
+ */
+export function isConsentRequiredError(error: unknown): boolean {
+  if (!isObject(error)) return false;
+  return error.code === CONSENT_ERROR.code && error.message === CONSENT_ERROR.message;
+}
+
 /** URL of the recalculate function of the same project. */
 export function recalculateUrl(supabaseUrl: string): string {
   return `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/recalculate`;

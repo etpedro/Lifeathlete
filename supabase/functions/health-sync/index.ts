@@ -10,6 +10,7 @@ import {
   consentRecord,
   consentWithdrawal,
   errorStatus,
+  isConsentRequiredError,
   metricsOf,
   parseFilled,
   parseRequest,
@@ -93,14 +94,18 @@ type SyncOutcome = { body: ReturnType<typeof syncResponse>; recalculate: boolean
 
 async function sync(admin: SupabaseClient, userId: string, days: MetricDay[], now: string): Promise<SyncOutcome> {
   const connection = await loadConnection(admin, userId);
-  // Data minimization: a category the user did not consent to is never stored.
+  // Fast path (data minimization: an unconsented category is never stored). The
+  // authority is upsert_provider_activity itself, which re-checks consent atomically
+  // with the write, so a disconnect that commits after this point still blocks it.
   if (!consentCovers(connection, metricsOf(days))) throw new ConsentRequired();
 
   const plan = planSync({ days, now });
-  // (a) ingest, merged per day; (b) fill from every provider by priority, manual prevails.
-  check(await admin.rpc("upsert_provider_activity", {
+  // (a) ingest, merged per day; (b) fill from connected, consented providers by priority.
+  const ingested = await admin.rpc("upsert_provider_activity", {
     p_user_id: userId, p_provider: PROVIDER, p_rows: plan.activityRows,
-  }));
+  });
+  if (ingested.error && isConsentRequiredError(ingested.error)) throw new ConsentRequired();
+  check(ingested);
   const filled = parseFilled(check(await admin.rpc("fill_habits_from_activity", {
     p_user_id: userId, p_from: plan.fillFrom, p_to: plan.fillTo,
   })));

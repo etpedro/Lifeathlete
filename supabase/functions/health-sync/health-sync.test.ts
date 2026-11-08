@@ -7,6 +7,7 @@ import {
   consentWithdrawal,
   CURRENT_CONSENT_VERSION,
   errorStatus,
+  isConsentRequiredError,
   MAX_FILL_HABITS,
   METRIC_LIMITS,
   metricsOf,
@@ -473,5 +474,23 @@ describe("statusResponse", () => {
     const res = statusResponse(conn({ categories: ["steps", "calories", 3] }));
     expect(res.categories).toEqual(["steps"]);
     expect(Object.keys(res).sort()).toEqual(["categories", "consentCurrent", "lastSyncedAt", "ok", "status"]);
+  });
+});
+
+describe("isConsentRequiredError", () => {
+  it("recognizes exactly the consent error raised by upsert_provider_activity (P0001 consent_required)", () => {
+    expect(isConsentRequiredError({ code: "P0001", message: "consent_required", details: null, hint: null })).toBe(true);
+  });
+
+  it.each([
+    ["another message with P0001", { code: "P0001", message: "something else" }],
+    ["a validation error", { code: "22023", message: "upsert_provider_activity: invalid metric steps" }],
+    ["the message with another code", { code: "42501", message: "consent_required" }],
+    ["a permission error", { code: "42501", message: "permission denied for function upsert_provider_activity" }],
+    ["a network error", new TypeError("fetch failed")],
+    ["null", null],
+    ["a string", "consent_required"],
+  ])("anything else stays a sync failure: %s", (_name, err) => {
+    expect(isConsentRequiredError(err)).toBe(false);
   });
 });

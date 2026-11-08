@@ -78,6 +78,19 @@ describe("TodayView (first paint)", () => {
     expect(html).toContain('aria-expanded="true"');
   });
 
+  it("labels a log filled from the phone's steps as via Health Connect", () => {
+    const html = render({
+      pillars: [
+        {
+          pillarId: "p1",
+          slug: "active-lifestyle",
+          habits: [habit({ id: "st", title: "Passos", kind: "value", target: 8000, value: 4321, source: "health_connect" })],
+        },
+      ],
+    });
+    expect(html).toContain("via Health Connect");
+  });
+
   it("shows a loading state while the day has not loaded (no crash)", () => {
     expect(render(null)).toContain(pt.common.loading);
   });

@@ -62,6 +62,7 @@ export function HabitManager({ userId, timezone, initial, pillarOptions }: Props
                   onSetActive={m.setActive}
                   onSaveTarget={m.saveTarget}
                   onArchive={m.archive}
+                  onSetAutoSource={m.setAutoSource}
                 />
               ))}
             </ul>

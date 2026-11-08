@@ -6,7 +6,9 @@ import {
   createCustomHabit,
   listManageableHabits,
   setHabitActive,
+  setHabitAutoSource,
   updateHabitTarget,
+  type AutoSource,
   type ManageablePillar,
 } from "@/lib/data/habits";
 import { createDefaultRecalcScheduler, type RecalcScheduler } from "@/lib/data/recalc";
@@ -17,7 +19,14 @@ import type { Db } from "@/lib/supabase/types";
 import { todayIn } from "@/lib/today/dates";
 
 /** Keys inside the `profile` namespace of the success messages. */
-export type StatusKey = "habits.targetSaved" | "habits.activated" | "habits.paused_done" | "habits.archived" | "add.added";
+export type StatusKey =
+  | "habits.targetSaved"
+  | "habits.activated"
+  | "habits.paused_done"
+  | "habits.archived"
+  | "habits.autoStepsOn"
+  | "habits.autoStepsOff"
+  | "add.added";
 
 /** Result of a mutation: `null` = done, otherwise the message key of the error to show. */
 export type MutationResult = ProfileErrorKey | null;
@@ -98,6 +107,8 @@ export function useHabitManager(userId: string, timezone: string, initial: Manag
       ),
     saveTarget: (id: string, target: number) => run(() => updateHabitTarget(db(), id, target), "habits.targetSaved"),
     archive: (id: string) => run(() => archiveHabit(db(), id), "habits.archived"),
+    setAutoSource: (id: string, source: AutoSource | null) =>
+      run(() => setHabitAutoSource(db(), id, source), source ? "habits.autoStepsOn" : "habits.autoStepsOff"),
     create: (input: NewHabit) => run(() => createCustomHabit(db(), { userId, ...input }), "add.added"),
   };
 }

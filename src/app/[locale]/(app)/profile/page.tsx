@@ -7,7 +7,7 @@ import styles from "@/components/profile/profile.module.css";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Profile (spec §5): habit management link, language and sign-out. Server side: the
+ * Profile (spec §5): habit management and integrations links, language and sign-out. Server side: the
  * verified user; reading cookies (createClient) keeps the page dynamic.
  */
 export default async function ProfilePage({ params }: { params: Promise<{ locale: string }> }) {
@@ -26,6 +26,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
         <li>
           <Link href="/profile/habits" className={styles.link}>
             {t("links.habits")}
+          </Link>
+        </li>
+        <li>
+          <Link href="/profile/integrations" className={styles.link}>
+            {t("links.integrations")}
           </Link>
         </li>
       </ul>

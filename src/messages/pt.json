@@ -160,6 +160,7 @@
       "apple_health": "Apple Saúde",
       "garmin": "Garmin",
       "fitbit": "Fitbit",
+      "health_connect": "Health Connect",
       "other": "app ligada"
     },
     "offline": "Sem ligação. Os registos ficam guardados e são enviados quando voltares a estar online.",
@@ -244,7 +245,8 @@
   "profile": {
     "title": "Perfil",
     "links": {
-      "habits": "Gerir hábitos"
+      "habits": "Gerir hábitos",
+      "integrations": "Integrações"
     },
     "language": {
       "title": "Idioma",
@@ -275,7 +277,61 @@
       "archiveConfirm": "Arquivar “{title}”? Deixa de aparecer em Hoje, mas o histórico e as sequências são mantidos.",
       "archiveYes": "Sim, arquivar",
       "archiveCancel": "Cancelar",
-      "archived": "Hábito arquivado."
+      "archived": "Hábito arquivado.",
+      "autoSteps": "Preencher com os passos do telemóvel",
+      "autoStepsLabel": "Preencher {title} com os passos do telemóvel",
+      "autoStepsHint": "Precisa da app Android ligada em Integrações.",
+      "autoStepsOn": "Este hábito passa a ser preenchido com os passos do telemóvel.",
+      "autoStepsOff": "Este hábito deixa de ser preenchido com os passos do telemóvel."
+    },
+    "integrations": {
+      "title": "Integrações",
+      "back": "Voltar ao perfil",
+      "intro": "Liga fontes automáticas para preencher hábitos sem os registares à mão.",
+      "stepsTitle": "Passos do telemóvel",
+      "loading": "A verificar este dispositivo…",
+      "unavailable": "Os passos automáticos estão disponíveis na app Android do Lifeathlete, através do Health Connect. Neste navegador continuas a poder registar os passos à mão em Hoje.",
+      "unavailableIos": "O iPhone (Apple Saúde) ainda não é suportado.",
+      "consent": {
+        "title": "Antes de ligares",
+        "read": "O que lemos: apenas o total diário de passos do Health Connect.",
+        "stored": "O que guardamos: um número por dia, dos últimos 7 dias.",
+        "use": "Para quê: só para preencher os hábitos que escolheres em Gerir hábitos.",
+        "unverified": "Os passos vêm do teu telemóvel e não são verificados pelo Lifeathlete.",
+        "disconnect": "Podes desligar a qualquer momento; o histórico já importado é mantido."
+      },
+      "connect": "Ligar passos do telemóvel",
+      "connecting": "A ligar…",
+      "connected": "Ligado ao Health Connect.",
+      "lastSync": "Última sincronização: {time}",
+      "neverSynced": "Ainda não sincronizado.",
+      "habitsHint": "Escolhe os hábitos a preencher em Gerir hábitos.",
+      "syncNow": "Sincronizar agora",
+      "syncing": "A sincronizar…",
+      "disconnect": "Desligar",
+      "disconnectLabel": "Desligar os passos do telemóvel",
+      "disconnectConfirm": "Desligar os passos do telemóvel? Os hábitos deixam de ser preenchidos automaticamente; o histórico importado é mantido.",
+      "disconnectYes": "Sim, desligar",
+      "disconnectCancel": "Cancelar",
+      "disconnecting": "A desligar…",
+      "load": "Não foi possível carregar o estado da ligação. Tenta novamente.",
+      "status": {
+        "connected": "Passos do telemóvel ligados.",
+        "synced": "{days, plural, one {# dia sincronizado.} other {# dias sincronizados.}}",
+        "nothing": "Não há passos novos para enviar.",
+        "skippedManual": "{count, plural, one {# dia registado à mão foi mantido.} other {# dias registados à mão foram mantidos.}}",
+        "disconnected": "Passos do telemóvel desligados. O histórico foi mantido."
+      },
+      "errors": {
+        "consentRequired": "A ligação não está ativa. Liga de novo os passos do telemóvel.",
+        "invalidRequest": "O telemóvel enviou dados inválidos. Tenta sincronizar de novo.",
+        "unauthorized": "A tua sessão expirou. Entra de novo.",
+        "unsupportedSource": "Esta fonte ainda não é suportada.",
+        "syncFailed": "Não foi possível sincronizar. Tenta novamente.",
+        "network": "Sem ligação. Verifica a rede e tenta novamente.",
+        "permissionDenied": "Sem permissão para ler os passos. Autoriza o Lifeathlete no Health Connect.",
+        "readFailed": "Não foi possível ler os passos do telemóvel. Tenta novamente."
+      }
     },
     "add": {
       "title": "Adicionar hábito personalizado",

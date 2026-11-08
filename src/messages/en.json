@@ -160,6 +160,7 @@
       "apple_health": "Apple Health",
       "garmin": "Garmin",
       "fitbit": "Fitbit",
+      "health_connect": "Health Connect",
       "other": "a connected app"
     },
     "offline": "You are offline. Check-ins are saved and sent when you are back online.",
@@ -244,7 +245,8 @@
   "profile": {
     "title": "Profile",
     "links": {
-      "habits": "Manage habits"
+      "habits": "Manage habits",
+      "integrations": "Integrations"
     },
     "language": {
       "title": "Language",
@@ -275,7 +277,61 @@
       "archiveConfirm": "Archive “{title}”? It will no longer appear in Today, but its history and streaks are kept.",
       "archiveYes": "Yes, archive",
       "archiveCancel": "Cancel",
-      "archived": "Habit archived."
+      "archived": "Habit archived.",
+      "autoSteps": "Fill with phone steps",
+      "autoStepsLabel": "Fill {title} with phone steps",
+      "autoStepsHint": "Needs the Android app connected in Integrations.",
+      "autoStepsOn": "This habit is now filled with your phone's steps.",
+      "autoStepsOff": "This habit is no longer filled with your phone's steps."
+    },
+    "integrations": {
+      "title": "Integrations",
+      "back": "Back to profile",
+      "intro": "Connect automatic sources to fill habits without logging them by hand.",
+      "stepsTitle": "Phone steps",
+      "loading": "Checking this device…",
+      "unavailable": "Automatic steps are available in the Lifeathlete Android app, through Health Connect. In this browser you can keep logging your steps by hand in Today.",
+      "unavailableIos": "iPhone (Apple Health) is not supported yet.",
+      "consent": {
+        "title": "Before you connect",
+        "read": "What we read: only the daily step total from Health Connect.",
+        "stored": "What we store: one number per day, for the last 7 days.",
+        "use": "What for: only to fill the habits you choose in Manage habits.",
+        "unverified": "Steps come from your phone and are not verified by Lifeathlete.",
+        "disconnect": "You can disconnect at any time; the history already imported is kept."
+      },
+      "connect": "Connect phone steps",
+      "connecting": "Connecting…",
+      "connected": "Connected to Health Connect.",
+      "lastSync": "Last sync: {time}",
+      "neverSynced": "Not synced yet.",
+      "habitsHint": "Choose which habits to fill in Manage habits.",
+      "syncNow": "Sync now",
+      "syncing": "Syncing…",
+      "disconnect": "Disconnect",
+      "disconnectLabel": "Disconnect phone steps",
+      "disconnectConfirm": "Disconnect phone steps? Habits stop being filled automatically; the imported history is kept.",
+      "disconnectYes": "Yes, disconnect",
+      "disconnectCancel": "Cancel",
+      "disconnecting": "Disconnecting…",
+      "load": "Could not load the connection status. Please try again.",
+      "status": {
+        "connected": "Phone steps connected.",
+        "synced": "{days, plural, one {# day synced.} other {# days synced.}}",
+        "nothing": "No new steps to send.",
+        "skippedManual": "{count, plural, one {# day logged by hand was kept.} other {# days logged by hand were kept.}}",
+        "disconnected": "Phone steps disconnected. Your history was kept."
+      },
+      "errors": {
+        "consentRequired": "The connection is not active. Connect phone steps again.",
+        "invalidRequest": "The phone sent invalid data. Try syncing again.",
+        "unauthorized": "Your session has expired. Please sign in again.",
+        "unsupportedSource": "This source is not supported yet.",
+        "syncFailed": "Could not sync. Please try again.",
+        "network": "No connection. Check the network and try again.",
+        "permissionDenied": "No permission to read steps. Allow Lifeathlete in Health Connect.",
+        "readFailed": "Could not read the phone's steps. Please try again."
+      }
     },
     "add": {
       "title": "Add a custom habit",

@@ -29,7 +29,14 @@ const habit = (over: Partial<ManageableHabit> = {}): ManageableHabit => ({
 });
 const item = (h: ManageableHabit, busy = false) => (
   <ul>
-    <HabitItem habit={h} busy={busy} onSetActive={noop} onSaveTarget={noop} onArchive={noop} />
+    <HabitItem
+      habit={h}
+      busy={busy}
+      onSetActive={noop}
+      onSaveTarget={noop}
+      onArchive={noop}
+      onSetAutoSource={noop}
+    />
   </ul>
 );
 
@@ -64,6 +71,20 @@ describe("HabitItem (first paint)", () => {
 
   it("renders in English too", () => {
     expect(render(item(habit()), "en")).toContain(en.profile.habits.archive);
+  });
+
+  it("value habits get a labelled phone-steps switch with a hint", () => {
+    const off = render(item(habit()));
+    expect(off).toContain(pt.profile.habits.autoSteps);
+    expect(off).toContain(pt.profile.habits.autoStepsHint);
+    expect(off).toMatch(/role="switch" aria-checked="false" aria-label="Preencher Caminhar com os passos do telemóvel" aria-describedby="[^"]+"/);
+    const on = render(item(habit({ autoSource: "steps" })));
+    expect(on).toMatch(/role="switch" aria-checked="true" aria-label="Preencher Caminhar/);
+    expect(render(item(habit()), "en")).toContain(en.profile.habits.autoSteps);
+  });
+
+  it("check habits have no phone-steps switch", () => {
+    expect(render(item(habit({ kind: "check", target: 1 })))).not.toContain(pt.profile.habits.autoSteps);
   });
 });
 

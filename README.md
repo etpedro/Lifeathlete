@@ -133,55 +133,121 @@ CI (`.github/workflows/ci.yml`) runs `npm ci`, `npm test`, `npx tsc --noEmit`,
 `npm run lint`, `npm run build` and `npm run test:db`. It installs PostgreSQL 16 with apt.
 It does not run the e2e tests.
 
-## Passos automáticos (Android)
+## Recolha automática de dados
 
-Automatic steps fill the value habits the user chooses ("Preencher com os passos do
-telemóvel" in Gerir hábitos) with the phone's daily step total from Android Health Connect.
+Value habits can be filled automatically, so the user does not type them. In Gerir hábitos,
+"Preencher automaticamente" picks one metric per value habit (or "Não"); the data comes
+from a connected source (Perfil > Integrações).
 
-**Phase 1 (this repository, no phone needed):**
+**Metrics** (the same keys in the database checks, the function contract and the client;
+`AUTO_METRICS` / `METRIC_LIMITS` in `supabase/functions/health-sync/health-sync.ts`,
+mirrored by `src/lib/health/metrics.ts` with a parity test):
 
-- Migration `0011_health_sync.sql`: `user_habits.auto_source` (`'steps'`, value habits
-  only); the consent record `provider_connections.consented_at`, `consent_version` and
-  `consent_withdrawn_at` (server-side only: like the tokens, they are not in the client's
-  column grant); and `public.apply_health_logs(p_user_id, p_rows)`, executable by
-  `service_role` only, which writes a sync's logs in one statement where a manual log
-  always prevails.
-- Edge Function `supabase/functions/health-sync/` (`npx supabase functions deploy
-  health-sync --project-ref <ref>`). The user comes only from the `Authorization: Bearer`
-  JWT. `POST` bodies, all with `source: "health_connect"`:
-  `{ action: "connect", consent: true, consentVersion }` records the consent (only the
-  current text version, `CURRENT_CONSENT_VERSION` in `health-sync.ts`, mirrored by
-  `HEALTH_CONSENT_VERSION` in `src/lib/data/integrations.ts`; bump both when the text
-  changes, and every user is asked again);
-  `{ action: "sync", days: [{ date, steps }] }` (1 to 7 unique dates within the last
-  7 local days, 0 to 100000 steps; anything else is rejected, nothing is clamped) stores one
-  number per day in `provider_activity`, fills the chosen habits (`habit_logs.source =
-  'health_connect'`; a value logged by hand always prevails; at most 20 steps habits per
-  sync, oldest first, the rest reported as `habitsIgnored`) and asks `recalculate` for
-  fresh stats (at most once a minute); `{ action: "disconnect" }` stops it, records the
-  withdrawal and keeps the imported history. Errors are codes only (`unauthorized`,
-  `invalid_request`, `unsupported_source`, `consent_required`, `sync_failed`). The pure
-  logic is `health-sync.ts` (unit-tested).
-- Web: Perfil > Integrações (`/{locale}/profile/integrations`) with the consent text,
-  connect, "Sincronizar agora" and "Desligar"; the native bridge
-  (`src/lib/health/bridge.ts`) is null in the browser and the PWA, so there the screen
-  only explains that automatic steps need the Android app. Hoje shows "via Health
-  Connect" on filled habits.
+| key | what | unit | accepted |
+|---|---|---|---|
+| `steps` | daily step total | steps | integer 0 to 100000 |
+| `workout_minutes` | total duration of the day's workouts | minutes | integer 0 to 1440 |
+| `sleep_hours` | sleep duration | hours | 0 to 24, rounded to 2 decimals |
+| `mindful_minutes` | mindfulness / meditation duration | minutes | integer 0 to 1440 |
 
-**Consent and limitation:** before connecting, the user accepts a text that says what is
-read (the daily step total only), what is sent and stored (one number per day; each sync
-sends the last 7 days), that the steps are stored even before any habit is chosen and are
-kept while the account exists, including after disconnecting, that the numbers are not
-verified, that they fill the habits the user chooses, and how to disconnect (the imported
-history is kept). There is no way yet to delete imported steps (no client delete, no
-account deletion). The steps are sent by the user's own phone and **cannot be verified**
-by the server, so a modified client can send any number within the limits above (the same
-trust level as a manual log, which already is self-reported).
+A value outside its range, NaN, negative or not a number is rejected, never clamped.
+The habit's target should use the metric's unit.
 
-**Phase 2 (not built yet):** a thin native Android shell (Capacitor plugin over Health
-Connect) that registers a `HealthBridge` with `registerHealthBridge` and calls the same
-sync flow. Nothing is published to an app store yet. iOS / Apple Health is not supported:
-the function answers `unsupported_source` for any other source.
+**Database (migration `0012_health_metrics.sql`):**
+
+- `user_habits.auto_source` holds a metric key (the old `'steps'` rows stay valid); only
+  value habits can have one.
+- `provider_connections.consented_categories text[]`: the metrics the user agreed to
+  share. Server-side only (not in the client column grant), like `consented_at`,
+  `consent_version` and `consent_withdrawn_at`. Rows that had accepted the steps-only text
+  (`steps-2026-11-v2`) were backfilled to `{steps}`.
+- `public.upsert_provider_activity(p_user_id, p_provider, p_rows jsonb) returns int`
+  stores one provider's daily metrics (`[{ "date", "metrics": { key: number } }]`) in
+  `provider_activity`. It validates again (provider `health_connect` or `huawei_health`,
+  known keys, limits, real unique dates; anything else raises 22023 and writes nothing),
+  and an existing day is **merged** (`payload || new`): syncing one metric never erases
+  the others stored for that day.
+- `public.fill_habits_from_activity(p_user_id, p_from, p_to) returns jsonb` fills, for
+  at most 8 days, the user's active, non-archived value habits with a metric (at most 50
+  per call, oldest first; the rest is `habitsIgnored`). Each value comes from the
+  highest-priority provider that has that metric for that day, by the **source
+  priority**: `health_connect`, `apple_health`, `huawei_health`, `fitbit`, `garmin`,
+  `oura`, `strava` (a constant in the function). Other providers never fill a habit.
+  `habit_logs.source` is the chosen provider. A manual log always prevails; an automatic
+  one is replaced by a higher-priority or newer value. It returns `{ written,
+  skippedManual, habitsUpdated, habitsIgnored }` and is idempotent.
+- Both functions are `security definer` and can be executed by `service_role` only.
+- `public.apply_health_logs` (0011) is kept unchanged, because the deployed health-sync v1
+  calls it until v2 is deployed. A later cleanup migration may drop it.
+
+**Edge Function `health-sync` v2** (`supabase/functions/health-sync/`, `verify_jwt =
+true`). The user comes only from the `Authorization: Bearer` JWT. Every `POST` body has
+`source: "health_connect"` (any other source gets `unsupported_source`):
+
+- `{ action: "connect", consent: true, consentVersion, categories: [metric, ...] }`:
+  `consentVersion` must be the current text (`CURRENT_CONSENT_VERSION =
+  "metrics-2026-11-v3"`, mirrored by `HEALTH_CONSENT_VERSION` in
+  `src/lib/data/integrations.ts`; bump both when the text changes, and every user is
+  asked again). `categories` must be non-empty, unique and known. It stores the categories
+  (replacing the old ones), the version and the time, and clears a withdrawal. The response
+  is `{ ok, status: "connected", categories }`.
+- `{ action: "sync", days: [{ date: "YYYY-MM-DD", metrics: { steps?, workout_minutes?,
+  sleep_hours?, mindful_minutes? } }] }`: 1 to 7 unique dates within the last 7 local days
+  (profile timezone). Each day needs at least one metric and no unknown key. The
+  **legacy** phase 1 day `{ date, steps }` is still accepted as `metrics: { steps }`. The
+  connection must be connected, with consent to the current version that covers **every
+  metric sent**. Otherwise the answer is 403 `consent_required` and nothing is written, so
+  an unconsented category is never stored. The function then calls
+  `upsert_provider_activity` and `fill_habits_from_activity` for the request's date range,
+  updates `last_synced_at` and asks `recalculate` for fresh stats (at most once a minute).
+  The response is `200 { ok, status, lastSyncedAt, days, metricsReceived, habitsUpdated,
+  skippedManual, habitsIgnored }`. All v1 field names are kept, and `metricsReceived`
+  (the metric keys received) is new.
+- `{ action: "status" }`: `{ ok, status: "connected" | "disconnected" | "none",
+  categories, consentCurrent, lastSyncedAt }`, read with the service role. The screen
+  uses it after a reload, because the client cannot read the consent columns. A
+  connection that accepted an older text is `consentCurrent: false`, and the screen asks
+  for consent again.
+- `{ action: "disconnect" }`: stops collection and records the withdrawal. The imported
+  history and the record of what was accepted are kept.
+- Errors are codes only: `unauthorized` (401), `invalid_request` (400),
+  `unsupported_source` (400), `consent_required` (403), `sync_failed` (500). The pure
+  logic is `health-sync.ts` (unit-tested). `index.ts` is thin I/O glue.
+
+**Web:** Integrações (`/{locale}/profile/integrations`) shows one checkbox per category
+(all unchecked; at least one is needed to continue), each with what is read, and the
+consent text. It also has connect, "Sincronizar agora" and "Desligar". The connected
+state lists the consented categories. The native bridge (`src/lib/health/bridge.ts`:
+`isAvailable`, `requestPermission(categories)` resolving to the granted subset, and
+`readMetrics(days, categories)`) is null in the browser and the PWA, so there the screen
+only explains that collection needs the Android app. The sync flow drops invalid,
+unconsented or out-of-window values before sending. Hoje shows "via Health Connect" or
+"via Huawei Saúde" on filled habits.
+
+**Consent.** Before connecting, the user picks the categories and accepts a text that
+says: only the selected categories are read, as daily totals or durations; each sync
+sends the last 7 days; the values are stored even before a habit uses them; they are
+kept while the account exists, including after disconnecting; they are not verified;
+they fill the habits the user chooses; and how to disconnect (the imported history is
+kept). There is no way yet to delete imported data (no client delete, no account
+deletion).
+
+**Limitation.** The values are sent by the user's phone (or, later, a provider cloud)
+and **cannot be verified** by the server. A modified client can send any number within
+the limits above. This is the same trust level as a manual log, which is self-reported
+too.
+
+**Not built yet:** the native Android shell (a Capacitor plugin over Health Connect that
+registers a `HealthBridge`), the Huawei Health Kit cloud adapter (which will write
+`huawei_health` rows through `upsert_provider_activity`), and Apple Health (not
+supported: the function answers `unsupported_source`). Nothing is published to an app
+store.
+
+**Deploy order:** apply migration 0012 first, then deploy the new function (`npx supabase
+functions deploy health-sync --project-ref <ref>`). Health-sync v1 keeps working during the
+switch: it still calls `apply_health_logs` and writes `provider_activity` itself, and
+0012 keeps both valid. After v2 is live, every user connected with the steps-only consent
+is asked to consent again.
 
 ## Landing page
 
@@ -225,7 +291,8 @@ each landing surface and gradient stop in both themes.
 3. Deploy the Next.js app (for example on Vercel), with `NEXT_PUBLIC_SUPABASE_URL` and
    `NEXT_PUBLIC_SUPABASE_ANON_KEY` set for the build.
 4. Apply new migrations before deploying an app version that reads their columns
-   (`habit_logs.target`, `user_habits.pauses`, `user_stats.computed_for`).
+   (`habit_logs.target`, `user_habits.pauses`, `user_stats.computed_for`), and apply 0012
+   before deploying health-sync v2 (see "Recolha automática de dados").
 
 None of these deployment steps were run against a real Supabase project while writing
 this README.

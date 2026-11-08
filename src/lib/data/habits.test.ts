@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AUTO_METRICS } from "@/lib/health/metrics";
 import {
   archiveHabit,
   createCustomHabit,
@@ -355,13 +356,15 @@ describe("listPillars", () => {
 });
 
 describe("setHabitAutoSource", () => {
-  it("turns automatic steps on and off for a value habit", async () => {
+  it("sets each metric on a value habit and clears it", async () => {
     const f = setup();
-    await setHabitAutoSource(f.db, "h-walk", "steps");
-    expect(row(f, "h-walk").auto_source).toBe("steps");
-    expect(f.writes.at(-1)).toMatchObject({ table: "user_habits", op: "update", payload: { auto_source: "steps" } });
-    const listed = (await listManageableHabits(f.db)).flatMap((p) => p.habits).find((h) => h.id === "h-walk");
-    expect(listed?.autoSource).toBe("steps");
+    for (const metric of AUTO_METRICS) {
+      await setHabitAutoSource(f.db, "h-walk", metric);
+      expect(row(f, "h-walk").auto_source).toBe(metric);
+      expect(f.writes.at(-1)).toMatchObject({ table: "user_habits", op: "update", payload: { auto_source: metric } });
+      const listed = (await listManageableHabits(f.db)).flatMap((p) => p.habits).find((h) => h.id === "h-walk");
+      expect(listed?.autoSource).toBe(metric);
+    }
     await setHabitAutoSource(f.db, "h-walk", null);
     expect(row(f, "h-walk").auto_source).toBeNull();
   });
@@ -369,19 +372,19 @@ describe("setHabitAutoSource", () => {
   it("works on a paused value habit too", async () => {
     const f = setup();
     row(f, "h-paused").kind = "value";
-    await setHabitAutoSource(f.db, "h-paused", "steps");
-    expect(row(f, "h-paused").auto_source).toBe("steps");
+    await setHabitAutoSource(f.db, "h-paused", "sleep_hours");
+    expect(row(f, "h-paused").auto_source).toBe("sleep_hours");
   });
 
   it("rejects a check habit with invalid_kind (no write)", async () => {
     const f = setup();
-    expect(await codeOf(setHabitAutoSource(f.db, "h-workout", "steps"))).toBe("invalid_kind");
+    expect(await codeOf(setHabitAutoSource(f.db, "h-workout", "workout_minutes"))).toBe("invalid_kind");
     expect(f.writes).toEqual([]);
   });
 
-  it("rejects an unknown source (no write)", async () => {
+  it.each(["calories", "Steps", ""])("rejects an unknown metric %s (no write)", async (metric) => {
     const f = setup();
-    expect(await codeOf(setHabitAutoSource(f.db, "h-walk", "calories" as never))).toBe("save_failed");
+    expect(await codeOf(setHabitAutoSource(f.db, "h-walk", metric as never))).toBe("save_failed");
     expect(f.writes).toEqual([]);
   });
 
@@ -410,12 +413,12 @@ describe("setHabitAutoSource", () => {
     expect(await codeOf(setHabitAutoSource(f.db, "h-walk", "steps"))).toBe("save_failed");
   });
 
-  it("lists autoSource as null unless it is steps", async () => {
+  it("lists autoSource as the metric key, null for anything unknown", async () => {
     const f = setup();
-    row(f, "h-walk").auto_source = "steps";
+    row(f, "h-walk").auto_source = "mindful_minutes";
     row(f, "h-read").auto_source = "weird";
     const all = (await listManageableHabits(f.db)).flatMap((p) => p.habits);
-    expect(all.find((h) => h.id === "h-walk")?.autoSource).toBe("steps");
+    expect(all.find((h) => h.id === "h-walk")?.autoSource).toBe("mindful_minutes");
     expect(all.find((h) => h.id === "h-read")?.autoSource).toBeNull();
   });
 });

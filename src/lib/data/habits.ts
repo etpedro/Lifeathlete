@@ -1,6 +1,9 @@
 import type { Db } from "@/lib/supabase/types";
+import { isAutoMetric, type AutoMetric } from "@/lib/health/metrics";
 import { dayNumber } from "../../../supabase/functions/_shared/engine/streaks.ts";
 import type { HabitKind } from "./today";
+
+export type { AutoMetric };
 
 export const MAX_TITLE_LENGTH = 80;
 
@@ -115,19 +118,17 @@ export async function updateHabitTarget(db: Db, id: string, target: number): Pro
   await updateLive(db, id, { target }, "update habit target");
 }
 
-/** Automatic sources a value habit can be filled from (user_habits.auto_source, 0011). */
-export type AutoSource = "steps";
-
 /**
- * Fills a value habit from the phone's steps ("steps") or stops it (null). Check habits ->
- * `invalid_kind`; unknown or archived -> `not_found`. The data arrives through the
- * health-sync function once the Android app is connected.
+ * Fills a value habit automatically from a metric (steps, workout_minutes, sleep_hours,
+ * mindful_minutes) or stops it (null). Check habits -> `invalid_kind`; unknown metric ->
+ * `save_failed` (no write); unknown or archived habit -> `not_found`. The data arrives
+ * through the health-sync function from a connected source.
  */
-export async function setHabitAutoSource(db: Db, id: string, source: AutoSource | null): Promise<void> {
-  if (source !== null && source !== "steps") throw new HabitError("save_failed", `Unknown auto source: ${String(source)}`);
+export async function setHabitAutoSource(db: Db, id: string, metric: AutoMetric | null): Promise<void> {
+  if (metric !== null && !isAutoMetric(metric)) throw new HabitError("save_failed", `Unknown metric: ${String(metric)}`);
   const habit = await findLive(db, id);
   if (habit.kind !== "value") throw new HabitError("invalid_kind", "Only value habits can be filled automatically");
-  await updateLive(db, id, { auto_source: source }, "update habit auto source");
+  await updateLive(db, id, { auto_source: metric }, "update habit auto source");
 }
 
 export type CustomHabitInput = {
@@ -177,8 +178,8 @@ export type ManageableHabit = {
   target: number;
   active: boolean;
   fromTemplate: boolean;
-  /** "steps" when the habit is filled from the phone's steps. */
-  autoSource: AutoSource | null;
+  /** The metric that fills the habit automatically (user_habits.auto_source), or null. */
+  autoSource: AutoMetric | null;
 };
 export type ManageablePillar = { pillarId: string; slug: string; habits: ManageableHabit[] };
 
@@ -230,7 +231,7 @@ export async function listManageableHabits(db: Db): Promise<ManageablePillar[]> 
           target: h.kind === "check" ? 1 : num(h.target),
           active: h.active,
           fromTemplate: h.template_id !== null,
-          autoSource: h.auto_source === "steps" ? ("steps" as const) : null,
+          autoSource: isAutoMetric(h.auto_source) ? h.auto_source : null,
         })),
     }))
     .filter((p) => p.habits.length > 0);

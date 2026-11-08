@@ -1,16 +1,25 @@
+import type { AutoMetric } from "./metrics";
+
 /**
- * The native health bridge (automatic steps). Phase 1 ships no native code: in the browser
- * and the installed PWA there is no bridge, so `getHealthBridge()` is null and the UI only
- * explains that automatic steps need the Android app. Phase 2's Android shell (Capacitor
- * plugin over Health Connect) registers its implementation with `registerHealthBridge`.
+ * The native health bridge (automatic data collection). No native code ships yet: in the
+ * browser and the installed PWA there is no bridge, so `getHealthBridge()` is null and
+ * the UI only explains that automatic collection needs the Android app. The later
+ * Android shell (Capacitor plugin over Health Connect) registers its implementation with
+ * `registerHealthBridge`.
  */
 export type HealthBridge = {
   /** Health Connect is installed and usable on this device. */
   isAvailable(): boolean;
-  /** Shows the system permission prompt for reading steps; true when granted. */
-  requestPermission(): Promise<boolean>;
-  /** Daily step totals (local dates, YYYY-MM-DD) of the last `days` days. */
-  readSteps(days: number): Promise<{ date: string; steps: number }[]>;
+  /** Shows the system permission prompt for these categories; resolves to the granted subset. */
+  requestPermission(categories: AutoMetric[]): Promise<AutoMetric[]>;
+  /**
+   * Daily totals/durations (local dates, YYYY-MM-DD) of the last `days` days, for the
+   * given categories only. Steps: daily total; workout/mindful: minutes; sleep: hours.
+   */
+  readMetrics(
+    days: number,
+    categories: AutoMetric[],
+  ): Promise<{ date: string; metrics: Partial<Record<AutoMetric, number>> }[]>;
 };
 
 let registered: HealthBridge | null = null;

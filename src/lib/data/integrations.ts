@@ -1,3 +1,4 @@
+import { knownMetrics, type AutoMetric } from "@/lib/health/metrics";
 import type { Db } from "@/lib/supabase/types";
 import { throwIfError } from "./errors";
 
@@ -8,15 +9,23 @@ export const HEALTH_PROVIDER = "health_connect";
  * equal CURRENT_CONSENT_VERSION in supabase/functions/health-sync/health-sync.ts (a test
  * checks it): the server rejects any other version. Bump both whenever the text changes.
  */
-export const HEALTH_CONSENT_VERSION = "steps-2026-11-v2";
+export const HEALTH_CONSENT_VERSION = "metrics-2026-11-v3";
 
 export type HealthConnection = { status: "connected" | "disconnected" | "none"; lastSyncedAt: string | null };
-export type StepDay = { date: string; steps: number };
+/**
+ * The server-side view of the connection (health-sync `status` action): the consented
+ * categories and whether the consent is to the current text are not readable by the client.
+ */
+export type HealthStatus = HealthConnection & { categories: AutoMetric[]; consentCurrent: boolean };
+/** One day of the v2 sync format. */
+export type MetricDay = { date: string; metrics: Partial<Record<AutoMetric, number>> };
 export type HealthSyncResult = {
   lastSyncedAt: string | null;
   days: number;
+  /** The metrics the server received in this sync. */
+  metricsReceived: AutoMetric[];
   habitsUpdated: number;
-  /** Steps habits beyond the server's limit of 20 per sync (not filled). */
+  /** Habits filled automatically beyond the server's limit of 50 per sync (not filled). */
   habitsIgnored: number;
   skippedManual: number;
 };
@@ -94,26 +103,47 @@ async function call(db: Db, body: Record<string, unknown>): Promise<Record<strin
 
 const count = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
-/** Records the user's consent and connects Health Connect (the permission was granted on the phone). */
-export async function connectHealth(db: Db, consentVersion: string): Promise<{ status: "connected" }> {
-  await call(db, { action: "connect", consent: true, consentVersion });
-  return { status: "connected" };
+/**
+ * Records the user's consent to the current text for `categories` (the ones the phone
+ * granted) and connects Health Connect. Returns the categories the server stored.
+ */
+export async function connectHealth(
+  db: Db,
+  consentVersion: string,
+  categories: AutoMetric[],
+): Promise<{ status: "connected"; categories: AutoMetric[] }> {
+  const data = await call(db, { action: "connect", consent: true, consentVersion, categories });
+  const stored = knownMetrics(data.categories);
+  return { status: "connected", categories: stored.length > 0 ? stored : knownMetrics(categories) };
 }
 
-/** Sends daily step totals; the function fills the habits the user chose. */
-export async function syncHealth(db: Db, days: StepDay[]): Promise<HealthSyncResult> {
+/** Sends daily metric values (v2 format); the function fills the habits the user chose. */
+export async function syncHealth(db: Db, days: MetricDay[]): Promise<HealthSyncResult> {
   const data = await call(db, { action: "sync", days });
   if (data.status !== "connected") throw new HealthError("sync_failed");
   return {
     lastSyncedAt: typeof data.lastSyncedAt === "string" ? data.lastSyncedAt : null,
     days: count(data.days),
+    metricsReceived: knownMetrics(data.metricsReceived),
     habitsUpdated: count(data.habitsUpdated),
     habitsIgnored: count(data.habitsIgnored),
     skippedManual: count(data.skippedManual),
   };
 }
 
-/** Stops automatic steps; the imported history is kept. Idempotent. */
+/** The connection as the server sees it, consent categories included (survives a reload). */
+export async function getHealthStatus(db: Db): Promise<HealthStatus> {
+  const data = await call(db, { action: "status" });
+  const status = data.status === "connected" || data.status === "none" ? data.status : "disconnected";
+  return {
+    status,
+    categories: knownMetrics(data.categories),
+    consentCurrent: data.consentCurrent === true,
+    lastSyncedAt: typeof data.lastSyncedAt === "string" ? data.lastSyncedAt : null,
+  };
+}
+
+/** Stops automatic collection; the imported history is kept. Idempotent. */
 export async function disconnectHealth(db: Db): Promise<{ status: "disconnected" }> {
   await call(db, { action: "disconnect" });
   return { status: "disconnected" };

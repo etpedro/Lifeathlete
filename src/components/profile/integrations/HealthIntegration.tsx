@@ -62,7 +62,12 @@ export function HealthIntegration({ timezone, initial }: Props) {
     const result = outcome.result;
     if (!result) return setStatus(fallback);
     setConnection((c) => ({ status: "connected", lastSyncedAt: result.lastSyncedAt ?? c?.lastSyncedAt ?? null }));
-    setStatus({ key: "status.synced", values: { days: result.days }, skippedManual: result.skippedManual });
+    setStatus({
+      key: "status.synced",
+      values: { days: result.days },
+      skippedManual: result.skippedManual,
+      habitsIgnored: result.habitsIgnored,
+    });
   };
 
   const deps = (b: HealthBridge) => ({ db: db(), bridge: b, now: new Date(), timezone });

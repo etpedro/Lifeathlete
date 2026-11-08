@@ -295,10 +295,12 @@
       "consent": {
         "title": "Before you connect",
         "read": "What we read: only the daily step total from Health Connect.",
-        "stored": "What we store: one number per day, for the last 7 days.",
-        "use": "What for: only to fill the habits you choose in Manage habits.",
-        "unverified": "Steps come from your phone and are not verified by Lifeathlete.",
-        "disconnect": "You can disconnect at any time; the history already imported is kept."
+        "sent": "What we send and store: one number per day; each sync sends the last 7 days.",
+        "storedWithoutHabit": "Steps are stored even if you have not chosen a habit to fill yet.",
+        "kept": "They are kept while your account exists, including after you disconnect.",
+        "unverified": "The numbers come from your phone and are not verified by Lifeathlete.",
+        "use": "We use them to fill the habits you choose in Manage habits.",
+        "disconnect": "You can disconnect at any time here in Integrations; the history already imported is kept."
       },
       "connect": "Connect phone steps",
       "connecting": "Connecting…",
@@ -320,7 +322,8 @@
         "synced": "{days, plural, one {# day synced.} other {# days synced.}}",
         "nothing": "No new steps to send.",
         "skippedManual": "{count, plural, one {# day logged by hand was kept.} other {# days logged by hand were kept.}}",
-        "disconnected": "Phone steps disconnected. Your history was kept."
+        "disconnected": "Phone steps disconnected. Your history was kept.",
+        "habitsIgnored": "{count, plural, one {# habit beyond the limit of 20 was not filled.} other {# habits beyond the limit of 20 were not filled.}}"
       },
       "errors": {
         "consentRequired": "The connection is not active. Connect phone steps again.",

@@ -141,31 +141,42 @@ telemóvel" in Gerir hábitos) with the phone's daily step total from Android He
 **Phase 1 (this repository, no phone needed):**
 
 - Migration `0011_health_sync.sql`: `user_habits.auto_source` (`'steps'`, value habits
-  only) and `provider_connections.consented_at` (server-side only: like the tokens, it is
-  not in the client's column grant).
+  only); the consent record `provider_connections.consented_at`, `consent_version` and
+  `consent_withdrawn_at` (server-side only: like the tokens, they are not in the client's
+  column grant); and `public.apply_health_logs(p_user_id, p_rows)`, executable by
+  `service_role` only, which writes a sync's logs in one statement where a manual log
+  always prevails.
 - Edge Function `supabase/functions/health-sync/` (`npx supabase functions deploy
   health-sync --project-ref <ref>`). The user comes only from the `Authorization: Bearer`
   JWT. `POST` bodies, all with `source: "health_connect"`:
-  `{ action: "connect", consent: true, consentVersion }` records the consent;
+  `{ action: "connect", consent: true, consentVersion }` records the consent (only the
+  current text version, `CURRENT_CONSENT_VERSION` in `health-sync.ts`, mirrored by
+  `HEALTH_CONSENT_VERSION` in `src/lib/data/integrations.ts`; bump both when the text
+  changes, and every user is asked again);
   `{ action: "sync", days: [{ date, steps }] }` (1 to 7 unique dates within the last
   7 local days, 0 to 100000 steps; anything else is rejected, nothing is clamped) stores one
   number per day in `provider_activity`, fills the chosen habits (`habit_logs.source =
-  'health_connect'`; a value logged by hand always prevails) and asks `recalculate` for
-  fresh stats; `{ action: "disconnect" }` stops it and keeps the imported history. Errors
-  are codes only (`unauthorized`, `invalid_request`, `unsupported_source`,
-  `consent_required`, `sync_failed`). The pure logic is `health-sync.ts` (unit-tested).
+  'health_connect'`; a value logged by hand always prevails; at most 20 steps habits per
+  sync, oldest first, the rest reported as `habitsIgnored`) and asks `recalculate` for
+  fresh stats (at most once a minute); `{ action: "disconnect" }` stops it, records the
+  withdrawal and keeps the imported history. Errors are codes only (`unauthorized`,
+  `invalid_request`, `unsupported_source`, `consent_required`, `sync_failed`). The pure
+  logic is `health-sync.ts` (unit-tested).
 - Web: Perfil > Integrações (`/{locale}/profile/integrations`) with the consent text,
   connect, "Sincronizar agora" and "Desligar"; the native bridge
   (`src/lib/health/bridge.ts`) is null in the browser and the PWA, so there the screen
   only explains that automatic steps need the Android app. Hoje shows "via Health
   Connect" on filled habits.
 
-**Consent and limitation:** the user explicitly accepts what is read (the daily step total
-only), what is stored (one number per day), what it is used for (only the habits they
-choose), and that they can disconnect at any time. The steps are sent by the user's own
-phone and **cannot be verified** by the server, so a modified client can send any number
-within the limits above (the same trust level as a manual log, which already is
-self-reported).
+**Consent and limitation:** before connecting, the user accepts a text that says what is
+read (the daily step total only), what is sent and stored (one number per day; each sync
+sends the last 7 days), that the steps are stored even before any habit is chosen and are
+kept while the account exists, including after disconnecting, that the numbers are not
+verified, that they fill the habits the user chooses, and how to disconnect (the imported
+history is kept). There is no way yet to delete imported steps (no client delete, no
+account deletion). The steps are sent by the user's own phone and **cannot be verified**
+by the server, so a modified client can send any number within the limits above (the same
+trust level as a manual log, which already is self-reported).
 
 **Phase 2 (not built yet):** a thin native Android shell (Capacitor plugin over Health
 Connect) that registers a `HealthBridge` with `registerHealthBridge` and calls the same

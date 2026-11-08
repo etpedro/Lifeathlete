@@ -9,6 +9,7 @@ import {
 } from "./integrations";
 import { DataError } from "./errors";
 import { createFakeDb, type Row } from "./testing/fake-db";
+import { CURRENT_CONSENT_VERSION } from "../../../supabase/functions/health-sync/health-sync.ts";
 
 const USER = "user-1";
 
@@ -77,8 +78,21 @@ describe("connectHealth / syncHealth / disconnectHealth", () => {
     expect(HEALTH_CONSENT_VERSION.length).toBeLessThanOrEqual(32);
   });
 
+  it("the client consent version is the one the server accepts (they must never differ)", () => {
+    expect(HEALTH_CONSENT_VERSION).toBe(CURRENT_CONSENT_VERSION);
+    expect(HEALTH_CONSENT_VERSION).not.toBe("steps-2026-11"); // the text that misdescribed storage
+  });
+
   it("sync sends the days and returns the summary", async () => {
-    const data = { ok: true, status: "connected", lastSyncedAt: "2026-11-08T10:00:00Z", days: 2, habitsUpdated: 1, skippedManual: 0 };
+    const data = {
+      ok: true,
+      status: "connected",
+      lastSyncedAt: "2026-11-08T10:00:00Z",
+      days: 2,
+      habitsUpdated: 1,
+      habitsIgnored: 3,
+      skippedManual: 0,
+    };
     const invoke = vi.fn<Invoke>().mockResolvedValue({ data, error: null });
     const f = setup([], invoke);
     const days = [{ date: "2026-11-08", steps: 1200 }, { date: "2026-11-07", steps: 9000 }];
@@ -86,6 +100,7 @@ describe("connectHealth / syncHealth / disconnectHealth", () => {
       lastSyncedAt: "2026-11-08T10:00:00Z",
       days: 2,
       habitsUpdated: 1,
+      habitsIgnored: 3,
       skippedManual: 0,
     });
     expect(invoke).toHaveBeenCalledWith("health-sync", { body: { action: "sync", source: "health_connect", days } });

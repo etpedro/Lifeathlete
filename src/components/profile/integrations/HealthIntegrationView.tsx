@@ -14,6 +14,8 @@ export type StatusMessage = {
   values?: Record<string, number>;
   /** Days logged by hand that the sync left alone. */
   skippedManual?: number;
+  /** Steps habits beyond the per-sync limit. */
+  habitsIgnored?: number;
 };
 
 export type HealthViewProps = {
@@ -44,7 +46,11 @@ export function HealthIntegrationView(props: HealthViewProps) {
   const working = busy !== null;
 
   const statusText = status
-    ? [t(status.key, status.values), status.skippedManual ? t("status.skippedManual", { count: status.skippedManual }) : ""]
+    ? [
+        t(status.key, status.values),
+        status.skippedManual ? t("status.skippedManual", { count: status.skippedManual }) : "",
+        status.habitsIgnored ? t("status.habitsIgnored", { count: status.habitsIgnored }) : "",
+      ]
         .filter(Boolean)
         .join(" ")
     : "";
@@ -74,9 +80,11 @@ export function HealthIntegrationView(props: HealthViewProps) {
         <h3 className={styles.subheading}>{t("consent.title")}</h3>
         <ul className={styles.consent}>
           <li>{t("consent.read")}</li>
-          <li>{t("consent.stored")}</li>
-          <li>{t("consent.use")}</li>
+          <li>{t("consent.sent")}</li>
+          <li>{t("consent.storedWithoutHabit")}</li>
+          <li>{t("consent.kept")}</li>
           <li>{t("consent.unverified")}</li>
+          <li>{t("consent.use")}</li>
           <li>{t("consent.disconnect")}</li>
         </ul>
         <button

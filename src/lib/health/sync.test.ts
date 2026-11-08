@@ -77,7 +77,7 @@ describe("runHealthSync", () => {
     });
     expect(out).toEqual({
       ok: true,
-      result: { lastSyncedAt: "2026-11-08T23:30:00Z", days: 2, habitsUpdated: 1, skippedManual: 0 },
+      result: { lastSyncedAt: "2026-11-08T23:30:00Z", days: 2, habitsUpdated: 1, habitsIgnored: 0, skippedManual: 0 },
     });
   });
 

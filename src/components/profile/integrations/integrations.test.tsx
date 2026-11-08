@@ -56,6 +56,27 @@ describe("HealthIntegrationView", () => {
     expect(view({ device: "pending" })).toContain('aria-busy="true"');
   });
 
+  it("the consent text describes storage accurately (kept after disconnect, stored without a habit)", () => {
+    expect(Object.keys(tt.consent)).toEqual([
+      "title",
+      "read",
+      "sent",
+      "storedWithoutHabit",
+      "kept",
+      "unverified",
+      "use",
+      "disconnect",
+    ]);
+    expect(tt.consent.sent).toContain("últimos 7 dias");
+    expect(tt.consent.kept).toContain("depois de desligares");
+    expect(en.profile.integrations.consent.kept).toContain("after you disconnect");
+    expect(en.profile.integrations.consent.storedWithoutHabit).toContain("even if");
+    // no promise of a deletion feature that does not exist
+    for (const text of [...Object.values(tt.consent), ...Object.values(en.profile.integrations.consent)]) {
+      expect(text).not.toMatch(/apag|elimin|delet|remov/i);
+    }
+  });
+
   it("bridge present, not connected: the full consent text and one primary connect button", () => {
     for (const status of ["none", "disconnected"] as const) {
       const html = view({ device: "present", connection: { status, lastSyncedAt: null } });
@@ -116,6 +137,12 @@ describe("HealthIntegrationView", () => {
       status: { key: "status.synced", values: { days: 3 } },
     });
     expect(synced).toMatch(/role="status"[^>]*>3 dias sincronizados\.</);
+    const capped = view({
+      device: "present",
+      connection: { status: "connected", lastSyncedAt: null },
+      status: { key: "status.synced", values: { days: 7 }, habitsIgnored: 2 },
+    });
+    expect(capped).toContain("2 hábitos além do limite de 20");
   });
 
   it("a failed load shows an alert with retry", () => {
@@ -128,6 +155,7 @@ describe("HealthIntegrationView", () => {
     const html = view({ device: "present" }, "en");
     expect(html).toContain(en.profile.integrations.connect);
     expect(html).toContain(en.profile.integrations.consent.unverified);
+    expect(html).toContain(en.profile.integrations.consent.kept);
   });
 });
 

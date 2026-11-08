@@ -3,12 +3,23 @@ import { throwIfError } from "./errors";
 
 /** The provider id of Android Health Connect (provider_connections.provider, habit_logs.source). */
 export const HEALTH_PROVIDER = "health_connect";
-/** Version of the consent text the user accepts (sent with connect; at most 32 characters). */
-export const HEALTH_CONSENT_VERSION = "steps-2026-11";
+/**
+ * Version of the consent text the user accepts (`profile.integrations.consent.*`). It MUST
+ * equal CURRENT_CONSENT_VERSION in supabase/functions/health-sync/health-sync.ts (a test
+ * checks it): the server rejects any other version. Bump both whenever the text changes.
+ */
+export const HEALTH_CONSENT_VERSION = "steps-2026-11-v2";
 
 export type HealthConnection = { status: "connected" | "disconnected" | "none"; lastSyncedAt: string | null };
 export type StepDay = { date: string; steps: number };
-export type HealthSyncResult = { lastSyncedAt: string | null; days: number; habitsUpdated: number; skippedManual: number };
+export type HealthSyncResult = {
+  lastSyncedAt: string | null;
+  days: number;
+  habitsUpdated: number;
+  /** Steps habits beyond the server's limit of 20 per sync (not filled). */
+  habitsIgnored: number;
+  skippedManual: number;
+};
 
 export type HealthErrorCode =
   | "consent_required"
@@ -97,6 +108,7 @@ export async function syncHealth(db: Db, days: StepDay[]): Promise<HealthSyncRes
     lastSyncedAt: typeof data.lastSyncedAt === "string" ? data.lastSyncedAt : null,
     days: count(data.days),
     habitsUpdated: count(data.habitsUpdated),
+    habitsIgnored: count(data.habitsIgnored),
     skippedManual: count(data.skippedManual),
   };
 }

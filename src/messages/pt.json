@@ -295,10 +295,12 @@
       "consent": {
         "title": "Antes de ligares",
         "read": "O que lemos: apenas o total diário de passos do Health Connect.",
-        "stored": "O que guardamos: um número por dia, dos últimos 7 dias.",
-        "use": "Para quê: só para preencher os hábitos que escolheres em Gerir hábitos.",
-        "unverified": "Os passos vêm do teu telemóvel e não são verificados pelo Lifeathlete.",
-        "disconnect": "Podes desligar a qualquer momento; o histórico já importado é mantido."
+        "sent": "O que enviamos e guardamos: um número por dia; cada sincronização envia os últimos 7 dias.",
+        "storedWithoutHabit": "Os passos são guardados mesmo que ainda não tenhas escolhido nenhum hábito para preencher.",
+        "kept": "Ficam guardados enquanto a tua conta existir, incluindo depois de desligares.",
+        "unverified": "Os números vêm do teu telemóvel e não são verificados pelo Lifeathlete.",
+        "use": "Usamo-los para preencher os hábitos que escolheres em Gerir hábitos.",
+        "disconnect": "Podes desligar a qualquer momento aqui em Integrações; o histórico já importado é mantido."
       },
       "connect": "Ligar passos do telemóvel",
       "connecting": "A ligar…",
@@ -320,7 +322,8 @@
         "synced": "{days, plural, one {# dia sincronizado.} other {# dias sincronizados.}}",
         "nothing": "Não há passos novos para enviar.",
         "skippedManual": "{count, plural, one {# dia registado à mão foi mantido.} other {# dias registados à mão foram mantidos.}}",
-        "disconnected": "Passos do telemóvel desligados. O histórico foi mantido."
+        "disconnected": "Passos do telemóvel desligados. O histórico foi mantido.",
+        "habitsIgnored": "{count, plural, one {# hábito além do limite de 20 não foi preenchido.} other {# hábitos além do limite de 20 não foram preenchidos.}}"
       },
       "errors": {
         "consentRequired": "A ligação não está ativa. Liga de novo os passos do telemóvel.",

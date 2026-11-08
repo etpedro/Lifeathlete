@@ -354,6 +354,14 @@ begin
   -- the column grant still exposes status columns only
   perform id, user_id, provider, status, last_synced_at from public.provider_connections;
   assert pg_temp.fails($f$select consented_at from public.provider_connections$f$, '42501'), 'A cannot read consented_at';
+  assert pg_temp.fails($f$select consent_version from public.provider_connections$f$, '42501'), 'A cannot read consent_version';
+  assert pg_temp.fails($f$select consent_withdrawn_at from public.provider_connections$f$, '42501'),
+    'A cannot read consent_withdrawn_at';
+  assert pg_temp.fails($f$select * from public.provider_connections$f$, '42501'), 'select * still denied';
+  assert pg_temp.fails($f$update public.provider_connections set consent_version = 'x'$f$, '42501'),
+    'A cannot write consent_version';
+  assert pg_temp.fails($f$update public.provider_connections set consent_withdrawn_at = null$f$, '42501'),
+    'A cannot write consent_withdrawn_at';
   assert pg_temp.fails($f$select expires_at from public.provider_connections$f$, '42501'), 'A cannot read expires_at';
   assert pg_temp.fails($f$select access_token_enc, refresh_token_enc from public.provider_connections$f$, '42501'),
     'A still cannot read the token columns';
@@ -398,8 +406,15 @@ end $$;
 set role service_role;
 do $$
 begin
-  insert into public.provider_connections(user_id, provider, status, consented_at)
-    values ('bbbbbbbb-0000-0000-0000-00000000000b', 'health_connect', 'connected', now());
+  insert into public.provider_connections(user_id, provider, status, consented_at, consent_version)
+    values ('bbbbbbbb-0000-0000-0000-00000000000b', 'health_connect', 'connected', now(), 'v-test');
+  update public.provider_connections set consent_withdrawn_at = now(), status = 'disconnected'
+   where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and provider = 'health_connect';
+  update public.provider_connections set consent_withdrawn_at = null, status = 'connected'
+   where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and provider = 'health_connect';
+  assert (select consent_version from public.provider_connections
+           where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and provider = 'health_connect') = 'v-test',
+    'service_role records the consent version';
   update public.provider_connections set last_synced_at = now()
    where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b' and provider = 'health_connect';
   assert (select consented_at from public.provider_connections
@@ -430,6 +445,75 @@ begin
     'B reads its connection status';
   assert (select count(*) from public.provider_activity where provider = 'health_connect') = 1, 'B reads its steps';
   assert pg_temp.fails($f$select consented_at from public.provider_connections$f$, '42501'), 'B cannot read consented_at';
+  assert pg_temp.fails($f$select consent_version, consent_withdrawn_at from public.provider_connections$f$, '42501'),
+    'B cannot read the consent record';
+  -- the atomic log writer is for the health-sync function only
+  assert pg_temp.fails($f$select public.apply_health_logs(auth.uid(), '[]'::jsonb)$f$, '42501'),
+    'authenticated cannot execute apply_health_logs';
+end $$;
+
+reset role;
+set role anon;
+do $$
+begin
+  assert pg_temp.fails($f$select public.apply_health_logs('bbbbbbbb-0000-0000-0000-00000000000b', '[]'::jsonb)$f$, '42501'),
+    'anon cannot execute apply_health_logs';
+end $$;
+
+-- apply_health_logs (0011): one atomic statement, manual logs always prevail
+reset role;
+insert into public.habit_logs(user_id, user_habit_id, date, value, source)
+  values ('bbbbbbbb-0000-0000-0000-00000000000b', 'b2b2b2b2-0000-0000-0000-000000000002', '2026-11-02', 42, 'manual');
+insert into public.user_habits(id, user_id, pillar_id, title, kind, target, auto_source, deleted_at, active)
+select 'b3b3b3b3-0000-0000-0000-000000000003', 'bbbbbbbb-0000-0000-0000-00000000000b', id, 'B deleted steps', 'value', 5000,
+       'steps', now(), false
+  from public.pillars where slug = 'active-lifestyle';
+insert into public.user_habits(id, user_id, pillar_id, title, kind, target)
+select 'b4b4b4b4-0000-0000-0000-000000000004', 'bbbbbbbb-0000-0000-0000-00000000000b', id, 'B plain value', 'value', 5000
+  from public.pillars where slug = 'active-lifestyle';
+create function pg_temp.health_rows() returns jsonb language sql stable as $$
+  select jsonb_build_array(
+    jsonb_build_object('user_habit_id', 'b2b2b2b2-0000-0000-0000-000000000002', 'date', '2026-11-01', 'value', 7000, 'target', 8000),
+    jsonb_build_object('user_habit_id', 'b2b2b2b2-0000-0000-0000-000000000002', 'date', '2026-11-02', 'value', 7000, 'target', 8000),
+    jsonb_build_object('user_habit_id', 'b2b2b2b2-0000-0000-0000-000000000002', 'date', '2026-11-03', 'value', 3000, 'target', null),
+    jsonb_build_object('user_habit_id', (select id from public.user_habits where title = 'Mine'), 'date', '2026-11-03', 'value', 1, 'target', null),
+    jsonb_build_object('user_habit_id', 'b1b1b1b1-0000-0000-0000-000000000001', 'date', '2026-11-03', 'value', 1, 'target', null),
+    jsonb_build_object('user_habit_id', 'b3b3b3b3-0000-0000-0000-000000000003', 'date', '2026-11-03', 'value', 1, 'target', null),
+    jsonb_build_object('user_habit_id', 'b4b4b4b4-0000-0000-0000-000000000004', 'date', '2026-11-03', 'value', 1, 'target', null))
+$$;
+grant execute on function pg_temp.health_rows() to public;
+create function pg_temp.health_snapshot() returns jsonb language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('h', user_habit_id, 'd', date, 'v', value, 's', source, 't', target)
+                  order by user_habit_id, date), '[]'::jsonb)
+    from public.habit_logs where date between '2026-11-01' and '2026-11-03'
+$$;
+grant execute on function pg_temp.health_snapshot() to public;
+set role service_role;
+do $$
+declare res jsonb; snap jsonb;
+begin
+  res := public.apply_health_logs('bbbbbbbb-0000-0000-0000-00000000000b', pg_temp.health_rows());
+  assert res = '{"written": 2, "skippedManual": 1, "habitsUpdated": 1}'::jsonb, 'counts: ' || res::text;
+  assert (select value from public.habit_logs where user_habit_id = 'b2b2b2b2-0000-0000-0000-000000000002'
+            and date = '2026-11-01') = 7000, 'an automatic log is replaced';
+  assert (select value || '/' || source from public.habit_logs where user_habit_id = 'b2b2b2b2-0000-0000-0000-000000000002'
+            and date = '2026-11-02') = '42/manual', 'a manual log is never overwritten';
+  assert (select source || '/' || coalesce(target::text, 'null') || '/' || user_id from public.habit_logs
+           where user_habit_id = 'b2b2b2b2-0000-0000-0000-000000000002' and date = '2026-11-03')
+         = 'health_connect/null/bbbbbbbb-0000-0000-0000-00000000000b', 'a new automatic log is inserted for p_user_id';
+  assert (select count(*) from public.habit_logs where date = '2026-11-03'
+            and user_habit_id <> 'b2b2b2b2-0000-0000-0000-000000000002') = 0,
+    'another user''s habit, a check habit, a deleted habit and a habit without auto_source are ignored';
+  snap := pg_temp.health_snapshot();
+  res := public.apply_health_logs('bbbbbbbb-0000-0000-0000-00000000000b', pg_temp.health_rows());
+  assert res = '{"written": 2, "skippedManual": 1, "habitsUpdated": 1}'::jsonb, 'same counts on a retry: ' || res::text;
+  assert pg_temp.health_snapshot() = snap, 'apply_health_logs is idempotent';
+  -- the other user's id with B's rows writes nothing (and reveals nothing)
+  res := public.apply_health_logs('aaaaaaaa-0000-0000-0000-00000000000a', pg_temp.health_rows());
+  assert res = '{"written": 0, "skippedManual": 0, "habitsUpdated": 0}'::jsonb, 'foreign habits: ' || res::text;
+  assert pg_temp.health_snapshot() = snap, 'nothing written for a foreign user id';
+  assert public.apply_health_logs('bbbbbbbb-0000-0000-0000-00000000000b', '[]'::jsonb)
+         = '{"written": 0, "skippedManual": 0, "habitsUpdated": 0}'::jsonb, 'empty batch';
 end $$;
 
 -- ---------- anon ----------

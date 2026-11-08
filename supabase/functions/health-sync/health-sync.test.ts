@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
   consentGiven,
+  consentRecord,
+  consentWithdrawal,
+  CURRENT_CONSENT_VERSION,
   errorStatus,
+  MAX_DAYS,
   MAX_STEPS,
+  MAX_STEPS_HABITS,
+  parseApplied,
   parseRequest,
   planSync,
   recalculateUrl,
+  shouldRecalculate,
   syncResponse,
   todayFor,
-  type ExistingLog,
-  type LogRow,
   type StepHabit,
 } from "./health-sync.ts";
 
@@ -37,7 +42,7 @@ describe("parseRequest: envelope", () => {
 
   it("rejects another source as unsupported_source and a missing one as invalid_request", () => {
     for (const action of ["connect", "sync", "disconnect"]) {
-      expect(parseRequest({ action, source: "apple_health", consent: true, consentVersion: "v1", days: [] }, TODAY))
+      expect(parseRequest({ action, source: "apple_health", consent: true, consentVersion: CURRENT_CONSENT_VERSION, days: [] }, TODAY))
         .toEqual({ ok: false, error: "unsupported_source" });
       expect(parseRequest({ action }, TODAY)).toEqual({ ok: false, error: "invalid_request" });
       expect(parseRequest({ action, source: 7 }, TODAY)).toEqual({ ok: false, error: "invalid_request" });
@@ -53,15 +58,26 @@ describe("parseRequest: envelope", () => {
 describe("parseRequest: connect", () => {
   const connect = (extra: Record<string, unknown>) => ({ action: "connect", source: "health_connect", ...extra });
 
-  it("accepts explicit consent with a consent version", () => {
-    expect(parseRequest(connect({ consent: true, consentVersion: "2026-11" }), TODAY)).toEqual({
+  it("accepts explicit consent to the current consent text", () => {
+    expect(parseRequest(connect({ consent: true, consentVersion: CURRENT_CONSENT_VERSION }), TODAY)).toEqual({
       ok: true,
-      request: { action: "connect", source: "health_connect", consentVersion: "2026-11" },
+      request: { action: "connect", source: "health_connect", consentVersion: CURRENT_CONSENT_VERSION },
     });
+    expect(CURRENT_CONSENT_VERSION.length).toBeLessThanOrEqual(32);
   });
 
+  it.each(["steps-2026-11", "v1", `${CURRENT_CONSENT_VERSION} `])(
+    "rejects consent to another (stale) text version %s",
+    (consentVersion) => {
+      expect(parseRequest(connect({ consent: true, consentVersion }), TODAY)).toEqual({
+        ok: false,
+        error: "invalid_request",
+      });
+    },
+  );
+
   it.each([false, "true", 1, undefined, null])("requires consent to be exactly true (%s)", (consent) => {
-    expect(parseRequest(connect({ consent, consentVersion: "v1" }), TODAY)).toEqual({
+    expect(parseRequest(connect({ consent, consentVersion: CURRENT_CONSENT_VERSION }), TODAY)).toEqual({
       ok: false,
       error: "invalid_request",
     });
@@ -74,9 +90,6 @@ describe("parseRequest: connect", () => {
     });
   });
 
-  it("accepts a 32-character consent version", () => {
-    expect(parseRequest(connect({ consent: true, consentVersion: "x".repeat(32) }), TODAY).ok).toBe(true);
-  });
 });
 
 describe("parseRequest: sync", () => {
@@ -152,11 +165,16 @@ describe("todayFor", () => {
 });
 
 describe("consentGiven", () => {
-  it("needs a connected row with a consent timestamp", () => {
-    expect(consentGiven({ status: "connected", consentedAt: "2026-11-08T10:00:00Z" })).toBe(true);
+  const at = "2026-11-08T10:00:00Z";
+  it("needs a connected row with a consent timestamp for the current text", () => {
+    expect(consentGiven({ status: "connected", consentedAt: at, consentVersion: CURRENT_CONSENT_VERSION })).toBe(true);
     expect(consentGiven(null)).toBe(false);
-    expect(consentGiven({ status: "disconnected", consentedAt: "2026-11-08T10:00:00Z" })).toBe(false);
-    expect(consentGiven({ status: "connected", consentedAt: null })).toBe(false);
+    expect(consentGiven({ status: "disconnected", consentedAt: at, consentVersion: CURRENT_CONSENT_VERSION })).toBe(false);
+    expect(consentGiven({ status: "connected", consentedAt: null, consentVersion: CURRENT_CONSENT_VERSION })).toBe(false);
+  });
+  it("asks again when the consent was given to an older text", () => {
+    expect(consentGiven({ status: "connected", consentedAt: at, consentVersion: "steps-2026-11" })).toBe(false);
+    expect(consentGiven({ status: "connected", consentedAt: at, consentVersion: null })).toBe(false);
   });
 });
 
@@ -194,28 +212,27 @@ describe("planSync", () => {
   ];
 
   it("writes one provider_activity row per day", () => {
-    const plan = planSync({ days, habits: [], existingLogs: [] });
+    const plan = planSync({ days, habits: [] });
     expect(plan.activityRows).toEqual([
       { provider: "health_connect", date: "2026-11-08", payload: { steps: 4000 } },
       { provider: "health_connect", date: "2026-11-07", payload: { steps: 9000 } },
     ]);
     expect(plan.logRows).toEqual([]);
-    expect(plan.skippedManual).toBe(0);
+    expect(plan.habitsIgnored).toBe(0);
   });
 
-  it("fills every eligible steps habit with the day's steps and the habit's target snapshot", () => {
-    const plan = planSync({ days, habits: [habit(), habit({ id: "h2", target: null })], existingLogs: [] });
+  it("shapes one log row per eligible habit and day with the habit's target snapshot", () => {
+    const plan = planSync({ days, habits: [habit(), habit({ id: "h2", target: null })] });
     expect(plan.logRows).toEqual([
-      { user_habit_id: "h-steps", date: "2026-11-08", value: 4000, source: "health_connect", target: 8000, replace: false },
-      { user_habit_id: "h-steps", date: "2026-11-07", value: 9000, source: "health_connect", target: 8000, replace: false },
-      { user_habit_id: "h2", date: "2026-11-08", value: 4000, source: "health_connect", target: null, replace: false },
-      { user_habit_id: "h2", date: "2026-11-07", value: 9000, source: "health_connect", target: null, replace: false },
+      { user_habit_id: "h-steps", date: "2026-11-08", value: 4000, target: 8000 },
+      { user_habit_id: "h-steps", date: "2026-11-07", value: 9000, target: 8000 },
+      { user_habit_id: "h2", date: "2026-11-08", value: 4000, target: null },
+      { user_habit_id: "h2", date: "2026-11-07", value: 9000, target: null },
     ]);
-    expect(plan.habitsUpdated).toBe(2);
   });
 
   it.each([0, -5, Number.NaN, Number.POSITIVE_INFINITY])("leaves the target snapshot null for target %s", (target) => {
-    const plan = planSync({ days: days.slice(0, 1), habits: [habit({ target })], existingLogs: [] });
+    const plan = planSync({ days: days.slice(0, 1), habits: [habit({ target })] });
     expect(plan.logRows[0].target).toBeNull();
   });
 
@@ -225,92 +242,93 @@ describe("planSync", () => {
     ["a paused habit", habit({ active: false })],
     ["an archived habit", habit({ deletedAt: "2026-11-01T00:00:00Z" })],
   ])("ignores %s", (_name, h) => {
-    const plan = planSync({ days, habits: [h], existingLogs: [] });
-    expect(plan.logRows).toEqual([]);
-    expect(plan.habitsUpdated).toBe(0);
+    expect(planSync({ days, habits: [h] }).logRows).toEqual([]);
   });
 
-  it("never overwrites a manual log and counts the skipped days", () => {
-    const existingLogs: ExistingLog[] = [{ habitId: "h-steps", date: "2026-11-08", source: "manual" }];
-    const plan = planSync({ days, habits: [habit()], existingLogs });
-    expect(plan.logRows.map((r) => r.date)).toEqual(["2026-11-07"]);
-    expect(plan.skippedManual).toBe(1);
-    expect(plan.activityRows).toHaveLength(2); // the raw steps are still recorded
+  it(`handles at most ${MAX_STEPS_HABITS} habits (in the given order) and reports the rest as ignored`, () => {
+    const many = Array.from({ length: MAX_STEPS_HABITS + 3 }, (_, i) => habit({ id: `h${i}` }));
+    const plan = planSync({ days, habits: many });
+    expect(new Set(plan.logRows.map((r) => r.user_habit_id)).size).toBe(MAX_STEPS_HABITS);
+    expect(plan.logRows[0].user_habit_id).toBe("h0");
+    expect(plan.logRows.length).toBeLessThanOrEqual(MAX_STEPS_HABITS * MAX_DAYS);
+    expect(plan.habitsIgnored).toBe(3);
   });
 
-  it("replaces an existing automatic log (steps grow during the day)", () => {
-    const existingLogs: ExistingLog[] = [
-      { habitId: "h-steps", date: "2026-11-08", source: "health_connect" },
-      { habitId: "h-steps", date: "2026-11-07", source: "strava" },
-    ];
-    const plan = planSync({ days, habits: [habit()], existingLogs });
-    expect(plan.logRows.map((r) => [r.date, r.value, r.replace])).toEqual([
-      ["2026-11-08", 4000, true],
-      ["2026-11-07", 9000, true],
-    ]);
-    expect(plan.skippedManual).toBe(0);
+  it("counts habits the database had beyond the loaded page (totalHabits)", () => {
+    const plan = planSync({ days, habits: [habit()], totalHabits: 25 });
+    expect(plan.habitsIgnored).toBe(24);
+    expect(planSync({ days, habits: [habit()], totalHabits: null }).habitsIgnored).toBe(0);
   });
 
-  it("matches existing logs by habit and date (other habits' manual logs do not block)", () => {
-    const existingLogs: ExistingLog[] = [{ habitId: "other", date: "2026-11-08", source: "manual" }];
-    const plan = planSync({ days, habits: [habit()], existingLogs });
-    expect(plan.logRows).toHaveLength(2);
-    expect(plan.skippedManual).toBe(0);
-  });
-
-  it("habitsUpdated counts habits that got at least one row", () => {
-    const existingLogs: ExistingLog[] = [
-      { habitId: "h2", date: "2026-11-08", source: "manual" },
-      { habitId: "h2", date: "2026-11-07", source: "manual" },
-    ];
-    const plan = planSync({ days, habits: [habit(), habit({ id: "h2" })], existingLogs });
-    expect(plan.habitsUpdated).toBe(1);
-    expect(plan.skippedManual).toBe(2);
-  });
-
-  it("is idempotent: applying the same payload twice gives the same final rows", () => {
-    type Stored = Omit<LogRow, "replace">;
-    const store = new Map<string, Stored>([
-      ["h-steps|2026-11-08", { user_habit_id: "h-steps", date: "2026-11-08", value: 1, source: "manual", target: 8000 }],
-    ]);
-    const apply = () => {
-      const existingLogs = [...store.values()].map((r) => ({ habitId: r.user_habit_id, date: r.date, source: r.source }));
-      const plan = planSync({ days, habits: [habit()], existingLogs });
-      for (const { replace, ...row } of plan.logRows) {
-        const key = `${row.user_habit_id}|${row.date}`;
-        const current = store.get(key);
-        if (replace ? current && current.source !== "manual" : !current) store.set(key, row);
-      }
-      return structuredClone([...store.entries()]);
-    };
-    const first = apply();
-    expect(apply()).toEqual(first);
-    expect(store.get("h-steps|2026-11-08")?.source).toBe("manual");
-    expect(store.get("h-steps|2026-11-07")?.value).toBe(9000);
+  it("is deterministic: the same payload gives the same rows (idempotent sync)", () => {
+    expect(planSync({ days, habits: [habit()] })).toEqual(planSync({ days, habits: [habit()] }));
   });
 
   it("returns now as lastSyncedAt when given", () => {
-    expect(planSync({ days, habits: [], existingLogs: [], now: "2026-11-08T10:00:00.000Z" }).lastSyncedAt).toBe(
-      "2026-11-08T10:00:00.000Z",
-    );
+    expect(planSync({ days, habits: [], now: "2026-11-08T10:00:00.000Z" }).lastSyncedAt).toBe("2026-11-08T10:00:00.000Z");
+  });
+});
+
+describe("shouldRecalculate", () => {
+  const now = "2026-11-08T10:00:00.000Z";
+  it("forwards a recalculation unless the previous sync was less than 60 s ago", () => {
+    expect(shouldRecalculate(null, now)).toBe(true);
+    expect(shouldRecalculate("2026-11-08T09:58:59.000Z", now)).toBe(true);
+    expect(shouldRecalculate("2026-11-08T09:59:00.000Z", now)).toBe(true); // exactly 60 s
+    expect(shouldRecalculate("2026-11-08T09:59:30.000Z", now)).toBe(false);
+    expect(shouldRecalculate("2026-11-08T10:00:00.000Z", now)).toBe(false);
+  });
+  it("recalculates when the previous time is unreadable or in the future (clock skew)", () => {
+    expect(shouldRecalculate("garbage", now)).toBe(true);
+    expect(shouldRecalculate("2026-11-08T10:05:00.000Z", now)).toBe(true);
+  });
+});
+
+describe("consent record", () => {
+  it("connect stores the accepted version, the time and clears a withdrawal", () => {
+    expect(consentRecord(CURRENT_CONSENT_VERSION, "2026-11-08T10:00:00.000Z")).toEqual({
+      status: "connected",
+      consented_at: "2026-11-08T10:00:00.000Z",
+      consent_version: CURRENT_CONSENT_VERSION,
+      consent_withdrawn_at: null,
+    });
+  });
+  it("disconnect records the withdrawal and keeps what was accepted", () => {
+    const patch = consentWithdrawal("2026-11-08T11:00:00.000Z");
+    expect(patch).toEqual({ status: "disconnected", consent_withdrawn_at: "2026-11-08T11:00:00.000Z" });
+    expect(patch).not.toHaveProperty("consented_at");
+    expect(patch).not.toHaveProperty("consent_version");
   });
 });
 
 describe("syncResponse", () => {
-  it("summarizes a sync for the client", () => {
+  it("summarizes a sync with the database's counts", () => {
     const plan = planSync({
       days: [{ date: TODAY, steps: 10 }],
       habits: [habit()],
-      existingLogs: [],
+      totalHabits: 21,
       now: "2026-11-08T10:00:00.000Z",
     });
-    expect(syncResponse(plan)).toEqual({
+    expect(syncResponse(plan, { written: 1, skippedManual: 0, habitsUpdated: 1 })).toEqual({
       ok: true,
       status: "connected",
       lastSyncedAt: "2026-11-08T10:00:00.000Z",
       days: 1,
       habitsUpdated: 1,
+      habitsIgnored: 20,
       skippedManual: 0,
     });
+  });
+});
+
+describe("parseApplied", () => {
+  it("reads the apply_health_logs counts, zero for anything malformed", () => {
+    expect(parseApplied({ written: 3, skippedManual: 1, habitsUpdated: 2 })).toEqual({
+      written: 3,
+      skippedManual: 1,
+      habitsUpdated: 2,
+    });
+    expect(parseApplied(null)).toEqual({ written: 0, skippedManual: 0, habitsUpdated: 0 });
+    expect(parseApplied({ written: "x" })).toEqual({ written: 0, skippedManual: 0, habitsUpdated: 0 });
   });
 });

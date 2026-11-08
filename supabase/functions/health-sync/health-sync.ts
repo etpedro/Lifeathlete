@@ -13,6 +13,16 @@ export const WINDOW_DAYS = 7;
 /** Daily steps above this are rejected as implausible (never clamped). */
 export const MAX_STEPS = 100_000;
 export const MAX_CONSENT_VERSION = 32;
+/**
+ * Version of the consent text the app shows (mirrored by HEALTH_CONSENT_VERSION in
+ * src/lib/data/integrations.ts; a test fails if they differ). connect accepts only this
+ * version and sync requires it, so changing the text makes every user consent again.
+ */
+export const CURRENT_CONSENT_VERSION = "steps-2026-11-v2";
+/** Steps habits handled per sync (bounds the queries and writes to 20 habits x 7 days). */
+export const MAX_STEPS_HABITS = 20;
+/** A recalculation is forwarded at most once per this interval (repeated syncs). */
+export const RECALC_MIN_INTERVAL_MS = 60_000;
 
 export type StepDay = { date: string; steps: number };
 
@@ -79,6 +89,7 @@ export function parseRequest(body: unknown, today: string): ParseResult {
       const version = body.consentVersion;
       if (body.consent !== true) return invalid;
       if (typeof version !== "string" || version.trim() === "" || version.length > MAX_CONSENT_VERSION) return invalid;
+      if (version !== CURRENT_CONSENT_VERSION) return invalid; // a stale client cannot consent to an old text
       return { ok: true, request: { action: "connect", source, consentVersion: version } };
     }
     case "sync": {
@@ -99,11 +110,34 @@ export function todayFor(now: string, timezone: string | null | undefined): stri
   }
 }
 
-export type Connection = { status: string; consentedAt: string | null } | null;
+export type Connection = { status: string; consentedAt: string | null; consentVersion: string | null } | null;
 
-/** Sync is allowed only for a connected row whose consent was recorded. */
+/** Sync is allowed only for a connected row whose consent to the CURRENT text was recorded. */
 export function consentGiven(connection: Connection): boolean {
-  return connection !== null && connection.status === "connected" && connection.consentedAt !== null;
+  return (
+    connection !== null &&
+    connection.status === "connected" &&
+    connection.consentedAt !== null &&
+    connection.consentVersion === CURRENT_CONSENT_VERSION
+  );
+}
+
+/** The provider_connections columns connect writes (tokens are never touched). */
+export function consentRecord(version: string, now: string) {
+  return { status: "connected", consented_at: now, consent_version: version, consent_withdrawn_at: null };
+}
+
+/** The columns disconnect writes; consented_at/consent_version stay as the record of what was accepted. */
+export function consentWithdrawal(now: string) {
+  return { status: "disconnected", consent_withdrawn_at: now };
+}
+
+/** False when the previous sync was less than RECALC_MIN_INTERVAL_MS ago (unreadable/future -> true). */
+export function shouldRecalculate(previousSyncedAt: string | null, now: string): boolean {
+  if (previousSyncedAt === null) return true;
+  const elapsed = Date.parse(now) - Date.parse(previousSyncedAt);
+  if (!Number.isFinite(elapsed) || elapsed < 0) return true;
+  return elapsed >= RECALC_MIN_INTERVAL_MS;
 }
 
 const STATUS: Record<ErrorCode, number> = {
@@ -133,35 +167,25 @@ export type StepHabit = {
   autoSource: string | null;
 };
 
-/** An existing habit_logs row for one of the habits and dates of the sync. */
-export type ExistingLog = { habitId: string; date: string; source: string };
-
 export type ActivityRow = { provider: typeof PROVIDER; date: string; payload: { steps: number } };
 
 /**
- * A habit_logs row to write (the entrypoint adds the verified user_id). `replace` = an
- * automatic log exists and is updated (only while it is still non-manual); otherwise it
- * is inserted, doing nothing if a log appeared meanwhile.
+ * A row for public.apply_health_logs (the entrypoint passes the verified user id beside
+ * it). The database writes it atomically and never overwrites a manual log.
  */
-export type LogRow = {
-  user_habit_id: string;
-  date: string;
-  value: number;
-  source: string;
-  target: number | null;
-  replace: boolean;
-};
+export type LogRow = { user_habit_id: string; date: string; value: number; target: number | null };
 
 export type SyncPlan = {
   activityRows: ActivityRow[];
   logRows: LogRow[];
-  /** (habit, day) pairs left alone because the user logged them by hand. */
-  skippedManual: number;
-  /** Distinct habits that got at least one log row. */
-  habitsUpdated: number;
+  /** Steps habits beyond MAX_STEPS_HABITS, not filled by this sync. */
+  habitsIgnored: number;
   /** `now` as given (null when absent): provider_connections.last_synced_at. */
   lastSyncedAt: string | null;
 };
+
+/** Counts returned by public.apply_health_logs. */
+export type Applied = { written: number; skippedManual: number; habitsUpdated: number };
 
 /** Habits filled by steps: value kind, auto_source 'steps', active and not archived. */
 export function isStepsHabit(h: StepHabit): boolean {
@@ -172,58 +196,48 @@ const snapshot = (t: number | null): number | null =>
   typeof t === "number" && Number.isFinite(t) && t > 0 ? t : null;
 
 /**
- * What a validated sync writes. A manual log always prevails (counted in skippedManual);
- * an automatic log (any other source) is replaced, since steps grow during the day. Same
- * input twice gives the same rows, so a sync is idempotent.
+ * What a validated sync writes: one provider_activity row per day and one log row per
+ * eligible habit (the first MAX_STEPS_HABITS, in the given order) and day. Manual
+ * precedence is enforced by the database (apply_health_logs), not by a read snapshot.
+ * `totalHabits` = how many steps habits the database has (the loaded list may be capped).
+ * Deterministic, so a repeated sync writes the same rows.
  */
 export function planSync(input: {
   days: StepDay[];
   habits: StepHabit[];
-  existingLogs: ExistingLog[];
+  totalHabits?: number | null;
   now?: string;
 }): SyncPlan {
-  const existing = new Map(input.existingLogs.map((l) => [`${l.habitId}|${l.date}`, l.source]));
-  const activityRows: ActivityRow[] = input.days.map((d) => ({
-    provider: PROVIDER,
-    date: d.date,
-    payload: { steps: d.steps },
-  }));
-  const logRows: LogRow[] = [];
-  let skippedManual = 0;
-  for (const h of input.habits.filter(isStepsHabit)) {
-    for (const d of input.days) {
-      const source = existing.get(`${h.id}|${d.date}`);
-      if (source === "manual") {
-        skippedManual++;
-        continue;
-      }
-      logRows.push({
-        user_habit_id: h.id,
-        date: d.date,
-        value: d.steps,
-        source: PROVIDER,
-        target: snapshot(h.target),
-        replace: source !== undefined,
-      });
-    }
-  }
+  const eligible = input.habits.filter(isStepsHabit);
+  const used = eligible.slice(0, MAX_STEPS_HABITS);
+  const total = Math.max(eligible.length, input.totalHabits ?? 0);
   return {
-    activityRows,
-    logRows,
-    skippedManual,
-    habitsUpdated: new Set(logRows.map((r) => r.user_habit_id)).size,
+    activityRows: input.days.map((d) => ({ provider: PROVIDER, date: d.date, payload: { steps: d.steps } })),
+    logRows: used.flatMap((h) =>
+      input.days.map((d) => ({ user_habit_id: h.id, date: d.date, value: d.steps, target: snapshot(h.target) })),
+    ),
+    habitsIgnored: total - used.length,
     lastSyncedAt: input.now ?? null,
   };
 }
 
+const count = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : 0);
+
+/** The jsonb result of apply_health_logs (anything malformed counts as 0). */
+export function parseApplied(data: unknown): Applied {
+  const d = isObject(data) ? data : {};
+  return { written: count(d.written), skippedManual: count(d.skippedManual), habitsUpdated: count(d.habitsUpdated) };
+}
+
 /** The 200 body of a sync. */
-export function syncResponse(plan: SyncPlan) {
+export function syncResponse(plan: SyncPlan, applied: Applied) {
   return {
     ok: true as const,
     status: "connected" as const,
     lastSyncedAt: plan.lastSyncedAt,
     days: plan.activityRows.length,
-    habitsUpdated: plan.habitsUpdated,
-    skippedManual: plan.skippedManual,
+    habitsUpdated: applied.habitsUpdated,
+    habitsIgnored: plan.habitsIgnored,
+    skippedManual: applied.skippedManual,
   };
 }

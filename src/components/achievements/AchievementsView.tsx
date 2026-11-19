@@ -60,7 +60,9 @@ function Hero({ stats, resting }: { stats: ProfileStats; resting: boolean }) {
       {resting && <p className={styles.restingNote}>{t("resting")}</p>}
       <p className={styles.level}>
         <span>{t("level", { level: stats.level })}</span>
-        <span className={`${ui.badge} ${ui.badgeGold}`}>{tier}</span>
+        <span className={`${ui.badge} ${ui.badgeGold}`} aria-hidden="true">
+          {tier}
+        </span>
       </p>
       <p className={styles.tier}>
         {t("tierLabel")}: {tier}

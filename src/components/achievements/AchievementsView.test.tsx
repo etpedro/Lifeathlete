@@ -97,4 +97,10 @@ describe("AchievementsView", () => {
     const html = render({ stats: null, medals: null });
     expect(html.match(/role="alert"/g)).toHaveLength(2);
   });
+
+  it("the visible tier badge is aria-hidden (the tier line already speaks it)", () => {
+    const html = render({});
+    expect(html).toMatch(new RegExp(`aria-hidden="true"[^>]*>\\s*${pt.achievements.tier["2"]}</span>`));
+    expect(html).toContain(`${pt.achievements.tierLabel}: ${pt.achievements.tier["2"]}`);
+  });
 });

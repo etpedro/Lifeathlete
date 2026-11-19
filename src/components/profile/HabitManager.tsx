@@ -1,6 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import type { CSSProperties } from "react";
+import { PillarIcon } from "@/components/ui/PillarIcon";
+import { pillarColor } from "@/lib/pillars";
 import { Link } from "@/i18n/navigation";
 import type { ManageablePillar, PillarOption } from "@/lib/data/habits";
 import { AddHabitForm } from "./AddHabitForm";
@@ -51,13 +54,19 @@ export function HabitManager({ userId, timezone, initial, pillarOptions }: Props
         !m.loadFailed && <p>{t("habits.empty")}</p>
       ) : (
         m.pillars.map((p) => (
-          <section key={p.pillarId} className={styles.pillar}>
-            <h2 className={styles.pillarHeading}>{pillarName(p.slug)}</h2>
+          <section key={p.pillarId} className={styles.pillar} style={{ "--pillar": pillarColor(p.slug) } as CSSProperties}>
+            <div className={styles.pillarHeader}>
+              <span className={styles.tile}>
+                <PillarIcon slug={p.slug} />
+              </span>
+              <h2 className={styles.pillarHeading}>{pillarName(p.slug)}</h2>
+            </div>
             <ul className={styles.habits}>
               {p.habits.map((h) => (
                 <HabitItem
                   key={h.id}
                   habit={h}
+                  pillarSlug={p.slug}
                   busy={m.busy}
                   onSetActive={m.setActive}
                   onSaveTarget={m.saveTarget}

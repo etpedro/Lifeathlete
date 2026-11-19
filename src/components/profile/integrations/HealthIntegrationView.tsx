@@ -72,10 +72,10 @@ export function HealthIntegrationView(props: HealthViewProps) {
     content = <p aria-busy="true">{t("loading")}</p>;
   } else if (device === "none") {
     content = (
-      <>
+      <div className={styles.note}>
         <p>{t("unavailable")}</p>
         <p className={styles.hint}>{t("unavailableIos")}</p>
-      </>
+      </div>
     );
   } else if (connection === null) {
     content = (
@@ -151,7 +151,7 @@ export function HealthIntegrationView(props: HealthViewProps) {
       : t("neverSynced");
     content = (
       <>
-        <p>{t("connected")}</p>
+        <p className={styles.connectedBadge}>{t("connected")}</p>
         {connection.categories && connection.categories.length > 0 && (
           <p>
             {t("connectedCategories", {

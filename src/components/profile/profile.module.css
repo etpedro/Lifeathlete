@@ -1,4 +1,5 @@
-/* Profile / habit management. Touch targets are at least 44px; focus uses the global ring. */
+/* Profile / habit management (Crepúsculo vivo). Touch targets are at least 44px; focus uses the global ring.
+   Note: no overflow:hidden on anything that contains focusable children. */
 .screen {
   width: 100%;
   max-width: calc(var(--layout-content) + 2 * var(--gutter));
@@ -7,43 +8,33 @@
   display: grid;
   gap: var(--space-5);
   align-content: start;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .intro {
   color: var(--color-text-muted);
 }
 
-/* Neutral button (base look from base.css). */
+/* Buttons: variants come from the shared ui.module.css. */
 .button {
-  font-weight: var(--weight-medium);
+  composes: btn btnSecondary from "../ui/ui.module.css";
 }
-
 .primary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
+  composes: btnPrimary from "../ui/ui.module.css";
 }
-.primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
+.danger {
+  composes: btnDanger from "../ui/ui.module.css";
 }
 
 .block {
   width: 100%;
 }
 
-.input,
+.input {
+  composes: input from "../ui/ui.module.css";
+}
 .select {
-  width: 100%;
-}
-
-.danger {
-  background: transparent;
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-}
-.danger:hover:not(:disabled) {
-  background: var(--color-danger-soft);
+  composes: select from "../ui/ui.module.css";
 }
 
 .link {
@@ -58,21 +49,23 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 .linkList .link {
   width: 100%;
-  justify-content: space-between;
+  gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
+  box-shadow: var(--shadow-card);
   color: var(--color-text);
   text-decoration: none;
   font-weight: var(--weight-medium);
 }
 .linkList .link::after {
   content: "›" / "";
+  margin-inline-start: auto;
   font-size: 1.5rem;
   line-height: 1;
   color: var(--color-text-muted);
@@ -81,17 +74,41 @@
   background: var(--color-surface-hover);
 }
 
+/* Round icon tile (links, pillar headings): tinted by --pillar or the primary color. */
+.tile {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  color: var(--pillar, var(--color-primary));
+  background: color-mix(in srgb, var(--pillar, var(--color-primary)) 18%, transparent);
+}
+.tile svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 .card,
-.pillar {
+.pillar,
+.form {
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   padding: var(--space-4);
 }
 
+.pillarHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
 .pillarHeading {
   font-size: var(--text-lg);
-  margin: 0 0 var(--space-3);
+  margin: 0;
 }
 
 .habits {
@@ -99,18 +116,27 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .habit {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
-  padding-top: var(--space-4);
-  border-top: var(--border-width) solid var(--color-border);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  border-inline-start: 4px solid var(--pillar, var(--color-border-strong));
 }
-.habit:first-child {
-  border-top: none;
-  padding-top: 0;
+.habitIcon {
+  composes: tile;
+  width: 2rem;
+  height: 2rem;
+}
+.habitIcon svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .row {
@@ -127,8 +153,10 @@
 
 .grow {
   flex: 1 1 8rem;
+  min-width: 0;
 }
 
+/* Pause switch: a pill that fills with the pillar color when active. */
 .switch {
   display: inline-flex;
   align-items: center;
@@ -164,17 +192,13 @@
   color: var(--color-text-muted);
 }
 
-.paused > .row:first-child strong {
+.paused .grow {
   color: var(--color-text-muted);
 }
 
 .form {
   display: grid;
   gap: var(--space-4);
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
 }
 .form h2 {
   font-size: var(--text-lg);
@@ -182,6 +206,7 @@
 
 .field {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 .field > label,
@@ -262,4 +287,28 @@
 .choice {
   display: grid;
   gap: var(--space-1);
+}
+
+/* Integrations: a state note (unavailable) and the connected badge. */
+.note {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  border: var(--border-width) solid var(--color-border);
+}
+.connectedBadge {
+  composes: badge from "../ui/ui.module.css";
+  justify-self: start;
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+.connectedBadge::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-primary);
 }

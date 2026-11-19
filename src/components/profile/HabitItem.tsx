@@ -1,7 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { useId, useState, type CSSProperties } from "react";
+import { PillarIcon } from "@/components/ui/PillarIcon";
+import { pillarColor } from "@/lib/pillars";
 import type { ManageableHabit } from "@/lib/data/habits";
 import { AUTO_METRICS, isAutoMetric, type AutoMetric } from "@/lib/health/metrics";
 import { parseTargetInput, type ProfileErrorKey } from "@/lib/profile/habit-form";
@@ -10,6 +12,8 @@ import styles from "./profile.module.css";
 
 type Props = {
   habit: ManageableHabit;
+  /** The pillar the habit belongs to: gives it its icon and color. */
+  pillarSlug?: string;
   busy: boolean;
   onSetActive: (id: string, active: boolean) => Promise<MutationResult>;
   onSaveTarget: (id: string, target: number) => Promise<MutationResult>;
@@ -21,7 +25,7 @@ type Props = {
  * One habit: pause switch, target editor and automatic-fill metric (value habits) and
  * archive with a confirmation step.
  */
-export function HabitItem({ habit, busy, onSetActive, onSaveTarget, onArchive, onSetAutoSource }: Props) {
+export function HabitItem({ habit, pillarSlug, busy, onSetActive, onSaveTarget, onArchive, onSetAutoSource }: Props) {
   const t = useTranslations("profile");
   const errorId = useId();
   const titleId = useId();
@@ -45,8 +49,16 @@ export function HabitItem({ habit, busy, onSetActive, onSaveTarget, onArchive, o
   };
 
   return (
-    <li className={`${styles.habit} ${habit.active ? "" : styles.paused}`}>
+    <li
+      className={`${styles.habit} ${habit.active ? "" : styles.paused}`}
+      style={pillarSlug ? ({ "--pillar": pillarColor(pillarSlug) } as CSSProperties) : undefined}
+    >
       <div className={styles.row}>
+        {pillarSlug && (
+          <span className={styles.habitIcon}>
+            <PillarIcon slug={pillarSlug} />
+          </span>
+        )}
         <strong id={titleId} className={styles.grow}>
           {habit.title}
         </strong>

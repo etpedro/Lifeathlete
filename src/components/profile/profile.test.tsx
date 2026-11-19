@@ -27,9 +27,10 @@ const habit = (over: Partial<ManageableHabit> = {}): ManageableHabit => ({
   autoSource: null,
   ...over,
 });
-const item = (h: ManageableHabit, busy = false) => (
+const item = (h: ManageableHabit, busy = false, pillarSlug?: string) => (
   <ul>
     <HabitItem
+      pillarSlug={pillarSlug}
       habit={h}
       busy={busy}
       onSetActive={noop}
@@ -110,6 +111,27 @@ describe("HabitItem (first paint)", () => {
 
   it("check habits have no automatic fill", () => {
     expect(render(item(habit({ kind: "check", target: 1 })))).not.toContain(pt.profile.habits.autoFill);
+  });
+});
+
+describe("HabitItem (pillar identity)", () => {
+  it("shows the decorative pillar icon and exposes the pillar color as --pillar", () => {
+    const html = render(item(habit(), false, "exercise"));
+    expect(html).toContain('data-pillar-icon="exercise"');
+    expect(html).toMatch(/<svg[^>]*aria-hidden="true"/);
+    expect(html).toContain("--pillar:var(--pillar-exercise)");
+  });
+
+  it("keeps toggle, target form, auto-fill select and archive next to the icon", () => {
+    const html = render(item(habit(), false, "reading"));
+    expect(html).toContain('aria-label="Ativar Caminhar"');
+    expect(html).toContain('aria-label="Meta de Caminhar"');
+    expect(html).toMatch(/<select/);
+    expect(html).toContain(pt.profile.habits.archive);
+  });
+
+  it("without a pillar there is no icon", () => {
+    expect(render(item(habit()))).not.toContain("data-pillar-icon");
   });
 });
 

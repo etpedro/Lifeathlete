@@ -107,10 +107,17 @@
   color: var(--color-text);
   background: var(--color-input-bg);
   border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   min-height: var(--touch-target);
   padding: var(--space-2) var(--space-3);
   max-width: 100%;
+  transition: border-color var(--duration) ease;
+}
+:where(input:not([type="radio"], [type="checkbox"]):hover, select:hover, textarea:hover) {
+  border-color: var(--color-primary);
+}
+:where(select) {
+  color-scheme: inherit;
 }
 :where(input[aria-invalid="true"], select[aria-invalid="true"]) {
   border-color: var(--color-danger);

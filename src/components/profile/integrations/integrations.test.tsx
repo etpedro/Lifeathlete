@@ -234,6 +234,33 @@ describe("HealthIntegrationView", () => {
   });
 });
 
+describe("HealthIntegrationView (cards)", () => {
+  it("unavailable and connected states live inside a card section with its heading", () => {
+    for (const html of [
+      view(),
+      view({ device: "present", connection: conn({ consentCurrent: true, categories: ["steps"] }) }),
+    ]) {
+      expect(html).toMatch(/^<section class="[^"]*card[^"]*"[^>]*aria-labelledby/);
+      expect(html).toContain(tt.phoneTitle);
+    }
+  });
+
+  it("connected shows its state as a badge and keeps both actions", () => {
+    const html = view({ device: "present", connection: conn({ consentCurrent: true }) });
+    expect(html).toMatch(/class="[^"]*[bB]adge[^"]*"[^>]*>[^<]*Ligado ao Health Connect/);
+    expect(html).toContain(tt.connected);
+    expect(html).toContain(tt.syncNow);
+    expect(html).toContain(tt.disconnect);
+  });
+
+  it("unavailable keeps its texts in a note block", () => {
+    const html = view();
+    expect(html).toContain(tt.unavailable);
+    expect(html).toContain(tt.unavailableIos);
+    expect(html).toMatch(/class="[^"]*note[^"]*"/);
+  });
+});
+
 describe("HealthIntegration (first paint)", () => {
   it("renders without a bridge on the server (no crash, no actions)", () => {
     const html = render(<HealthIntegration timezone="UTC" initial={{ status: "none", lastSyncedAt: null }} />);

@@ -25,11 +25,22 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
       <ul className={styles.linkList}>
         <li>
           <Link href="/profile/habits" className={styles.link}>
+            <span className={styles.tile} aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" focusable="false">
+                <path d="M4 7l1.5 1.5L8 6M4 13l1.5 1.5L8 12M4 19l1.5 1.5L8 18M11 7h9M11 13h9M11 19h9" />
+              </svg>
+            </span>
             {t("links.habits")}
           </Link>
         </li>
         <li>
           <Link href="/profile/integrations" className={styles.link}>
+            <span className={styles.tile} aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" focusable="false">
+                <rect x="7" y="3" width="10" height="18" rx="2.2" />
+                <path d="M10 10l2 2 2-2M12 12V7" />
+              </svg>
+            </span>
             {t("links.integrations")}
           </Link>
         </li>

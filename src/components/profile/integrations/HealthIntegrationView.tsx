@@ -129,7 +129,7 @@ export function HealthIntegrationView(props: HealthViewProps) {
         )}
         <button
           type="button"
-          className={`${styles.button} ${styles.primary} ${styles.block}`}
+          className={`${styles.primary} ${styles.block}`}
           aria-busy={busy === "connect"}
           aria-describedby={nothing ? pickOneId : undefined}
           disabled={working || nothing}
@@ -166,7 +166,7 @@ export function HealthIntegrationView(props: HealthViewProps) {
             <p className={styles.grow}>{t("disconnectConfirm")}</p>
             <button
               type="button"
-              className={`${styles.button} ${styles.danger}`}
+              className={styles.danger}
               aria-busy={busy === "disconnect"}
               disabled={working}
               onClick={props.onDisconnect}
@@ -181,7 +181,7 @@ export function HealthIntegrationView(props: HealthViewProps) {
           <div className={styles.row}>
             <button
               type="button"
-              className={`${styles.button} ${styles.primary}`}
+              className={styles.primary}
               aria-busy={busy === "sync"}
               disabled={working}
               onClick={props.onSync}
@@ -190,7 +190,7 @@ export function HealthIntegrationView(props: HealthViewProps) {
             </button>
             <button
               type="button"
-              className={`${styles.button} ${styles.danger}`}
+              className={styles.danger}
               aria-label={t("disconnectLabel")}
               disabled={working}
               onClick={props.onAskDisconnect}

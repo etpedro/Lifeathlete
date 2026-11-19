@@ -131,7 +131,7 @@ export function HabitItem({ habit, pillarSlug, busy, onSetActive, onSaveTarget, 
           <p className={styles.grow}>{t("habits.archiveConfirm", { title: habit.title })}</p>
           <button
             type="button"
-            className={`${styles.button} ${styles.danger}`}
+            className={styles.danger}
             disabled={busy}
             onClick={() => void settle(onArchive(habit.id))}
           >
@@ -145,7 +145,7 @@ export function HabitItem({ habit, pillarSlug, busy, onSetActive, onSaveTarget, 
         <div className={styles.row}>
           <button
             type="button"
-            className={`${styles.button} ${styles.danger}`}
+            className={styles.danger}
             aria-label={t("habits.archiveLabel", { title: habit.title })}
             disabled={busy}
             onClick={() => setConfirming(true)}

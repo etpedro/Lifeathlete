@@ -30,6 +30,18 @@ describe("NavTabs", () => {
     expect(render("/somewhere-else")).not.toContain("aria-current");
   });
 
+  it("renders one decorative svg icon plus the label in each tab", () => {
+    const html = render("/today");
+    const tabs = html.match(/<a [^>]*>[\s\S]*?<\/a>/g) ?? [];
+    expect(tabs).toHaveLength(4);
+    const labels = [pt.common.nav.today, pt.common.nav.wheel, pt.common.nav.achievements, pt.common.nav.profile];
+    tabs.forEach((tab, i) => {
+      expect(tab.match(/<svg /g)).toHaveLength(1);
+      expect(tab).toContain('aria-hidden="true"');
+      expect(tab).toContain(labels[i]);
+    });
+  });
+
   it("isActiveTab matches whole segments only", () => {
     expect(isActiveTab("/today", "/today")).toBe(true);
     expect(isActiveTab("/profile/habits", "/profile")).toBe(true);

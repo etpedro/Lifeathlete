@@ -1,20 +1,32 @@
-/* Bottom navigation: a surface bar with a top border. The active tab has a top indicator,
-   a heavier weight and the primary color (never color alone), keyed on aria-current. */
+/* Bottom navigation: a floating, rounded glass bar inset from the screen edges (safe-area aware).
+   Icon above the label; the active tab gets a soft highlight pill, a heavier weight and the
+   primary color (never color alone), keyed on aria-current. */
 .nav {
   position: fixed;
-  inset: auto 0 0 0;
+  inset: auto var(--nav-inset) calc(var(--nav-inset) + env(safe-area-inset-bottom, 0px)) var(--nav-inset);
   z-index: 10;
   display: flex;
   justify-content: center;
-  background: var(--color-surface);
-  border-top: var(--border-width) solid var(--color-border);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  pointer-events: none;
 }
 
 .tabs {
+  pointer-events: auto;
   display: flex;
   width: 100%;
-  max-width: calc(var(--layout-content) + 2 * var(--gutter));
+  max-width: var(--layout-content);
+  min-height: var(--nav-height);
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-raised) 78%, transparent);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .tabs {
+    background: var(--color-surface-raised);
+  }
 }
 
 .tab {
@@ -23,8 +35,10 @@
   min-height: var(--nav-height);
   min-width: var(--touch-target);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-1);
   text-align: center;
   padding: var(--space-1) var(--space-2);
   color: var(--color-text-muted);
@@ -32,30 +46,29 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-regular);
   line-height: var(--leading-tight);
+  border-radius: var(--radius-lg);
 }
 .tab:hover {
   color: var(--color-text);
 }
 .tab:focus-visible {
   outline-offset: -3px;
-  border-radius: var(--radius-sm);
+}
+.icon {
+  display: grid;
+  place-items: center;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-pill);
 }
 .tab[aria-current="page"] {
   color: var(--color-primary);
   font-weight: var(--weight-semibold);
 }
-.tab[aria-current="page"]::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 25%;
-  right: 25%;
-  height: 3px;
-  border-radius: 0 0 3px 3px;
-  background: var(--color-primary);
+.tab[aria-current="page"] .icon {
+  background: var(--color-primary-soft);
 }
 
-/* Reserves the fixed bar's height (plus the safe area) at the end of every scroll. */
+/* Reserves the floating bar's height, inset and safe area at the end of every scroll. */
 .spacer {
   height: calc(var(--nav-clearance) + var(--space-4));
 }

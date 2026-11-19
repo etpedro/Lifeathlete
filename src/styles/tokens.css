@@ -128,8 +128,9 @@
   --layout-narrow: 26rem;
   --gutter: 1rem;
   --touch-target: 44px;
-  --nav-height: 60px;
-  --nav-clearance: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+  --nav-height: 68px;
+  --nav-inset: 0.75rem;
+  --nav-clearance: calc(var(--nav-height) + var(--nav-inset) + env(safe-area-inset-bottom, 0px));
   --border-width: 1px;
   --focus-ring: 3px solid var(--color-focus);
   --duration: 160ms;

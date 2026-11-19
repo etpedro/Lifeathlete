@@ -10,7 +10,8 @@
 }
 
 .chartCard {
-  background: var(--color-surface);
+  background: var(--glass);
+  box-shadow: var(--shadow-card);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-4) var(--space-3);
@@ -36,21 +37,22 @@
   stroke-width: 1;
 }
 .area {
-  fill: var(--color-primary);
-  fill-opacity: 0.18;
-  stroke: var(--color-primary);
-  stroke-width: 2;
+  stroke: var(--color-success);
+  stroke-width: 2.5;
   stroke-linejoin: round;
 }
 .dot {
-  fill: var(--color-primary);
-  stroke: var(--color-surface);
-  stroke-width: 1.5;
+  stroke: var(--color-bg);
+  stroke-width: 2;
+}
+.badge {
+  fill: var(--color-surface);
+  stroke-width: 2;
 }
 .axisLabel {
   font-size: 12px;
-  font-weight: 600;
-  fill: var(--color-text-muted);
+  font-weight: 700;
+  fill: var(--color-text);
 }
 
 .legend {
@@ -58,7 +60,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: var(--space-1) var(--space-4);
   font-size: var(--text-sm);
 }
@@ -67,6 +69,22 @@
   gap: var(--space-2);
   min-height: 1.75rem;
   align-items: center;
+}
+.tick {
+  flex: none;
+  width: 0.25rem;
+  height: 1rem;
+  border-radius: var(--radius-pill);
+}
+.legendName {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text);
+}
+.legendValue {
+  flex: none;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 .legendNum {
   flex: none;
@@ -105,24 +123,71 @@
   background: var(--color-primary);
 }
 
-.callout {
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border);
-  border-inline-start: 4px solid var(--color-primary);
-  border-radius: var(--radius-lg);
-  padding: var(--space-3) var(--space-4);
+.two {
   display: grid;
-  gap: var(--space-1);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: var(--space-3);
 }
-.calloutWeak {
-  border-inline-start-color: var(--color-secondary);
+.callout {
+  --pillar: var(--color-primary);
+  background: var(--glass);
+  box-shadow: var(--shadow-card);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
 }
-.callout h2 {
-  font-size: var(--text-base);
+.calloutTitle {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+.calloutPillar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.pillarTile {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  color: var(--pillar);
+  background: color-mix(in srgb, var(--pillar) 18%, transparent);
+}
+.pillarTile svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+.pillarName {
   font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.calloutBody {
+  font-size: var(--text-sm);
 }
 .suggestion {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
+  padding-top: var(--space-2);
+  border-top: var(--border-width) solid var(--color-border);
+}
+.suggestion svg {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  color: var(--pillar-gratitude);
 }
 
 .hint {

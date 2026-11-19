@@ -51,4 +51,29 @@ describe("RadarChart", () => {
     expect(html).not.toMatch(/NaN/);
     expect(html).toContain("<td>100%</td>");
   });
+
+  it("fills the polygon with a gradient and colors each point by its pillar", () => {
+    const entries: RadarEntry[] = [
+      { slug: "exercise", label: "Exercício", score: 70 },
+      { slug: "nature", label: "Natureza", score: 90 },
+      { slug: "reading", label: "Ler", score: 30 },
+    ];
+    const html = renderToStaticMarkup(<RadarChart entries={entries} labels={labels} />);
+    expect(html).toMatch(/<(radial|linear)Gradient/);
+    expect(html).toMatch(/fill="url\(#[^)]+\)"|fill:url\(#/);
+    for (const e of entries) {
+      expect(html).toMatch(new RegExp(`data-pillar="${e.slug}"[^>]*fill="var\\(--pillar-${e.slug}\\)"`));
+    }
+    expect(html).toContain("<caption>Pontuação por pilar</caption>");
+  });
+
+  it("does not throw for unknown pillar slugs and falls back to the primary color", () => {
+    const html = renderToStaticMarkup(<RadarChart entries={make(5)} labels={labels} />);
+    expect(html).toContain('fill="var(--color-primary)"');
+  });
+
+  it("keeps label text uncolored by the pillar (only dot and tick carry it)", () => {
+    const html = renderToStaticMarkup(<RadarChart entries={make(5)} labels={labels} />);
+    expect(html).not.toMatch(/<text[^>]*fill="var\(--pillar/);
+  });
 });

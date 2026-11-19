@@ -36,6 +36,17 @@ describe("WheelView", () => {
     );
   });
 
+  it("shows the strongest and weakest pillar with a colored icon tile and a suggestion icon", () => {
+    const html = render({ scores: { exercise: 90, nature: 10, reading: 50 }, strongest: "exercise", weakest: "nature" });
+    expect(html).toContain("--pillar:var(--pillar-exercise)");
+    expect(html).toContain("--pillar:var(--pillar-nature)");
+    expect(html).toContain('data-pillar-icon="exercise"');
+    expect(html).toContain('data-pillar-icon="nature"');
+    expect(html).toContain(pt.pillars.nature.name);
+    expect(html).toContain(pt.wheel.suggestion.nature);
+    expect(html).toContain("data-suggestion-icon");
+  });
+
   it("has no callouts when nothing stands out", () => {
     const html = render({ scores: { exercise: 40 } });
     expect(html).not.toContain(pt.wheel.strongest.title);

@@ -1,4 +1,5 @@
 import { clampScore, polygonPoints, radarPoint, type Circle } from "./geometry";
+import { pillarColor } from "@/lib/pillars";
 import styles from "./wheel.module.css";
 
 export type RadarEntry = { slug: string; label: string; score: number };
@@ -14,6 +15,7 @@ export type RadarLabels = {
 
 const SIZE = 320;
 const CIRCLE: Circle = { cx: SIZE / 2, cy: SIZE / 2, radius: 110 };
+const GRADIENT_ID = "wheel-area-gradient";
 const RINGS = [25, 50, 75, 100];
 
 /** Fewer than 3 axes cannot form a polygon: show a simple bar list instead. */
@@ -56,7 +58,7 @@ export function RadarChart({ entries, labels }: { entries: RadarEntry[]; labels:
                 {e.label}: <strong>{labels.formatValue(score)}</strong>
               </span>
               <div className={styles.barTrack} aria-hidden="true">
-                <div className={styles.barFill} style={{ width: `${score}%` }} />
+                <div className={styles.barFill} style={{ width: `${score}%`, background: pillarColor(e.slug) }} />
               </div>
             </li>
           );
@@ -81,17 +83,36 @@ export function RadarChart({ entries, labels }: { entries: RadarEntry[]; labels:
           const end = radarPoint(i, n, 100, CIRCLE);
           return <line key={e.slug} className={styles.axis} x1={CIRCLE.cx} y1={CIRCLE.cy} x2={end.x} y2={end.y} />;
         })}
-        <polygon className={styles.area} points={polygonPoints(scores, CIRCLE)} />
+        <defs>
+          <radialGradient id={GRADIENT_ID} cx="50%" cy="50%" r="50%">
+            <stop offset="0" style={{ stopColor: "var(--color-success)", stopOpacity: 0.55 }} />
+            <stop offset="1" style={{ stopColor: "var(--pillar-meditation)", stopOpacity: 0.35 }} />
+          </radialGradient>
+        </defs>
+        <polygon className={styles.area} fill={`url(#${GRADIENT_ID})`} points={polygonPoints(scores, CIRCLE)} />
         {scores.map((s, i) => {
           const p = radarPoint(i, n, s, CIRCLE);
-          return <circle key={entries[i].slug} className={styles.dot} cx={p.x} cy={p.y} r={3.5} />;
+          return (
+            <circle
+              key={entries[i].slug}
+              className={styles.dot}
+              data-pillar={entries[i].slug}
+              fill={pillarColor(entries[i].slug)}
+              cx={p.x}
+              cy={p.y}
+              r={5}
+            />
+          );
         })}
         {entries.map((e, i) => {
-          const p = radarPoint(i, n, 100, { ...CIRCLE, radius: CIRCLE.radius + 18 });
+          const p = radarPoint(i, n, 100, { ...CIRCLE, radius: CIRCLE.radius + 22 });
           return (
-            <text key={e.slug} className={styles.axisLabel} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle">
-              {i + 1}
-            </text>
+            <g key={e.slug}>
+              <circle className={styles.badge} cx={p.x} cy={p.y} r={11} stroke={pillarColor(e.slug)} />
+              <text className={styles.axisLabel} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central">
+                {i + 1}
+              </text>
+            </g>
           );
         })}
       </svg>
@@ -99,9 +120,9 @@ export function RadarChart({ entries, labels }: { entries: RadarEntry[]; labels:
         {entries.map((e, i) => (
           <li key={e.slug}>
             <span className={styles.legendNum}>{i + 1}</span>
-            <span>
-              {e.label} · {labels.formatValue(scores[i])}
-            </span>
+            <span className={styles.tick} style={{ background: pillarColor(e.slug) }} />
+            <span className={styles.legendName}>{e.label}</span>
+            <span className={styles.legendValue}>{labels.formatValue(scores[i])}</span>
           </li>
         ))}
       </ol>

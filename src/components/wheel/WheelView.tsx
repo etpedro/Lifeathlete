@@ -1,6 +1,9 @@
 import { useTranslations } from "next-intl";
 import { ShareButton, type ShareButtonProps } from "@/components/share/ShareButton";
 import type { Wheel } from "@/lib/data/stats";
+import type { CSSProperties } from "react";
+import { PillarIcon } from "@/components/ui/PillarIcon";
+import { pillarColor } from "@/lib/pillars";
 import { wheelCallouts } from "./geometry";
 import { RadarChart, type RadarEntry } from "./RadarChart";
 import styles from "./wheel.module.css";
@@ -54,29 +57,91 @@ function WheelContent({ wheel, slugs }: { wheel: Wheel; slugs: string[] }) {
           formatValue: (score) => t("value", { value: Math.round(score) }),
         }}
       />
-      {callouts.strongest && (
-        <section className={styles.callout} aria-labelledby="wheel-strongest">
-          <h2 id="wheel-strongest">{t("strongest.title")}</h2>
-          <p>
-            {t("strongest.body", {
+      <div className={styles.two}>
+        {callouts.strongest && (
+          <Callout
+            id="wheel-strongest"
+            title={t("strongest.title")}
+            slug={callouts.strongest.slug}
+            name={tp(`${callouts.strongest.slug}.name`)}
+            body={t("strongest.body", {
               pillar: tp(`${callouts.strongest.slug}.name`),
               value: Math.round(callouts.strongest.score),
             })}
-          </p>
-        </section>
-      )}
-      {callouts.weakest && (
-        <section className={`${styles.callout} ${styles.calloutWeak}`} aria-labelledby="wheel-weakest">
-          <h2 id="wheel-weakest">{t("weakest.title")}</h2>
-          <p>
-            {t("weakest.body", {
+          />
+        )}
+        {callouts.weakest && (
+          <Callout
+            id="wheel-weakest"
+            weak
+            title={t("weakest.title")}
+            slug={callouts.weakest.slug}
+            name={tp(`${callouts.weakest.slug}.name`)}
+            body={t("weakest.body", {
               pillar: tp(`${callouts.weakest.slug}.name`),
               value: Math.round(callouts.weakest.score),
             })}
-          </p>
-          <p className={styles.suggestion}>{t(`suggestion.${callouts.weakest.slug}`)}</p>
-        </section>
-      )}
+            suggestion={t(`suggestion.${callouts.weakest.slug}`)}
+          />
+        )}
+      </div>
     </>
+  );
+}
+
+/** A glass insight card: pillar icon tile + name in the pillar's color family, body, optional suggestion. */
+function Callout({
+  id,
+  title,
+  slug,
+  name,
+  body,
+  suggestion,
+  weak,
+}: {
+  id: string;
+  title: string;
+  slug: string;
+  name: string;
+  body: string;
+  suggestion?: string;
+  weak?: boolean;
+}) {
+  return (
+    <section
+      className={`${styles.callout} ${weak ? styles.calloutWeak : ""}`}
+      style={{ "--pillar": pillarColor(slug) } as CSSProperties}
+      aria-labelledby={id}
+    >
+      <h2 id={id} className={styles.calloutTitle}>
+        {title}
+      </h2>
+      <div className={styles.calloutPillar}>
+        <span aria-hidden="true" className={styles.pillarTile}>
+          <PillarIcon slug={slug} />
+        </span>
+        <span className={styles.pillarName}>{name}</span>
+      </div>
+      <p className={styles.calloutBody}>{body}</p>
+      {suggestion && (
+        <p className={styles.suggestion}>
+          <svg
+            data-suggestion-icon
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+            <path d="M19 16v4M17 18h4" />
+          </svg>
+          <span>{suggestion}</span>
+        </p>
+      )}
+    </section>
   );
 }

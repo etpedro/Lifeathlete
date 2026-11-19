@@ -1,19 +1,55 @@
-/* Onboarding steps: a narrow, stacked column; choices as full-width tappable rows. */
+/* Onboarding steps (Crepúsculo vivo): a narrow, stacked column; pillars as colorful tiles.
+   Note: no overflow:hidden on anything that contains focusable children. */
 .screen {
   width: 100%;
   max-width: calc(var(--layout-content) + 2 * var(--gutter));
   margin: 0 auto;
-  padding: var(--space-8) var(--gutter) var(--space-10);
+  padding: var(--space-6) var(--gutter) var(--space-10);
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-5);
   align-content: start;
+  grid-template-columns: minmax(0, 1fr);
 }
 
+/* Buttons: variants come from the shared ui.module.css. */
+.button {
+  composes: btn btnSecondary from "../ui/ui.module.css";
+}
+.next {
+  composes: btn btnPrimary from "../ui/ui.module.css";
+}
+.primary {
+  composes: btn btnPrimary from "../ui/ui.module.css";
+}
+
+/* Calm stepper: progress dots, the current one stretched into a bar. */
 .header {
   display: grid;
   gap: var(--space-2);
 }
-
+.dots {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-1);
+}
+.dot {
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  border: var(--border-width) solid var(--color-border-strong);
+  transition: width var(--duration) ease, background-color var(--duration) ease;
+}
+.dot[data-state="done"] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.dot[data-state="current"] {
+  width: 2rem;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
 .step {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
@@ -23,24 +59,29 @@
 .section {
   display: grid;
   gap: var(--space-4);
+  min-width: 0;
 }
-
-.muted {
+.muted,
+.lead,
+.status {
   color: var(--color-text-muted);
 }
-
+.lead {
+  text-align: center;
+}
 .hintError {
   color: var(--color-danger);
 }
-
 .fieldset {
   display: grid;
   gap: var(--space-2);
+  min-width: 0;
 }
 .fieldset > legend {
   margin-bottom: var(--space-2);
 }
 
+/* Plain choice rows (language, suggested habits). */
 .choice {
   display: flex;
   align-items: center;
@@ -55,7 +96,6 @@
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
 }
-
 .field {
   display: grid;
   gap: var(--space-2);
@@ -65,34 +105,118 @@
   width: 100%;
   font-weight: var(--weight-regular);
 }
-
 .list {
   list-style: none;
   padding: 0;
+  margin: 0;
   display: grid;
   gap: var(--space-3);
 }
 
+/* Pillar icon bubble, tinted with the pillar color (--pillar set inline). */
+.tileIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--pillar, var(--color-primary)) 18%, transparent);
+  color: var(--pillar, var(--color-primary));
+}
+.tileIcon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 .introItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
+  border-inline-start: 4px solid var(--pillar, var(--color-primary));
   border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
+}
+.introText {
   display: grid;
   gap: var(--space-1);
+  min-width: 0;
 }
 .introItem p {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
 
+/* Selectable pillar tile: the checkbox covers the tile (invisible but focusable and clickable). */
 .pillar {
   display: grid;
   gap: var(--space-2);
+  min-width: 0;
 }
+.tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.5rem;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--duration) ease, background-color var(--duration) ease;
+}
+.tile:hover {
+  border-color: var(--pillar, var(--color-primary));
+}
+.tileInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.tile:has(.tileInput:checked) {
+  border-width: 3px;
+  border-color: var(--pillar, var(--color-primary));
+  background: color-mix(in srgb, var(--pillar, var(--color-primary)) 12%, var(--color-surface));
+}
+/* Keyboard focus: the global ring, drawn on the tile since the input itself is transparent. */
+.tile:has(.tileInput:focus-visible) {
+  outline: var(--focus-ring);
+}
+.tileName {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--weight-semibold);
+}
+.tileMark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-border-strong);
+  color: var(--color-bg);
+}
+.tile:has(.tileInput:checked) .tileMark {
+  background: var(--pillar, var(--color-primary));
+  border-color: var(--pillar, var(--color-primary));
+}
+.tileMark svg {
+  width: 1rem;
+  height: 1rem;
+}
+
 .pillar > .fieldset {
   padding-inline-start: var(--space-4);
-  border-inline-start: 2px solid var(--color-border);
+  border-inline-start: 3px solid var(--pillar, var(--color-primary));
+  margin-inline-start: var(--space-3);
 }
 .pillar > .fieldset > legend {
   color: var(--color-text-muted);
@@ -107,13 +231,15 @@
   background: var(--color-danger-soft);
 }
 
-.status {
-  color: var(--color-text-muted);
-}
-
+/* The dragonfly step: the mascot on a hero card. */
 .mascot {
+  composes: cardHero from "../ui/ui.module.css";
   display: flex;
   justify-content: center;
+}
+.mascot svg {
+  width: 9rem;
+  height: 9rem;
 }
 
 .nav {
@@ -128,15 +254,4 @@
 }
 .nav > :only-child {
   grid-column: 1 / -1;
-}
-
-.next {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
-  font-weight: var(--weight-medium);
-}
-.next:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
 }

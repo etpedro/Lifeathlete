@@ -47,4 +47,18 @@ describe("shared button variants", () => {
       expect(names, `.${cls}`).toEqual(expect.arrayContaining(["btn", variant]));
     }
   });
+
+  it("onboarding and auth button classes compose the shared base and a variant", () => {
+    for (const [file, want] of [
+      ["../onboarding/onboarding.module.css", { button: "btnSecondary", next: "btnPrimary" }],
+      ["../auth/auth.module.css", { button: "btnSecondary", primary: "btnPrimary", ghost: "btnGhost" }],
+    ] as const) {
+      const src = readFileSync(join(__dirname, file), "utf8");
+      for (const [cls, variant] of Object.entries(want)) {
+        const m = src.match(new RegExp(`^\\.${cls} \\{\\s*composes: ([^;]+) from "\\.\\./ui/ui\\.module\\.css";`, "m"));
+        expect(m, `${file} .${cls}`).not.toBeNull();
+        expect(m![1].split(/\s+/), `${file} .${cls}`).toEqual(expect.arrayContaining(["btn", variant]));
+      }
+    }
+  });
 });

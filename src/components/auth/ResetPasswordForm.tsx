@@ -11,6 +11,7 @@ import {
   type UpdatePasswordErrorKey,
 } from "@/lib/auth/password-reset";
 import { createClient } from "@/lib/supabase/client";
+import styles from "./auth.module.css";
 
 export type ResetStatus = "idle" | "working" | "done" | PasswordValidationKey | UpdatePasswordErrorKey;
 type ErrorKey = Exclude<ResetStatus, "idle" | "working" | "done">;
@@ -72,7 +73,7 @@ export function ResetPasswordView({
       </label>
       <p role="alert">{error ? labels.error(error) : ""}</p>
       {error === "expired" && <Link href="/auth/forgot-password">{labels.requestNew}</Link>}
-      <button type="submit" disabled={working}>
+      <button type="submit" className={styles.primary} disabled={working}>
         {working ? labels.submitting : labels.submit}
       </button>
     </form>

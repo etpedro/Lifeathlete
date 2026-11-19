@@ -1,0 +1,143 @@
+/*
+ * Auth pages (login, forgot / reset password), Crepúsculo vivo. The forms' markup is asserted by
+ * tests, so inputs and messages are styled through the page's `.auth` wrapper with descendant
+ * selectors; buttons carry ONE variant class each (composed from ui.module.css).
+ * No overflow:hidden on anything that contains focusable children.
+ */
+.auth {
+  width: 100%;
+  max-width: calc(var(--layout-narrow) + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: var(--space-8) var(--gutter) calc(var(--space-10) + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Friendly hero: the dragonfly over the page gradient, then the title. */
+.hero {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+.hero svg {
+  width: 8rem;
+  height: 8rem;
+}
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+.lead {
+  color: var(--color-text-muted);
+}
+
+/* The form (and OAuth) sit on a card so they stay legible over the gradient. */
+.card {
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Buttons: variants come from the shared ui.module.css. */
+.button {
+  composes: btn btnSecondary from "../ui/ui.module.css";
+}
+.primary {
+  composes: btn btnPrimary from "../ui/ui.module.css";
+}
+.ghost {
+  composes: btn btnGhost from "../ui/ui.module.css";
+}
+
+.stack,
+.stack > div {
+  display: grid;
+  gap: var(--space-3);
+}
+/* Flex (not grid), so the negative margin below really cancels an empty region's gap. */
+.auth form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Empty live regions stay rendered (so announcements work) but cancel their gap. */
+.auth form > [role]:empty {
+  margin-top: calc(-1 * var(--space-4));
+}
+
+.auth label {
+  display: grid;
+  gap: var(--space-2);
+  font-weight: var(--weight-medium);
+}
+.auth input {
+  width: 100%;
+  font-weight: var(--weight-regular);
+}
+.auth button {
+  width: 100%;
+}
+
+/* Messages styled by role. */
+.auth [role="alert"],
+.auth [role="status"] {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid;
+  border-inline-start-width: 4px;
+}
+.auth [role="alert"] {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
+.auth [role="status"] {
+  background: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+}
+.auth [role="alert"]:empty,
+.auth [role="status"]:empty {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Field hints (e.g. the new-password rules) under their input. */
+.auth form p:not([role]) {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.links {
+  display: grid;
+  justify-items: center;
+}
+.links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+}
+
+/* The "or" between the form and the OAuth buttons. */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: var(--border-width) solid var(--color-border);
+}

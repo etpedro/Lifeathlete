@@ -8,7 +8,7 @@ export function StepNav({ onBack, onNext, nextDisabled, nextLabel }: Props) {
   return (
     <nav className={styles.nav}>
       {onBack && (
-        <button type="button" onClick={onBack}>
+        <button type="button" className={styles.button} onClick={onBack}>
           {t("back")}
         </button>
       )}

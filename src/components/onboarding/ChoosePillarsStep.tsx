@@ -31,7 +31,7 @@ export function ChoosePillarsStep({ catalog, failed, onRetry, selection, onChang
         <p role="alert" className={styles.alert}>
           {tCommon("errors.loadCatalog")}
         </p>
-        <button type="button" onClick={onRetry}>
+        <button type="button" className={styles.primary} onClick={onRetry}>
           {tCommon("errors.retry")}
         </button>
       </section>

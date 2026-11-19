@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import ui from "@/components/ui/ui.module.css";
+import ui from "@/components/auth/auth.module.css";
 
 /** "Forgot password?" (public; under /auth so the proxy lets signed-out users in). */
 export default async function ForgotPasswordPage({
@@ -21,13 +21,17 @@ export default async function ForgotPasswordPage({
   const t = await getTranslations("passwordReset.forgot");
   return (
     <main className={ui.auth}>
-      <h1>{t("title")}</h1>
+      <header className={ui.field}>
+        <h1>{t("title")}</h1>
+        <p className={ui.lead}>{t("intro")}</p>
+      </header>
       {error === "expired" && <p role="alert">{t("expired")}</p>}
-      <p className={ui.lead}>{t("intro")}</p>
-      <ForgotPasswordForm />
-      <p className={ui.links}>
-        <Link href="/login">{t("back")}</Link>
-      </p>
+      <div className={ui.card}>
+        <ForgotPasswordForm />
+        <p className={ui.links}>
+          <Link href="/login">{t("back")}</Link>
+        </p>
+      </div>
     </main>
   );
 }

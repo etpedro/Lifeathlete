@@ -45,7 +45,7 @@ describe("ForgotPasswordView", () => {
   it("shows localized errors as alerts and is busy while sending", () => {
     expect(forgot("rateLimited")).toContain(`<p role="alert">${pt.passwordReset.errors.rateLimited}</p>`);
     expect(forgot("invalidEmail")).toContain('aria-invalid="true"');
-    expect(forgot("working")).toMatch(/<button type="submit" disabled="">/);
+    expect(forgot("working")).toMatch(/<button type="submit" class="[^"]*" disabled="">/);
     expect(forgot("working")).toContain(pt.passwordReset.forgot.submitting);
   });
 });

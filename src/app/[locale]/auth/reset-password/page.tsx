@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import ui from "@/components/ui/ui.module.css";
+import ui from "@/components/auth/auth.module.css";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -25,7 +25,9 @@ export default async function ResetPasswordPage({ params }: { params: Promise<{ 
     <main className={ui.auth}>
       <h1>{t("title")}</h1>
       {user ? (
-        <ResetPasswordForm />
+        <div className={ui.card}>
+          <ResetPasswordForm />
+        </div>
       ) : (
         <>
           <p role="alert">{t("noSession")}</p>

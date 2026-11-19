@@ -6,13 +6,12 @@ import { useRouter } from "@/i18n/navigation";
 import { authErrorKey, type AuthErrorKey } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 import { authCallbackUrl } from "./callbackUrl";
+import styles from "./auth.module.css";
 
 type Mode = "signIn" | "signUp";
 
 /** Email + password sign in / sign up. Errors are shown as friendly localized text. */
 export function LoginForm() {
-  const t = useTranslations("onboarding.login");
-  const tErrors = useTranslations("common.errors");
   const locale = useLocale();
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signIn");
@@ -50,10 +49,41 @@ export function LoginForm() {
   }
 
   return (
+    <LoginView
+      mode={mode}
+      error={error}
+      checkEmail={checkEmail}
+      busy={busy}
+      onSubmit={onSubmit}
+      onToggleMode={() => setMode(mode === "signIn" ? "signUp" : "signIn")}
+    />
+  );
+}
+
+/** Presentational part: labelled required fields, the error alert, submit and the mode switch. */
+export function LoginView({
+  mode,
+  error,
+  checkEmail,
+  busy,
+  onSubmit,
+  onToggleMode,
+}: {
+  mode: Mode;
+  error: AuthErrorKey | null;
+  checkEmail: boolean;
+  busy: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onToggleMode: () => void;
+}) {
+  const t = useTranslations("onboarding.login");
+  const tErrors = useTranslations("common.errors");
+  const invalid = error !== null;
+  return (
     <form onSubmit={onSubmit}>
       <label>
         {t("email")}
-        <input name="email" type="email" autoComplete="email" required />
+        <input name="email" type="email" autoComplete="email" required aria-invalid={invalid} />
       </label>
       <label>
         {t("password")}
@@ -63,14 +93,15 @@ export function LoginForm() {
           autoComplete={mode === "signIn" ? "current-password" : "new-password"}
           minLength={8}
           required
+          aria-invalid={invalid}
         />
       </label>
       {error && <p role="alert">{tErrors(error)}</p>}
       {checkEmail && <p role="status">{t("checkEmail")}</p>}
-      <button type="submit" disabled={busy}>
+      <button type="submit" className={styles.primary} disabled={busy}>
         {busy ? t("submitting") : t(mode)}
       </button>
-      <button type="button" onClick={() => setMode(mode === "signIn" ? "signUp" : "signIn")}>
+      <button type="button" className={styles.ghost} onClick={onToggleMode}>
         {mode === "signIn" ? t("toSignUp") : t("toSignIn")}
       </button>
     </form>

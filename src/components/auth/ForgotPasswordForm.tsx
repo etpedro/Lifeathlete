@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 import { runResetRequest, type ResetRequestOutcome } from "@/lib/auth/password-reset";
 import { createClient } from "@/lib/supabase/client";
+import styles from "./auth.module.css";
 
 export type ForgotStatus = "idle" | "working" | ResetRequestOutcome;
 type Labels = { email: string; submit: string; submitting: string; sent: string; error: (key: Exclude<ResetRequestOutcome, "sent">) => string };
@@ -28,7 +29,7 @@ export function ForgotPasswordView({
       </label>
       <p role="alert">{error ? labels.error(error) : ""}</p>
       <p role="status">{status === "sent" ? labels.sent : ""}</p>
-      <button type="submit" disabled={working}>
+      <button type="submit" className={styles.primary} disabled={working}>
         {working ? labels.submitting : labels.submit}
       </button>
     </form>

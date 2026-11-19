@@ -3,7 +3,8 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { Link } from "@/i18n/navigation";
 import { guardArea } from "@/lib/auth/guard";
-import ui from "@/components/ui/ui.module.css";
+import { Dragonfly } from "@/components/onboarding/Dragonfly";
+import ui from "@/components/auth/auth.module.css";
 
 export default async function LoginPage({
   params,
@@ -19,18 +20,21 @@ export default async function LoginPage({
 
   return (
     <main className={ui.auth}>
-      <header className={ui.field}>
+      <header className={ui.hero}>
+        <Dragonfly />
         <h1>{t("title")}</h1>
         <p className={ui.lead}>{t("subtitle")}</p>
       </header>
       {error === "oauth" && <p role="alert">{tErrors("oauth")}</p>}
-      <LoginForm />
-      <p className={ui.links}>
-        <Link href="/auth/forgot-password">{t("forgot")}</Link>
-      </p>
-      <p className={ui.divider}>{t("or")}</p>
-      <div className={ui.stack}>
-        <OAuthButtons />
+      <div className={ui.card}>
+        <LoginForm />
+        <p className={ui.links}>
+          <Link href="/auth/forgot-password">{t("forgot")}</Link>
+        </p>
+        <p className={ui.divider}>{t("or")}</p>
+        <div className={ui.stack}>
+          <OAuthButtons />
+        </div>
       </div>
     </main>
   );

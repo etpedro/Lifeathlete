@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { authCallbackUrl } from "./callbackUrl";
+import styles from "./auth.module.css";
 
 const PROVIDERS = [
   { id: "google", label: "google" },
@@ -13,8 +14,6 @@ const PROVIDERS = [
 
 /** "Continue with Google/Apple": redirects to the provider, back to /{locale}/auth/callback. */
 export function OAuthButtons() {
-  const t = useTranslations("onboarding.login");
-  const tErrors = useTranslations("common.errors");
   const locale = useLocale();
   const [failed, setFailed] = useState(false);
 
@@ -31,10 +30,17 @@ export function OAuthButtons() {
     }
   }
 
+  return <OAuthButtonsView failed={failed} onSignIn={(p) => void signIn(p)} />;
+}
+
+/** Presentational part: one secondary button per provider and the failure alert. */
+export function OAuthButtonsView({ failed, onSignIn }: { failed: boolean; onSignIn: (provider: Provider) => void }) {
+  const t = useTranslations("onboarding.login");
+  const tErrors = useTranslations("common.errors");
   return (
     <div>
       {PROVIDERS.map((p) => (
-        <button key={p.id} type="button" onClick={() => signIn(p.id)}>
+        <button key={p.id} type="button" className={styles.button} onClick={() => onSignIn(p.id)}>
           {t(p.label)}
         </button>
       ))}

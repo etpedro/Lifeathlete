@@ -11,7 +11,7 @@ export function DragonflyStep({ failed }: { failed: boolean }) {
       <div className={styles.mascot}>
         <Dragonfly />
       </div>
-      <p>{t("description")}</p>
+      <p className={styles.lead}>{t("description")}</p>
       {failed && (
         <p role="alert" className={styles.alert}>
           {tErrors("saveOnboarding")}

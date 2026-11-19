@@ -108,7 +108,10 @@
   border: var(--border-width) solid var(--color-border);
   background: var(--glass);
   color: var(--color-text-muted);
-  padding-inline: var(--space-2);
+  padding-inline: var(--space-1);
+  font-size: var(--text-sm);
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 .days .target:hover:not(:disabled) {
   background: var(--color-surface-hover);
@@ -123,7 +126,10 @@
 }
 
 .remaining {
+  margin: 0;
   color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
 }
 
 /* ---------- Pillar cards: --pillar is set inline from the pillar slug ---------- */
@@ -370,7 +376,54 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Toast ---------- */
+/* ---------- States: empty, loading ---------- */
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+  background: var(--glass);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.empty p {
+  margin: 0;
+  max-width: 24rem;
+  color: var(--color-text-muted);
+}
+.empty figure {
+  max-width: 100%;
+}
+.empty svg {
+  width: 6.5rem;
+  height: 6.5rem;
+}
+
+.loading {
+  display: grid;
+  gap: var(--space-3);
+}
+.loadingText {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.skeleton {
+  height: 5.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  border: var(--border-width) solid var(--color-border);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ---------- Toast: a raised card with a gold accent ---------- */
 .toast {
   position: fixed;
   z-index: 20;
@@ -380,8 +433,10 @@
   max-width: 24rem;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-lg);
-  background: var(--color-surface-raised);
+  background: linear-gradient(160deg, var(--color-gold-soft), var(--color-surface-raised));
   border: var(--border-width) solid var(--color-accent-gold);
+  border-inline-start-width: 4px;
+  box-shadow: var(--shadow-glow);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -396,19 +451,24 @@
   font-weight: var(--weight-semibold);
 }
 
-/* ---------- Notices: styled by role ---------- */
+/* ---------- Notices: soft-tinted cards, styled by role ---------- */
 .notice {
   margin: 0;
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  border: var(--border-width) solid var(--color-secondary);
-  border-inline-start-width: 4px;
+  border-radius: var(--radius-lg);
+  --notice-accent: var(--color-secondary);
+  border: var(--border-width) solid var(--color-border);
+  box-shadow: inset 4px 0 0 var(--notice-accent);
   background: var(--color-secondary-soft);
+  color: var(--color-text);
   display: grid;
   gap: var(--space-3);
   justify-items: start;
 }
+.notice p {
+  margin: 0;
+}
 .notice[role="alert"] {
-  border-color: var(--color-danger);
+  --notice-accent: var(--color-danger);
   background: var(--color-danger-soft);
 }

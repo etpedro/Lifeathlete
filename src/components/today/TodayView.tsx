@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useSyncExternalStore } from "react";
+import { Mascot } from "@/components/mascot/Mascot";
 import { greetingKey } from "@/lib/today/greeting";
 import { hourIn } from "@/lib/today/dates";
 import { isComplete, remainingCount } from "@/lib/today/progress";
@@ -63,7 +64,7 @@ export function TodayView(props: TodayControllerProps) {
         <p className={styles.greeting}>{greeting ? `${t(`greeting.${greeting}`)} · ${dateText}` : dateText}</p>
         <h1>{t("title")}</h1>
       </header>
-      <TodayHero stats={c.stats} done={done} total={total} dayLabel={t(`ring.day.${DAY_KEYS[daysAgo]}`)} />
+      <TodayHero stats={c.stats} done={done} total={total} dayLabel={t(`ring.day.${DAY_KEYS[daysAgo]}`)} loading={c.data === null} />
       <DayStrip today={c.today} selected={c.date} onSelect={c.selectDay} />
 
       {!c.online && (
@@ -88,9 +89,18 @@ export function TodayView(props: TodayControllerProps) {
       )}
 
       {c.data === null ? (
-        c.notice?.kind !== "load" && <p aria-busy="true">{tCommon("loading")}</p>
+        c.notice?.kind !== "load" && (
+          <div aria-busy="true" className={styles.loading}>
+            <p className={styles.loadingText}>{tCommon("loading")}</p>
+            <div className={styles.skeleton} aria-hidden="true" />
+            <div className={styles.skeleton} aria-hidden="true" />
+          </div>
+        )
       ) : c.data.pillars.length === 0 ? (
-        <p>{t("empty")}</p>
+        <section className={styles.empty}>
+          <Mascot stage={2} variant="normal" description={t("emptyArt")} />
+          <p>{t("empty")}</p>
+        </section>
       ) : (
         <>
           <p aria-live="polite" className={styles.remaining}>{t("remaining", { count: remainingCount(c.data) })}</p>

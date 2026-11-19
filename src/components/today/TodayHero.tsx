@@ -5,7 +5,7 @@ import { ProgressRing } from "@/components/ui/ProgressRing";
 import ui from "@/components/ui/ui.module.css";
 import styles from "./today.module.css";
 
-type Props = { stats: HeaderStats; done: number; total: number; dayLabel: string };
+type Props = { stats: HeaderStats; done: number; total: number; dayLabel: string; loading?: boolean };
 
 function FlameIcon() {
   return (
@@ -16,7 +16,7 @@ function FlameIcon() {
 }
 
 /** The Today hero card: progress ring for the selected day, level, tier, XP bar and streak. */
-export function TodayHero({ stats, done, total, dayLabel }: Props) {
+export function TodayHero({ stats, done, total, dayLabel, loading = false }: Props) {
   const t = useTranslations("today");
   const tAch = useTranslations("achievements");
   const lvl = levelFromXp(stats.xpTotal);
@@ -24,15 +24,26 @@ export function TodayHero({ stats, done, total, dayLabel }: Props) {
   const safeDone = Math.max(0, Math.min(Number.isFinite(done) ? done : 0, total > 0 ? total : 0));
   return (
     <section aria-label={t("stats.label")} className={`${ui.cardHero} ${styles.hero}`}>
-      <ProgressRing done={done} total={total} label={t("ring.label", { done: safeDone, total })} size={112}>
-        <span className={styles.ringDone}>
-          {safeDone}
-          <small className={styles.ringOf}>{t("ring.of", { total, day: dayLabel })}</small>
-        </span>
+      <ProgressRing
+        done={loading ? 0 : done}
+        total={loading ? 0 : total}
+        label={loading ? t("ring.loading") : t("ring.label", { done: safeDone, total })}
+        size={112}
+      >
+        {loading ? (
+          <span className={styles.ringDone} aria-hidden="true">
+            —
+          </span>
+        ) : (
+          <span className={styles.ringDone}>
+            {safeDone}
+            <small className={styles.ringOf}>{t("ring.of", { total, day: dayLabel })}</small>
+          </span>
+        )}
       </ProgressRing>
       <div className={styles.heroInfo}>
         <p className={styles.level}>
-          <span>{t("stats.level", { level: stats.level })}</span>
+          <span>{t("stats.level", { level: lvl.level })}</span>
           <span className={`${ui.badge} ${ui.badgeGold}`}>{tAch(`tier.${lvl.tier}`)}</span>
         </p>
         <div className={ui.track} aria-hidden="true">

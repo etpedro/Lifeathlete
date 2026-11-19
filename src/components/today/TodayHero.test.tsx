@@ -7,10 +7,10 @@ import { TodayHero } from "./TodayHero";
 
 const STATS = { xpTotal: 140, level: 2, currentStreak: 3, computedFor: "2026-11-06" };
 
-function render(done: number, total: number, dayLabel = "hoje", locale: "pt" | "en" = "pt", stats = STATS) {
+function render(done: number, total: number, dayLabel = "hoje", locale: "pt" | "en" = "pt", stats = STATS, loading = false) {
   return renderToStaticMarkup(
     <NextIntlClientProvider locale={locale} messages={locale === "pt" ? pt : en} timeZone="UTC">
-      <TodayHero stats={stats} done={done} total={total} dayLabel={dayLabel} />
+      <TodayHero stats={stats} done={done} total={total} dayLabel={dayLabel} loading={loading} />
     </NextIntlClientProvider>,
   );
 }
@@ -49,5 +49,18 @@ describe("TodayHero", () => {
   });
   it("sets the XP bar from the level progress", () => {
     expect(render(0, 3)).toMatch(/width:\s*14(\.\d+)?%/);
+  });
+  it("shows the level computed from the XP, not the stored one", () => {
+    const html = render(0, 3, "hoje", "pt", { ...STATS, level: 7 });
+    expect(html).toContain("Nível 2");
+    expect(html).not.toContain("Nível 7");
+  });
+  it("renders a neutral placeholder while loading", () => {
+    const html = render(0, 0, "ontem", "pt", STATS, true);
+    expect(html).toContain(`aria-label="${pt.today.ring.loading}"`);
+    expect(html).not.toContain("0 de 0");
+    expect(html).not.toContain("de 0 ontem");
+    expect(html).toContain("—");
+    expect(html).toContain('data-fraction="0"');
   });
 });

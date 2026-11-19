@@ -115,6 +115,7 @@
   "today": {
     "title": "Hoje",
     "empty": "Ainda não tens hábitos ativos. Escolhe hábitos no Perfil para começares.",
+    "emptyArt": "Uma libelinha à espera dos teus primeiros hábitos",
     "remaining": "{count, plural, =0 {Dia completo!} one {Dia completo: falta # hábito} other {Dia completo: faltam # hábitos}}",
     "days": {
       "label": "Dia a preencher",
@@ -128,6 +129,7 @@
       "evening": "Boa noite"
     },
     "ring": {
+      "loading": "A carregar o dia",
       "label": "{done} de {total} hábitos feitos",
       "of": "de {total} {day}",
       "day": {

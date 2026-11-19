@@ -75,12 +75,16 @@ describe("TodayView hero follows the selected day", () => {
     expect(render()).toContain("de 3 há 2 dias");
   });
 
-  it("renders an empty hero (no NaN) while the day loads", () => {
+  it("shows a neutral placeholder (no misleading 0 of 0) while another day loads", () => {
     state.date = "2026-11-05";
     state.data = null;
     const html = render();
     expect(html).not.toMatch(/NaN|Infinity/);
-    expect(html).toContain("0 de 0 hábitos feitos");
+    expect(html).not.toContain("0 de 0");
+    expect(html).not.toContain("de 0 ontem");
+    expect(html).toContain(pt.today.ring.loading);
+    expect(html).toContain("—");
+    expect(render("en")).toContain(en.today.ring.loading);
   });
 });
 

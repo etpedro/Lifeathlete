@@ -25,4 +25,8 @@ describe("XpToast", () => {
   it("shows no achievement line without unlocks", () => {
     expect(render("pt", [])).not.toContain(pt.today.toast.achievement.split("{")[0]);
   });
+
+  it("keeps a dismiss button", () => {
+    expect(render("pt", [])).toContain(`>${pt.today.toast.dismiss}</button>`);
+  });
 });

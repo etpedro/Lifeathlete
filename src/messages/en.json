@@ -115,6 +115,7 @@
   "today": {
     "title": "Today",
     "empty": "You have no active habits yet. Choose habits in your Profile to get started.",
+    "emptyArt": "A dragonfly waiting for your first habits",
     "remaining": "{count, plural, =0 {Day complete!} one {Day complete: # habit to go} other {Day complete: # habits to go}}",
     "days": {
       "label": "Day to fill in",
@@ -128,6 +129,7 @@
       "evening": "Good evening"
     },
     "ring": {
+      "loading": "Loading the day",
       "label": "{done} of {total} habits done",
       "of": "of {total} {day}",
       "day": {

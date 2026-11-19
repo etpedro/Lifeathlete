@@ -24,28 +24,75 @@
   border-color: var(--color-primary-hover);
 }
 
-/* ---------- Header stats: a calm row of chips ---------- */
-.stats {
+/* ---------- Header: greeting + date ---------- */
+.top {
+  display: grid;
+  gap: var(--space-1);
+}
+.top h1 {
+  margin: 0;
+}
+.greeting {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ---------- Hero: ring + level, XP and streak (the only glass card besides the nav) ---------- */
+.hero {
   display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .hero {
+    background: var(--hero-bottom);
+  }
+}
+.heroInfo {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.heroInfo p {
+  margin: 0;
+}
+.ringDone {
+  display: grid;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+}
+.ringOf {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+.level {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  font-weight: var(--weight-semibold);
 }
-.stats li {
-  padding: var(--space-1) var(--space-3);
-  min-height: 2rem;
-  display: inline-flex;
+.xpText {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+.streakLine {
+  display: flex;
   align-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border);
-  font-size: var(--text-sm);
+  gap: var(--space-2);
   font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
 }
-.stats li:nth-child(2) {
-  color: var(--color-accent-gold);
+.flame {
+  color: var(--color-flame);
+  flex: none;
 }
 
 /* ---------- Day strip: a segmented control ---------- */

@@ -47,3 +47,20 @@ export function reanchorDay(
   const selected = keep ? anchor.selected : freshToday;
   return { today: freshToday, selected, changed: true, reload: selected !== anchor.selected };
 }
+
+/** The hour (0 to 23) "now" in an IANA timezone; an invalid timezone falls back to UTC. */
+export function hourIn(timezone: string, now: Date = new Date()): number {
+  const read = (timeZone: string) =>
+    Number(
+      new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", hourCycle: "h23" })
+        .formatToParts(now)
+        .find((part) => part.type === "hour")?.value,
+    );
+  let hour: number;
+  try {
+    hour = read(timezone);
+  } catch {
+    hour = read("UTC");
+  }
+  return Number.isFinite(hour) ? hour % 24 : 0;
+}

@@ -57,7 +57,7 @@ export function ProgressRing({
           transform="rotate(-90 50 50)"
         />
       </svg>
-      {children ? <div className={styles.ringCenter}>{children}</div> : null}
+      {children != null ? <div className={styles.ringCenter}>{children}</div> : null}
     </div>
   );
 }

@@ -33,6 +33,17 @@ describe("ProgressRing", () => {
   });
 });
 
+describe("ProgressRing center", () => {
+  it("renders a numeric 0 child", () => {
+    const html = renderToStaticMarkup(
+      <ProgressRing done={0} total={3} label="L">
+        {0}
+      </ProgressRing>,
+    );
+    expect(html).toContain(">0<");
+  });
+});
+
 describe("PillarIcon", () => {
   it("renders a neutral glyph for an unknown slug", () => {
     const html = renderToStaticMarkup(<PillarIcon slug="mystery" />);

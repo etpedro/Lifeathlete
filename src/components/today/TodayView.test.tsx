@@ -68,7 +68,8 @@ describe("TodayView (first paint)", () => {
     });
     expect(html).toContain(pt.pillars.exercise.name);
     expect(html).toContain("Nível 2");
-    expect(html).toContain("140 XP");
+    expect(html).toContain("40 / 283 XP");
+    expect(html).toContain("1 de 2 hábitos feitos");
     expect(html).toContain("3 dias seguidos");
     expect(html).toContain(pt.today.days.yesterday);
     expect(html).toContain(pt.today.days.twoDaysAgo);

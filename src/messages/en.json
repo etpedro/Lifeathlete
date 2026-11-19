@@ -122,6 +122,20 @@
       "yesterday": "Yesterday",
       "twoDaysAgo": "2 days ago"
     },
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "ring": {
+      "label": "{done} of {total} habits done",
+      "of": "of {total} {day}",
+      "day": {
+        "today": "today",
+        "yesterday": "yesterday",
+        "twoDaysAgo": "2 days ago"
+      }
+    },
     "stats": {
       "label": "Your progress",
       "xp": "{xp} XP",

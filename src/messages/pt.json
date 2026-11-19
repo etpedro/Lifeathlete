@@ -122,6 +122,20 @@
       "yesterday": "Ontem",
       "twoDaysAgo": "Há 2 dias"
     },
+    "greeting": {
+      "morning": "Bom dia",
+      "afternoon": "Boa tarde",
+      "evening": "Boa noite"
+    },
+    "ring": {
+      "label": "{done} de {total} hábitos feitos",
+      "of": "de {total} {day}",
+      "day": {
+        "today": "hoje",
+        "yesterday": "ontem",
+        "twoDaysAgo": "há 2 dias"
+      }
+    },
     "stats": {
       "label": "O teu progresso",
       "xp": "{xp} XP",

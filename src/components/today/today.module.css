@@ -472,3 +472,12 @@
   --notice-accent: var(--color-danger);
   background: var(--color-danger-soft);
 }
+/* Forced colors drops the inset accent shadow: keep alert and status notices distinct by border. */
+@media (forced-colors: active) {
+  .notice {
+    border: 1px solid CanvasText;
+  }
+  .notice[role="alert"] {
+    border: 3px double CanvasText;
+  }
+}

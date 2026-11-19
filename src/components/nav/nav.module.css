@@ -18,7 +18,7 @@
   min-height: var(--nav-height);
   border-radius: var(--radius-lg);
   border: var(--border-width) solid var(--color-border);
-  background: color-mix(in srgb, var(--color-surface-raised) 78%, transparent);
+  background: color-mix(in srgb, var(--color-surface-raised) 90%, transparent);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
@@ -54,6 +54,10 @@
 .tab:focus-visible {
   outline-offset: -3px;
 }
+.label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .icon {
   display: grid;
   place-items: center;
@@ -66,6 +70,13 @@
 }
 .tab[aria-current="page"] .icon {
   background: var(--color-primary-soft);
+}
+
+/* Forced colors drop backgrounds: keep a non-color cue for the active tab. */
+@media (forced-colors: active) {
+  .tab[aria-current="page"] {
+    border: 2px solid Highlight;
+  }
 }
 
 /* Reserves the floating bar's height, inset and safe area at the end of every scroll. */

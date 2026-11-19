@@ -64,7 +64,7 @@ export function TodayView(props: TodayControllerProps) {
         <p className={styles.greeting}>{greeting ? `${t(`greeting.${greeting}`)} · ${dateText}` : dateText}</p>
         <h1>{t("title")}</h1>
       </header>
-      <TodayHero stats={c.stats} done={done} total={total} dayLabel={t(`ring.day.${DAY_KEYS[daysAgo]}`)} loading={c.data === null} />
+      <TodayHero stats={c.stats} done={done} total={total} dayLabel={t(`ring.day.${DAY_KEYS[daysAgo]}`)} loading={c.data === null && c.notice?.kind !== "load"} />
       <DayStrip today={c.today} selected={c.date} onSelect={c.selectDay} />
 
       {!c.online && (

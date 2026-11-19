@@ -71,6 +71,16 @@ describe("TodayView states", () => {
     expect(html).toContain(pt.common.loading);
   });
 
+  it("hero stops saying loading after a failed load", () => {
+    state.notice = { kind: "load" } as TodayNotice;
+    const html = render();
+    expect(html).not.toContain(pt.today.ring.loading);
+  });
+
+  it("hero says loading while data is pending without a notice", () => {
+    expect(render()).toContain(pt.today.ring.loading);
+  });
+
   it("offline notice keeps role=status", () => {
     state.online = false;
     state.data = oneHabit;

@@ -43,6 +43,10 @@ const PAIRS: [string, string, number][] = [
   ["color-on-primary", "color-primary-hover", 4.5],
   // Landing primary CTA gradient starts on the nature pillar color.
   ["color-on-primary", "pillar-nature", 4.5],
+  // Share button: color-bg text on the gradient stops (secondary, focus), and the flame on the hero.
+  ["color-bg", "color-secondary", 4.5],
+  ["color-bg", "color-focus", 4.5],
+  ["color-flame", "hero-bottom", 3],
   ["color-on-gold", "color-accent-gold", 4.5],
   ["color-text", "color-surface-hover", 4.5],
   ["color-text", "color-input-bg", 4.5],
@@ -194,4 +198,59 @@ describe.each(Object.entries(THEMES))("%s theme restyling tokens", (_name, t) =>
   it("color-flame on hero-top is at least 3:1", () => {
     expect(contrast(t["color-flame"], t["hero-top"])).toBeGreaterThanOrEqual(3);
   });
+});
+
+// Glass surfaces (--glass, --glass-inset) are translucent: the real background is the page
+// gradient (or the landing stops) composited with the glass, once, and for a card inside a card
+// twice. Text and state boundaries must hold on every composite.
+type Rgba = { rgb: [number, number, number]; a: number };
+function rgbaTokens(block: string): Record<string, Rgba> {
+  const out: Record<string, Rgba> = {};
+  for (const m of block.matchAll(/--([\w-]+)\s*:\s*rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)\s*;/g)) {
+    out[m[1]] = { rgb: [Number(m[2]), Number(m[3]), Number(m[4])], a: Number(m[5]) };
+  }
+  return out;
+}
+const darkRgba = rgbaTokens(css.slice(0, split));
+const RGBA = { dark: darkRgba, light: { ...darkRgba, ...rgbaTokens(css.slice(split)) } } as const;
+function over(layer: Rgba, bg: string): string {
+  const [r, g, b] = [1, 3, 5].map((i, k) => Math.round(layer.rgb[k] * layer.a + parseInt(bg.slice(i, i + 2), 16) * (1 - layer.a)));
+  return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
+const GLASS_STOPS = ["bg-top", "bg-bottom", "bg-glow-a", "bg-glow-b"];
+const GLASS_TEXT = ["color-text", "color-text-muted", "color-primary", "color-secondary"];
+
+describe.each(Object.entries(THEMES))("%s theme glass surfaces", (name, t) => {
+  const rgba = RGBA[name as keyof typeof RGBA];
+  it("defines --glass and --glass-inset", () => {
+    expect(rgba["glass"]).toBeDefined();
+    expect(rgba["glass-inset"]).toBeDefined();
+  });
+
+  const cases = GLASS_STOPS.flatMap((stop) =>
+    [
+      ["glass once", (bg: string) => over(rgba["glass"], bg)],
+      ["glass twice", (bg: string) => over(rgba["glass"], over(rgba["glass"], bg))],
+      ["inset on glass", (bg: string) => over(rgba["glass-inset"], over(rgba["glass"], bg))],
+    ].flatMap(([label, fn]) => GLASS_TEXT.map((fg) => [stop, label as string, fg, fn as (bg: string) => string] as const)),
+  );
+  // Nested glass-on-glass is avoided (inner rows use --glass-inset), but body text holds even then (muted text needs the single glass).
+  it.each(cases.filter(([, label, fg]) => label !== "glass twice" || fg === "color-text"))("text %s on %s (%s)", (stop, label, fg, fn) => {
+    expect(contrast(t[fg], fn(t[stop])), `${fg} on ${label} over ${stop}`).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(GLASS_STOPS.flatMap((stop) => [["glass once", (bg: string) => over(rgba["glass"], bg)] as const, ["inset on glass", (bg: string) => over(rgba["glass-inset"], over(rgba["glass"], bg))] as const].map(([l, f]) => [stop, l, f] as const)))(
+    "unchecked habit ring (color-border-strong) over %s on %s is at least 3:1",
+    (stop, _l, fn) => {
+      expect(contrast(t["color-border-strong"], fn(t[stop]))).toBeGreaterThanOrEqual(3);
+    },
+  );
+
+  it.each(LANDING_BACKGROUNDS.flatMap((stop) => GLASS_TEXT.map((fg) => [stop, fg] as const)))(
+    "landing glass card over %s: %s text is at least 4.5:1",
+    (stop, fg) => {
+      expect(contrast(t[fg], over(rgba["glass"], t[stop]))).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 });

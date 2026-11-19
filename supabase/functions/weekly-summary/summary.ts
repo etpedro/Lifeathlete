@@ -32,8 +32,8 @@ const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Ar
 const C = {
   bgTop: "#08202b",
   bgBottom: "#17143d",
-  glowA: "#0d4343",
-  glowB: "#25326e",
+  glowA: "#0c3a3d",
+  glowB: "#222b62",
   heroTop: "#1b3a52",
   heroBottom: "#1f2252",
   medalTop: "#ffd166",
@@ -41,7 +41,7 @@ const C = {
   onMedal: "#2a1a00",
   flame: "#ff9f4a",
   text: "#dfe9e3",
-  muted: "#9cb0a8",
+  muted: "#a6b9b1",
   accent: "#a9aee8",
   ring: "#dfe9e3", // drawn at low opacity
 };

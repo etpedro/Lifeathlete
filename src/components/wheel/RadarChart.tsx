@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { clampScore, polygonPoints, radarPoint, type Circle } from "./geometry";
 import { pillarColor } from "@/lib/pillars";
 import styles from "./wheel.module.css";
@@ -15,7 +16,6 @@ export type RadarLabels = {
 
 const SIZE = 320;
 const CIRCLE: Circle = { cx: SIZE / 2, cy: SIZE / 2, radius: 110 };
-const GRADIENT_ID = "wheel-area-gradient";
 const RINGS = [25, 50, 75, 100];
 
 /** Fewer than 3 axes cannot form a polygon: show a simple bar list instead. */
@@ -45,6 +45,8 @@ function ScoreTable({ entries, labels }: { entries: RadarEntry[]; labels: RadarL
 
 /** Radar chart of pillar scores: accessible SVG plus a screen-reader table; bars below 3 pillars. */
 export function RadarChart({ entries, labels }: { entries: RadarEntry[]; labels: RadarLabels }) {
+  // Unique per instance (colons are not safe in url(#...) references on every engine).
+  const gradientId = `wheel-area-${useId().replace(/:/g, "")}`;
   if (entries.length === 0) return null;
 
   if (entries.length < MIN_RADAR_AXES) {
@@ -84,12 +86,12 @@ export function RadarChart({ entries, labels }: { entries: RadarEntry[]; labels:
           return <line key={e.slug} className={styles.axis} x1={CIRCLE.cx} y1={CIRCLE.cy} x2={end.x} y2={end.y} />;
         })}
         <defs>
-          <radialGradient id={GRADIENT_ID} cx="50%" cy="50%" r="50%">
+          <radialGradient id={gradientId} cx="50%" cy="50%" r="50%">
             <stop offset="0" style={{ stopColor: "var(--color-success)", stopOpacity: 0.55 }} />
             <stop offset="1" style={{ stopColor: "var(--pillar-meditation)", stopOpacity: 0.35 }} />
           </radialGradient>
         </defs>
-        <polygon className={styles.area} fill={`url(#${GRADIENT_ID})`} points={polygonPoints(scores, CIRCLE)} />
+        <polygon className={styles.area} fill={`url(#${gradientId})`} points={polygonPoints(scores, CIRCLE)} />
         {scores.map((s, i) => {
           const p = radarPoint(i, n, s, CIRCLE);
           return (

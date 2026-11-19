@@ -76,4 +76,19 @@ describe("RadarChart", () => {
     const html = renderToStaticMarkup(<RadarChart entries={make(5)} labels={labels} />);
     expect(html).not.toMatch(/<text[^>]*fill="var\(--pillar/);
   });
+
+  it("two radars on one page get distinct gradient ids, each url(#id) pointing at its own gradient", () => {
+    const html = renderToStaticMarkup(
+      <>
+        <RadarChart entries={make(10)} labels={labels} />
+        <RadarChart entries={make(10)} labels={labels} />
+      </>,
+    );
+    const ids = [...html.matchAll(/<radialGradient id="([^"]+)"/g)].map((m) => m[1]);
+    const refs = [...html.matchAll(/fill="url\(#([^)]+)\)"/g)].map((m) => m[1]);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+    expect(refs).toEqual(ids);
+    for (const id of ids) expect(id).not.toContain(":");
+  });
 });

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Mascot } from "@/components/mascot/Mascot";
 import { polygonPoints, radarPoint, type Circle } from "@/components/wheel/geometry";
 import { pillarColor } from "@/lib/pillars";
@@ -29,6 +30,7 @@ const STARS: [number, number, number][] = [
  * Decorative (aria-hidden): the headline carries the meaning.
  */
 export function HeroArt({ mascotLabel }: { mascotLabel: string }) {
+  const fillId = `hero-wheel-fill-${useId().replace(/:/g, "")}`;
   const ring = (score: number) => polygonPoints(Array.from({ length: AXES }, () => score), WHEEL);
   return (
     <div className={styles.art} aria-hidden="true">
@@ -38,7 +40,7 @@ export function HeroArt({ mascotLabel }: { mascotLabel: string }) {
           <circle key={`${x}-${y}`} className={i % 3 === 0 ? `${styles.star} ${styles.twinkle}` : styles.star} cx={x} cy={y} r={r} />
         ))}
         <defs>
-          <linearGradient id="hero-wheel-fill" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id={fillId} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" style={{ stopColor: "var(--pillar-nature)", stopOpacity: 0.42 }} />
             <stop offset="1" style={{ stopColor: "var(--pillar-meditation)", stopOpacity: 0.34 }} />
           </linearGradient>
@@ -51,7 +53,7 @@ export function HeroArt({ mascotLabel }: { mascotLabel: string }) {
           const end = radarPoint(i, AXES, 100, WHEEL);
           return <line key={i} className={styles.axis} x1={WHEEL.cx} y1={WHEEL.cy} x2={end.x} y2={end.y} />;
         })}
-        <polygon className={styles.area} fill="url(#hero-wheel-fill)" points={polygonPoints(SCORES, WHEEL)} />
+        <polygon className={styles.area} fill={`url(#${fillId})`} points={polygonPoints(SCORES, WHEEL)} />
         {SCORES.map((s, i) => {
           const p = radarPoint(i, AXES, s, WHEEL);
           return <circle key={i} className={styles.dot} style={{ fill: pillarColor(PILLAR_SLUGS[i]) }} cx={p.x} cy={p.y} r={5.5} />;

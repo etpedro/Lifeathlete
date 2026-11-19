@@ -20,10 +20,10 @@
   composes: btn btnSecondary from "../ui/ui.module.css";
 }
 .primary {
-  composes: btnPrimary from "../ui/ui.module.css";
+  composes: btn btnPrimary from "../ui/ui.module.css";
 }
 .danger {
-  composes: btnDanger from "../ui/ui.module.css";
+  composes: btn btnDanger from "../ui/ui.module.css";
 }
 
 .block {

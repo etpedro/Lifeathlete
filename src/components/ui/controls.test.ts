@@ -28,4 +28,23 @@ describe("shared button variants", () => {
     );
     expect(offenders).toEqual([]);
   });
+
+  it("the shared .btn base is declared before every variant so the variants win", () => {
+    const at = (s: string) => css.indexOf(`${s} {`);
+    for (const v of [".btnSecondary", ".btnPrimary", ".btnGhost", ".btnDanger"]) expect(at(".btn")).toBeLessThan(at(v));
+  });
+
+  it("every button class in a feature module composes the shared base AND its variant", () => {
+    const profile = readFileSync(join(__dirname, "../profile/profile.module.css"), "utf8");
+    const want: Record<string, string> = { button: "btnSecondary", primary: "btnPrimary", danger: "btnDanger", ghost: "btnGhost" };
+    for (const [cls, variant] of Object.entries(want)) {
+      const m = profile.match(new RegExp(`^\\.${cls} \\{\\s*composes: ([^;]+) from "\\.\\./ui/ui\\.module\\.css";`, "m"));
+      if (!m) {
+        expect(cls, "ghost is optional").toBe("ghost");
+        continue;
+      }
+      const names = m[1].split(/\s+/);
+      expect(names, `.${cls}`).toEqual(expect.arrayContaining(["btn", variant]));
+    }
+  });
 });

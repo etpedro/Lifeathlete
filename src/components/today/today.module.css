@@ -95,22 +95,19 @@
   flex: none;
 }
 
-/* ---------- Day strip: a segmented control ---------- */
+/* ---------- Day strip: pills, the selected one filled ---------- */
 .days {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: var(--space-1);
-  padding: var(--space-1);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border);
+  gap: var(--space-2);
 }
 .days .target {
-  border-color: transparent;
-  background: transparent;
+  min-height: 2.75rem;
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--color-border);
+  background: var(--glass);
   color: var(--color-text-muted);
-  border-radius: var(--radius-sm);
   padding-inline: var(--space-2);
 }
 .days .target:hover:not(:disabled) {
@@ -118,22 +115,24 @@
   color: var(--color-text);
 }
 .days .target[aria-pressed="true"] {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-  color: var(--color-text);
+  background: var(--color-primary);
+  border-color: transparent;
+  color: var(--color-on-primary);
   font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-card);
 }
 
 .remaining {
   color: var(--color-text-muted);
 }
 
-/* ---------- Pillar groups (cards) ---------- */
+/* ---------- Pillar cards: --pillar is set inline from the pillar slug ---------- */
 .pillar {
-  background: var(--color-surface);
+  background: var(--glass);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-1) var(--space-3) var(--space-1);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-2) var(--space-3);
 }
 
 .pillarHeading {
@@ -143,15 +142,15 @@
 
 .pillarToggle {
   width: 100%;
+  min-height: 2.75rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: var(--space-3);
   border: none;
   background: none;
-  padding: var(--space-2) var(--space-1);
+  padding: var(--space-1);
   text-align: start;
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
 }
 .pillarToggle:hover:not(:disabled) {
   background: none;
@@ -170,8 +169,42 @@
   transform: rotate(-45deg);
 }
 
+.pillarIcon {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  color: var(--pillar, var(--color-primary));
+  background: color-mix(in srgb, var(--pillar, var(--color-primary)) 18%, transparent);
+}
+.pillarIcon svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.pillarName {
+  flex: 1;
+  min-width: 0;
+}
+
+.dots {
+  display: flex;
+  gap: var(--space-1);
+  flex: none;
+}
+.dots i {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-track);
+}
+.dots i[data-done] {
+  background: var(--pillar, var(--color-primary));
+}
+
 .pillarCount {
-  margin-inline-start: auto;
   font-size: var(--text-sm);
   font-weight: var(--weight-regular);
   color: var(--color-text-muted);
@@ -181,67 +214,85 @@
 .habits {
   list-style: none;
   margin: 0;
-  padding: 0 0 var(--space-3);
+  padding: var(--space-1) 0 var(--space-2);
   display: grid;
   gap: var(--space-2);
 }
 
+/* ---------- Habit rows: a lateral bar in the pillar color ---------- */
 .habit {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: var(--space-2);
+  padding-bottom: var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--glass);
+}
+.habit::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: var(--space-3);
+  bottom: var(--space-3);
+  width: 4px;
+  border-radius: 4px;
+  background: var(--pillar, var(--color-primary));
+}
+.habit > :not(.habitButton) {
+  margin-inline: var(--space-4);
 }
 
-/* ---------- Habit rows: tappable cards ---------- */
 .habitButton {
   width: 100%;
   min-height: 3.25rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: var(--space-3);
   text-align: start;
   padding: var(--space-3) var(--space-4);
+  border: none;
   border-radius: var(--radius-md);
-  border-color: var(--color-border);
-  background: var(--color-surface-raised);
+  background: transparent;
   font-weight: var(--weight-regular);
 }
-.habitButton[aria-pressed="true"],
-.habitDone {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
+.habitButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
 }
 
-/* The done / not-done cue: a ring that becomes a filled check, plus the text. */
+.habitTitle {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--weight-medium);
+}
+
+/* The done cue: a ring that becomes a filled check mark, never color alone (text sits beside it). */
+.chk {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-strong);
+  display: grid;
+  place-items: center;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1;
+}
+.habit[data-done] .chk {
+  background: var(--pillar, var(--color-primary));
+  border-color: var(--pillar, var(--color-primary));
+  color: var(--color-on-primary);
+}
+
 .state {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
   flex: none;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
-.state::before {
-  content: "";
-  width: 1.375rem;
-  height: 1.375rem;
-  border-radius: 50%;
-  border: 2px solid var(--color-border-strong);
-  display: inline-grid;
-  place-items: center;
-  font-size: 0.8rem;
-  font-weight: 700;
-  line-height: 1;
-}
-.habitButton[aria-pressed="true"] .state {
-  color: var(--color-primary);
+.habit[data-done] .state {
+  color: var(--color-text);
   font-weight: var(--weight-medium);
-}
-.habitButton[aria-pressed="true"] .state::before {
-  content: "✓";
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
 }
 
 .value {
@@ -266,11 +317,11 @@
   color: var(--color-secondary);
 }
 
-/* Progress of value habits: primary fill on a track. */
+/* Progress of value habits: pillar-colored fill on a track. */
 .bar {
   appearance: none;
   -webkit-appearance: none;
-  width: 100%;
+  width: auto;
   height: 0.375rem;
   border: none;
   border-radius: var(--radius-pill);
@@ -282,11 +333,11 @@
   border-radius: var(--radius-pill);
 }
 .bar::-webkit-progress-value {
-  background: var(--color-primary);
+  background: var(--pillar, var(--color-primary));
   border-radius: var(--radius-pill);
 }
 .bar::-moz-progress-bar {
-  background: var(--color-primary);
+  background: var(--pillar, var(--color-primary));
   border-radius: var(--radius-pill);
 }
 
@@ -297,14 +348,21 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3);
+  margin-bottom: var(--space-1);
   border-radius: var(--radius-md);
-  background: var(--color-bg);
+  background: var(--color-surface-raised);
   border: var(--border-width) solid var(--color-border);
+}
+.habit > .picker {
+  margin-inline: var(--space-3);
 }
 .picker .meta {
   flex-basis: 100%;
   order: -1;
   font-size: var(--text-sm);
+}
+.picker .target {
+  border-radius: var(--radius-pill);
 }
 
 .input {

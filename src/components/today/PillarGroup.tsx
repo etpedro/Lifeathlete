@@ -1,6 +1,8 @@
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { useId, useState, type CSSProperties } from "react";
 import type { TodayHabit, TodayPillar } from "@/lib/data/today";
+import { PillarIcon } from "@/components/ui/PillarIcon";
+import { pillarColor } from "@/lib/pillars";
 import { isComplete } from "@/lib/today/progress";
 import { HabitRow } from "./HabitRow";
 import styles from "./today.module.css";
@@ -21,7 +23,7 @@ export function PillarGroup({ pillar, pendingIds, onSetValue }: Props) {
   const name = tPillars.has(`${pillar.slug}.name`) ? tPillars(`${pillar.slug}.name`) : pillar.slug;
 
   return (
-    <section className={styles.pillar}>
+    <section className={styles.pillar} style={{ "--pillar": pillarColor(pillar.slug) } as CSSProperties}>
       <h2 className={styles.pillarHeading}>
         <button
           type="button"
@@ -30,7 +32,15 @@ export function PillarGroup({ pillar, pendingIds, onSetValue }: Props) {
           aria-controls={listId}
           onClick={() => setOpen((o) => !o)}
         >
-          <span>{name}</span>
+          <span aria-hidden="true" className={styles.pillarIcon}>
+            <PillarIcon slug={pillar.slug} />
+          </span>
+          <span className={styles.pillarName}>{name}</span>
+          <span aria-hidden="true" className={styles.dots}>
+            {pillar.habits.map((h) => (
+              <i key={h.id} data-done={isComplete(h) || undefined} />
+            ))}
+          </span>
           <span className={styles.pillarCount}>{t("progress", { done, total: pillar.habits.length })}</span>
         </button>
       </h2>

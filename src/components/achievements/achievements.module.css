@@ -1,6 +1,6 @@
-/* Achievements: hero (mascot, level, XP), streak tiles and medal cards.
-   Medal state is never color alone: unlocked = gold check + text; locked = dashed
-   outline + lock icon + text. */
+/* Achievements: mascot hero, icon stat tiles and medal medallions.
+   Medal state is never color alone: unlocked = gold medallion with a check + text;
+   locked = dashed outline + grayscale lock + text. */
 .screen {
   width: 100%;
   max-width: calc(var(--layout-content) + 2 * var(--gutter));
@@ -16,19 +16,47 @@
   gap: var(--space-3);
   justify-items: center;
   text-align: center;
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-4);
+}
+/* Soft glow behind the dragonfly; the figure sits above it. No overflow clipping here. */
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+}
+.stage::before {
+  content: "";
+  position: absolute;
+  width: 14rem;
+  max-width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-success) 38%, transparent), transparent 65%);
+  pointer-events: none;
+}
+.stage > * {
+  position: relative;
 }
 .level {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--text-xl);
   font-weight: var(--weight-semibold);
   margin: 0;
 }
+/* Spoken tier label: the gold badge already shows it visually. */
 .tier {
-  margin: 0;
-  color: var(--color-text-muted);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .restingNote {
   margin: 0;
@@ -46,19 +74,6 @@
   color: var(--color-text-muted);
 }
 
-.track {
-  width: 100%;
-  height: 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-track);
-  overflow: hidden;
-}
-.fill {
-  height: 100%;
-  border-radius: var(--radius-pill);
-  background: var(--color-primary);
-}
-
 .streaks {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -68,14 +83,34 @@
   list-style: none;
 }
 .streaks li {
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-3) var(--space-4);
-  display: grid;
-  gap: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+}
+.tileText {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.tileIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--glass);
+  border: var(--border-width) solid var(--color-border);
+}
+.tileFlame {
+  color: var(--color-flame);
+}
+.tileGold {
+  color: var(--color-accent-gold);
 }
 .streakValue {
   font-weight: var(--weight-semibold);
@@ -93,17 +128,22 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
 }
 .medal {
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-3);
   display: grid;
   gap: var(--space-2);
   align-content: start;
+  justify-items: center;
+  text-align: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .medal h3 {
   margin: 0;
@@ -115,29 +155,32 @@
 }
 .medalUnlocked {
   border-color: var(--color-accent-gold);
-  background: var(--color-gold-soft);
 }
 .medalLocked {
-  border: 2px dashed var(--color-border-strong);
-  background: transparent;
+  border: var(--border-width) dashed var(--color-border-strong);
+  box-shadow: none;
 }
-.medalIcon {
-  width: 2.5rem;
-  height: 2.5rem;
+.medallion {
+  display: grid;
+  place-items: center;
+  width: 3.9rem;
+  height: 3.9rem;
+  border-radius: 50%;
 }
-.discUnlocked {
-  fill: var(--color-accent-gold);
-  stroke: var(--color-accent-gold);
+.medalUnlocked .medallion {
+  background: radial-gradient(circle at 30% 25%, var(--medal-top), var(--medal-top) 35%, var(--medal-bottom));
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--medal-top) 45%, transparent);
+  color: var(--color-on-medal);
 }
-.discLocked {
-  fill: none;
-  stroke: var(--color-border-strong);
+.medalLocked .medallion {
+  background: var(--glass);
+  border: var(--border-width) solid var(--color-border-strong);
+  color: var(--color-text-muted);
+  filter: grayscale(1);
+  opacity: 0.8;
 }
-.check {
-  stroke: var(--color-on-gold);
-}
-.lock {
-  stroke: var(--color-text-muted);
+.medal > div[role="progressbar"] {
+  width: 100%;
 }
 
 .status {

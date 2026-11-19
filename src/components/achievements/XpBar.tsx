@@ -1,4 +1,4 @@
-import styles from "./achievements.module.css";
+import ui from "@/components/ui/ui.module.css";
 
 export type XpBarProps = {
   /** Accessible name. */
@@ -22,9 +22,9 @@ export function XpBar({ label, valueText, value, max }: XpBarProps) {
       aria-valuemax={safeMax}
       aria-valuenow={safeValue}
       aria-valuetext={valueText}
-      className={styles.track}
+      className={ui.track}
     >
-      <div className={styles.fill} style={{ width: `${percent}%` }} />
+      <div className={ui.trackFill} style={{ width: `${percent}%` }} />
     </div>
   );
 }

@@ -10,13 +10,13 @@
   font-size: var(--text-sm);
 }
 .svg {
-  width: 9rem;
-  height: 9rem;
+  width: 11rem;
+  height: 11rem;
   overflow: visible;
 }
 .glow,
 .normal {
-  filter: drop-shadow(0 0 8px var(--mascot-glow));
+  filter: drop-shadow(0 0 14px var(--mascot-glow));
 }
 .dim {
   filter: saturate(0.55) drop-shadow(0 0 6px var(--mascot-glow));

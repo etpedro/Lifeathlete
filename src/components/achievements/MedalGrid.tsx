@@ -25,10 +25,11 @@ export function MedalGrid({ items, timeZone }: { items: AchievementItem[]; timeZ
         const when = unlocked ? unlockDate(a.unlockedAt as string) : "";
         return (
           <li key={a.code} className={`${styles.medal} ${unlocked ? styles.medalUnlocked : styles.medalLocked}`} data-unlocked={unlocked}>
-            <svg className={styles.medalIcon} viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-              <circle className={unlocked ? styles.discUnlocked : styles.discLocked} cx="20" cy="22" r="13" strokeWidth="2" strokeDasharray={unlocked ? undefined : "4 3"} />
-              {unlocked ? <path className={styles.check} d="M13 22l5 5 9-10" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /> : <path className={styles.lock} d="M16 20v-3a4 4 0 018 0v3M15 20h10v8H15z" strokeWidth="2" fill="none" strokeLinejoin="round" />}
-            </svg>
+            <span className={styles.medallion}>
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                {unlocked ? <path d="M5 12.5l4.5 4.5L19 7" /> : <path d="M8 11V8a4 4 0 018 0v3M6 11h12v9H6z" />}
+              </svg>
+            </span>
             <h3>{a.title}</h3>
             {a.description && <p>{a.description}</p>}
             {a.pillarSlug && <p className={styles.muted}>{t("pillar", { pillar: tp(`${a.pillarSlug}.name`) })}</p>}

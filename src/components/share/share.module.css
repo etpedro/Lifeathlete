@@ -2,18 +2,25 @@
   display: grid;
   gap: var(--space-2);
 }
+/* The indigo call to action: --color-secondary to --color-focus, with --color-bg text
+   (dark text on the light dark-theme stops, light text on the deep light-theme stops). */
 .button {
   width: 100%;
-  font-weight: var(--weight-medium);
-  color: var(--color-text);
+  min-height: 3rem;
+  font-weight: var(--weight-semibold);
+  color: var(--color-bg);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-focus));
+  border-color: transparent;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glow);
 }
 .button:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  background: linear-gradient(135deg, var(--color-focus), var(--color-secondary));
 }
 .button::before {
   content: "↗" / "";
   margin-inline-end: var(--space-2);
-  color: var(--color-secondary);
+  color: var(--color-bg);
 }
 .status {
   margin: 0;

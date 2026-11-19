@@ -71,6 +71,28 @@ describe("AchievementsView", () => {
     expect(html).toContain("40 de 100 dias");
   });
 
+  it("puts an aria-hidden icon next to each streak label", () => {
+    const html = render({});
+    for (const label of [pt.achievements.streakCurrent, pt.achievements.streakBest]) {
+      const i = html.indexOf(label);
+      expect(i).toBeGreaterThan(0);
+      const li = html.slice(html.lastIndexOf("<li", i), i);
+      expect(li).toMatch(/<svg[^>]*aria-hidden="true"/);
+    }
+  });
+
+  it("keeps the unlocked/locked text cues and the medal progress text", () => {
+    const html = render({
+      medals: [
+        medal({ code: "a", title: "Aberta", unlockedAt: "2026-11-02T10:00:00Z" }),
+        medal({ code: "c", title: "Com barra", progress: { current: 3, target: 7 } }),
+      ],
+    });
+    expect(html).toMatch(/data-unlocked="true"[\s\S]*2 de nov\. de 2026/);
+    expect(html).toContain("3 de 7 dias");
+    expect(html).toContain(pt.achievements.locked);
+  });
+
   it("shows an error message when data failed to load, keeping the page", () => {
     const html = render({ stats: null, medals: null });
     expect(html.match(/role="alert"/g)).toHaveLength(2);

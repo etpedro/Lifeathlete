@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { ShareButton, type ShareButtonProps } from "@/components/share/ShareButton";
 import { Mascot } from "@/components/mascot/Mascot";
 import type { AchievementItem, ProfileStats } from "@/lib/data/stats";
+import ui from "@/components/ui/ui.module.css";
 import styles from "./achievements.module.css";
 import { MedalGrid } from "./MedalGrid";
 import { XpBar } from "./XpBar";
@@ -52,10 +53,15 @@ function Hero({ stats, resting }: { stats: ProfileStats; resting: boolean }) {
     ? t("restingDescription", { stage: stats.mascot.stage })
     : t("mascotDescription", { stage: stats.mascot.stage, variant: t(`variant.${stats.mascot.variant}`) });
   return (
-    <section className={styles.hero} aria-label={t("mascotLabel")}>
-      <Mascot stage={stats.mascot.stage} variant={stats.mascot.variant} resting={resting} description={description} />
+    <section className={`${ui.cardHero} ${styles.hero}`} aria-label={t("mascotLabel")}>
+      <div className={styles.stage}>
+        <Mascot stage={stats.mascot.stage} variant={stats.mascot.variant} resting={resting} description={description} />
+      </div>
       {resting && <p className={styles.restingNote}>{t("resting")}</p>}
-      <p className={styles.level}>{t("level", { level: stats.level })}</p>
+      <p className={styles.level}>
+        <span>{t("level", { level: stats.level })}</span>
+        <span className={`${ui.badge} ${ui.badgeGold}`}>{tier}</span>
+      </p>
       <p className={styles.tier}>
         {t("tierLabel")}: {tier}
       </p>
@@ -67,17 +73,43 @@ function Hero({ stats, resting }: { stats: ProfileStats; resting: boolean }) {
   );
 }
 
+function FlameIcon() {
+  return (
+    <span className={`${styles.tileIcon} ${styles.tileFlame}`}>
+      <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+        <path d="M12 2c1 3.2 4.5 5.4 4.5 9.6A4.5 4.5 0 0 1 12 16a4.5 4.5 0 0 1-4.5-4.4c0-1.6.7-2.8 1.6-3.8.2 1.2.8 1.9 1.6 2.2C10.3 7 10.7 4.4 12 2Zm0 20a6.5 6.5 0 0 1-6.5-6.5c0-1 .3-2 .8-2.9.6 1.6 1.9 2.7 3.2 3.2a5 5 0 0 0 5 1.1 5 5 0 0 0 3.5-4.2 6.5 6.5 0 0 1 .5 2.8A6.5 6.5 0 0 1 12 22Z" />
+      </svg>
+    </span>
+  );
+}
+
+function TrophyIcon() {
+  return (
+    <span className={`${styles.tileIcon} ${styles.tileGold}`}>
+      <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 4h8v6a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 14v4M8 20h8" />
+      </svg>
+    </span>
+  );
+}
+
 function Streaks({ stats }: { stats: ProfileStats }) {
   const t = useTranslations("achievements");
   return (
     <ul className={styles.streaks}>
-      <li>
-        <span>{t("streakCurrent")}</span>
-        <span className={styles.streakValue}>{t("days", { count: stats.currentStreak })}</span>
+      <li className={ui.card}>
+        <FlameIcon />
+        <span className={styles.tileText}>
+          <span>{t("streakCurrent")}</span>
+          <span className={styles.streakValue}>{t("days", { count: stats.currentStreak })}</span>
+        </span>
       </li>
-      <li>
-        <span>{t("streakBest")}</span>
-        <span className={styles.streakValue}>{t("days", { count: stats.bestStreak })}</span>
+      <li className={ui.card}>
+        <TrophyIcon />
+        <span className={styles.tileText}>
+          <span>{t("streakBest")}</span>
+          <span className={styles.streakValue}>{t("days", { count: stats.bestStreak })}</span>
+        </span>
       </li>
     </ul>
   );

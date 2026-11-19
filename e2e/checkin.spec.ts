@@ -18,7 +18,7 @@ test("marking a habit gives immediate feedback: +10 XP", async ({ page }) => {
   // exercise + meditation give 6 habits, so one tick is 10 XP (no day-complete bonus)
   await expect(page.getByRole("status").filter({ hasText: xpToast(10) })).toBeVisible({ timeout: 15_000 });
   const stats = page.getByRole("region", { name: pt.today.stats.label });
-  await expect(stats.getByText(pt.today.stats.xp.replace("{xp}", "10"), { exact: true })).toBeVisible();
+  await expect(stats.getByText(pt.achievements.xp.replace("{into}", "10").replace("{next}", "100"), { exact: true })).toBeVisible();
 
   // persisted: still ticked after a reload
   await page.reload();

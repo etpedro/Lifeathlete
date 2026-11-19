@@ -140,7 +140,6 @@
     },
     "stats": {
       "label": "Your progress",
-      "xp": "{xp} XP",
       "level": "Level {level}",
       "streak": "{count, plural, =0 {No streak} one {# day streak} other {# day streak}}"
     },

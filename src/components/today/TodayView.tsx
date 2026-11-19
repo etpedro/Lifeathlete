@@ -45,7 +45,8 @@ export function TodayView(props: TodayControllerProps) {
     weekday: "long",
     day: "numeric",
     month: "long",
-    timeZone: props.timezone,
+    // c.today is already a local calendar date: format it as that date, not as an instant.
+    timeZone: "UTC",
   }).format(new Date(`${c.today}T12:00:00Z`));
 
   const habits = c.data?.pillars.flatMap((p) => p.habits) ?? [];

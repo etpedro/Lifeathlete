@@ -1,17 +1,17 @@
 // The hero follows the selected day: the controller is stubbed so the view renders as if "Ontem" was picked.
 import { NextIntlClientProvider } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { TodayData } from "@/lib/data/today";
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 
-const state = vi.hoisted(() => ({ date: "2026-11-06", data: null as TodayData | null }));
+const state = vi.hoisted(() => ({ today: "2026-11-06", date: "2026-11-06", data: null as TodayData | null }));
 
 vi.mock("./useTodayController", () => ({
   useTodayController: () => ({
     online: true,
-    today: "2026-11-06",
+    today: state.today,
     date: state.date,
     data: state.data,
     pendingIds: new Set<string>(),
@@ -37,13 +37,17 @@ const h = (id: string, value: number) => ({
   source: "manual" as const,
 });
 
-function render(locale: "pt" | "en" = "pt") {
+function render(locale: "pt" | "en" = "pt", timezone = "UTC", today = "2026-11-06") {
   return renderToStaticMarkup(
     <NextIntlClientProvider locale={locale} messages={locale === "pt" ? pt : en} timeZone="UTC">
-      <TodayView userId="u" timezone="UTC" today="2026-11-06" initialData={null} initialStats={{ xpTotal: 0, level: 1, currentStreak: 0, computedFor: null }} />
+      <TodayView userId="u" timezone={timezone} today={today} initialData={null} initialStats={{ xpTotal: 0, level: 1, currentStreak: 0, computedFor: null }} />
     </NextIntlClientProvider>,
   );
 }
+
+afterEach(() => {
+  state.today = "2026-11-06";
+});
 
 describe("TodayView hero follows the selected day", () => {
   const data: TodayData = { pillars: [{ pillarId: "p", slug: "exercise", habits: [h("a", 1), h("b", 0), h("c", 1)] }] };
@@ -78,4 +82,19 @@ describe("TodayView hero follows the selected day", () => {
     expect(html).not.toMatch(/NaN|Infinity/);
     expect(html).toContain("0 de 0 hábitos feitos");
   });
+});
+
+describe("TodayView date text", () => {
+  it.each(["Pacific/Auckland", "Pacific/Kiritimati", "Etc/GMT+12", "UTC"])(
+    "names the local calendar day (Thursday 19 November) in %s",
+    (tz) => {
+      state.today = "2026-11-19";
+      state.date = "2026-11-19";
+      state.data = null;
+      const html = render("en", tz, "2026-11-19");
+      expect(html).toContain("Thursday, November 19");
+      expect(html).not.toContain("Friday");
+      expect(html).not.toContain("Wednesday");
+    },
+  );
 });

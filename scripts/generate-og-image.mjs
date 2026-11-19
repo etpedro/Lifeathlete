@@ -1,7 +1,8 @@
 // Renders the landing page's share image public/landing/og.png (1200x630, dark theme) with
 // the preinstalled Chromium (Playwright): the headline next to the dragonfly floating over
-// the Wheel of Life, like the hero. Colors (the "Crepúsculo vivo" night, pillar colors for the dots) are the dark tokens of src/styles/tokens.css and
-// the copy comes from the message files. Run when the hero changes:
+// the Wheel of Life, like the hero. Colors (the "Crepúsculo vivo" night, pillar colors for the
+// dots) are the dark tokens of src/styles/tokens.css and the copy comes from the message files.
+// Run when the hero changes:
 //   node scripts/generate-og-image.mjs
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";

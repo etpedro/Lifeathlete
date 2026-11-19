@@ -13,7 +13,9 @@ const rule = (selector: string) => {
 
 describe("today habit rows keep the focus ring visible", () => {
   it("does not clip .habit unless the button's focus ring is inset", () => {
-    const clips = /overflow\s*:\s*(hidden|clip)/.test(rule(".habit"));
+    const habit = rule(".habit");
+    expect(habit.trim().length, "the .habit rule must be found (not grouped or renamed)").toBeGreaterThan(0);
+    const clips = /overflow(?:-x|-y)?\s*:\s*(hidden|clip|auto)/.test(habit);
     const inset = /outline-offset\s*:\s*-/.test(rule(".habitButton:focus-visible"));
     expect(clips && !inset).toBe(false);
   });

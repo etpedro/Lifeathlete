@@ -225,6 +225,36 @@ describe("share card palette", () => {
     for (const hex of used) expect(allowed, hex).toContain(hex);
   });
 
+  // summary.ts keeps C and PILLAR_COLORS private (it ships as an Edge Function): read the source.
+  const src = readFileSync(join(process.cwd(), "supabase/functions/weekly-summary/summary.ts"), "utf8");
+  const constant = (name: string) => src.match(new RegExp(`\\b${name}:\\s*"(#[0-9a-fA-F]{6})"`))?.[1].toLowerCase();
+
+  it.each([
+    ["bgTop", "bg-top"],
+    ["bgBottom", "bg-bottom"],
+    ["glowA", "bg-glow-a"],
+    ["glowB", "bg-glow-b"],
+    ["heroTop", "hero-top"],
+    ["heroBottom", "hero-bottom"],
+    ["medalTop", "medal-top"],
+    ["medalBottom", "medal-bottom"],
+    ["onMedal", "color-on-medal"],
+    ["flame", "color-flame"],
+    ["text", "color-text"],
+    ["muted", "color-text-muted"],
+    ["accent", "color-secondary"],
+  ])("constant %s equals the dark token --%s", (name, tok) => {
+    expect(token[tok], tok).toBeDefined();
+    expect(constant(name), name).toBe(token[tok]);
+  });
+
+  it("PILLAR_COLORS keys are exactly the pillar slugs, each equal to its dark token", () => {
+    const body = src.match(/const PILLAR_COLORS[^=]*=\s*\{([^}]*)\}/)?.[1] ?? "";
+    const entries = [...body.matchAll(/"?([\w-]+)"?:\s*"(#[0-9a-fA-F]{6})"/g)].map((m) => [m[1], m[2].toLowerCase()] as const);
+    expect(entries.map(([k]) => k).sort()).toEqual([...allSlugs].sort());
+    for (const [slug, hex] of entries) expect(hex, slug).toBe(token[`pillar-${slug}`]);
+  });
+
   it("paints the gradient background, gold level badge, flame streak and per-pillar dots from tokens", () => {
     for (const name of ["bg-top", "bg-bottom", "medal-top", "medal-bottom", "color-on-medal", "color-flame"]) {
       expect(full).toContain(token[name]);

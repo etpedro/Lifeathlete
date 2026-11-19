@@ -41,6 +41,8 @@ const UI_ROLES = ["color-border-strong", "color-focus", "color-primary", "color-
 const PAIRS: [string, string, number][] = [
   ["color-on-primary", "color-primary", 4.5],
   ["color-on-primary", "color-primary-hover", 4.5],
+  // Landing primary CTA gradient starts on the nature pillar color.
+  ["color-on-primary", "pillar-nature", 4.5],
   ["color-on-gold", "color-accent-gold", 4.5],
   ["color-text", "color-surface-hover", 4.5],
   ["color-text", "color-input-bg", 4.5],
@@ -118,11 +120,16 @@ describe.each(Object.entries(THEMES))("%s theme tokens", (_name, t) => {
   });
 
   it.each(Object.keys(t).filter((k) => k.startsWith("pillar-")))(
-    "done check glyph (color-on-primary) on the %s fill is at least 3:1",
+    "done check glyph (color-on-primary) on the %s fill is at least 4.5:1",
     (pillar) => {
-      expect(contrast(t["color-on-primary"], t[pillar])).toBeGreaterThanOrEqual(3);
+      expect(contrast(t["color-on-primary"], t[pillar])).toBeGreaterThanOrEqual(4.5);
     },
   );
+
+  // Onboarding tiles draw --color-bg text/glyph on the pillar fill.
+  it.each(Object.keys(t).filter((k) => k.startsWith("pillar-")))("color-bg on the %s fill is at least 3:1", (pillar) => {
+    expect(contrast(t["color-bg"], t[pillar])).toBeGreaterThanOrEqual(3);
+  });
 
   it("defines the 10 pillar colors", () => {
     expect(Object.keys(t).filter((k) => k.startsWith("pillar-"))).toHaveLength(10);

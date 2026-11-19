@@ -40,7 +40,7 @@
   justify-content: center;
   gap: var(--space-1);
   text-align: center;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1);
   color: var(--color-text-muted);
   text-decoration: none;
   font-size: var(--text-sm);
@@ -57,6 +57,8 @@
 .label {
   min-width: 0;
   overflow-wrap: anywhere;
+  /* Prefer a hyphen over a bare mid-word break ("Achieve-ments") when a long label must wrap. */
+  hyphens: auto;
 }
 .icon {
   display: grid;
@@ -70,6 +72,14 @@
 }
 .tab[aria-current="page"] .icon {
   background: var(--color-primary-soft);
+}
+
+/* Very narrow phones: tighter tabs so "Conquistas" stays on one line. */
+@media (max-width: 22.5rem) {
+  .tab {
+    padding-inline: 2px;
+    font-size: 0.75rem;
+  }
 }
 
 /* Forced colors drop backgrounds: keep a non-color cue for the active tab. */

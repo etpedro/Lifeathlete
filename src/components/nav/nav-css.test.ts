@@ -24,4 +24,14 @@ describe("nav css", () => {
     expect(rule![1]).toMatch(/min-width:\s*0/);
     expect(rule![1]).toMatch(/overflow-wrap:\s*anywhere/);
   });
+
+  it("tightens the tabs on very narrow phones so labels stay on one line", () => {
+    expect(css).toMatch(/@media \(max-width: 22\.5rem\)\s*\{[^}]*\.tab\s*\{[^}]*font-size/);
+  });
+
+  it("the EN Achievements tab label carries a soft hyphen so it wraps cleanly at 320px", async () => {
+    const en = (await import("@/messages/en.json")).default;
+    expect(en.common.nav.achievements.replace(/\u00ad/g, "")).toBe("Achievements");
+    expect(en.common.nav.achievements).toContain("\u00ad");
+  });
 });

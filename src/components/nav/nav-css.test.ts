@@ -26,7 +26,8 @@ describe("nav css", () => {
   });
 
   it("tightens the tabs on very narrow phones so labels stay on one line", () => {
-    expect(css).toMatch(/@media \(max-width: 22\.5rem\)\s*\{[^}]*\.tab\s*\{[^}]*font-size/);
+    expect(css).toMatch(/@media \(max-width: 30rem\)\s*\{[^@]*\.label\s*\{[^}]*font-size/);
+    expect(css).toMatch(/@media \(max-width: 23\.75rem\)\s*\{[^@]*--nav-inset/);
   });
 
   it("the EN Achievements tab label carries a soft hyphen so it wraps cleanly at 320px", async () => {

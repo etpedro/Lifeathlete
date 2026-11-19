@@ -74,11 +74,22 @@
   background: var(--color-primary-soft);
 }
 
-/* Very narrow phones: tighter tabs so "Conquistas" stays on one line. */
-@media (max-width: 22.5rem) {
+/* Phones: a 12px label (11px under 380px, with a slimmer bar inset) keeps "Achievements" and
+   "Conquistas" on one line from 360px up; at 320px EN falls back to a soft-hyphen wrap. */
+@media (max-width: 30rem) {
   .tab {
     padding-inline: 2px;
+  }
+  .label {
     font-size: 0.75rem;
+  }
+}
+@media (max-width: 23.75rem) {
+  .nav {
+    --nav-inset: 0.5rem;
+  }
+  .label {
+    font-size: 0.6875rem;
   }
 }
 

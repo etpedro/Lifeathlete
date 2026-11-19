@@ -15,6 +15,10 @@ export const PILLAR_SLUGS = [
 ] as const;
 export type PillarSlug = (typeof PILLAR_SLUGS)[number];
 
+export function isPillarSlug(slug: string): slug is PillarSlug {
+  return (PILLAR_SLUGS as readonly string[]).includes(slug);
+}
+
 /** Simple 24x24 stroke drawings, one per pillar (colored by currentColor). */
 const ICONS: Record<PillarSlug, ReactNode> = {
   // dumbbell
@@ -88,7 +92,7 @@ const ICONS: Record<PillarSlug, ReactNode> = {
 };
 
 /** A pillar's calm stroke icon. Decorative: the pillar name is next to it. */
-export function PillarIcon({ slug, className }: { slug: PillarSlug; className?: string }) {
+export function PillarIcon({ slug, className }: { slug: string; className?: string }) {
   return (
     <svg
       className={className}
@@ -102,7 +106,7 @@ export function PillarIcon({ slug, className }: { slug: PillarSlug; className?: 
       focusable="false"
       data-pillar-icon={slug}
     >
-      {ICONS[slug]}
+      {isPillarSlug(slug) ? ICONS[slug] : <circle cx="12" cy="12" r="7" />}
     </svg>
   );
 }

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import { Landing } from "./Landing";
-import { PILLAR_SLUGS } from "./PillarIcon";
+import { PILLAR_SLUGS } from "../ui/PillarIcon";
 import { SCREEN_HEIGHT, SCREEN_WIDTH, screenSrc } from "./SeeIt";
 
 const MESSAGES = { pt, en } as const;

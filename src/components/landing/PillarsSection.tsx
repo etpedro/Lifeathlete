@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { PILLAR_SLUGS, PillarIcon } from "./PillarIcon";
+import { PILLAR_SLUGS, PillarIcon } from "../ui/PillarIcon";
 import styles from "./pillars.module.css";
 import section from "./section.module.css";
 

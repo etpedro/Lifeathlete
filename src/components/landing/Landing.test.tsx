@@ -173,6 +173,17 @@ describe("landing page in both languages", () => {
   });
 });
 
+describe("landing screenshot alt texts", () => {
+  it.each(["pt", "en"] as const)("(%s) describe what the images show, with no figures that can drift from the picture", (locale) => {
+    const see = MESSAGES[locale].landing.see;
+    expect(JSON.stringify(MESSAGES[locale].landing)).not.toContain("1240");
+    expect(see.today.alt).toMatch(locale === "pt" ? /nível 4/ : /level 4/);
+    expect(see.today.alt).toMatch(locale === "pt" ? /barra de XP/ : /XP bar/);
+    expect(see.today.alt).toMatch(locale === "pt" ? /12 dias seguidos/ : /12-day streak/);
+    expect(see.today.alt).toMatch(locale === "pt" ? /anel de progresso/ : /progress ring/);
+  });
+});
+
 describe("committed landing images", () => {
   const PUBLIC = join(process.cwd(), "public");
   it.each(["today", "wheel"].flatMap((s) => ["pt", "en"].map((l) => screenSrc(s as "today", l))))(

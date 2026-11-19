@@ -512,7 +512,7 @@
       "sample": "Real app screens, with sample data.",
       "today": {
         "caption": "Today",
-        "alt": "The Today screen: level 4, 1240 XP and a 12-day streak, with habits grouped by pillar, some done and some still to do."
+        "alt": "The Today screen: level 4, an XP bar, a 12-day streak and the daily progress ring, with habits grouped by pillar, some done and some still to do."
       },
       "wheel": {
         "caption": "Wheel of Life",

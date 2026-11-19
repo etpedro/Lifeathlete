@@ -14,8 +14,9 @@
   gap: var(--space-2);
   padding: var(--space-6);
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  background: var(--landing-card);
   border: var(--border-width) solid var(--color-border);
+  box-shadow: var(--shadow-card);
 }
 .label {
   color: var(--color-primary);
@@ -75,7 +76,7 @@
 .ripple,
 .rippleFaint {
   fill: none;
-  stroke: var(--color-primary);
+  stroke: var(--pillar-nature);
 }
 .ripple {
   opacity: 0.45;
@@ -84,7 +85,7 @@
   opacity: 0.2;
 }
 .check {
-  fill: var(--color-primary);
+  fill: var(--pillar-nature);
 }
 .tick {
   fill: none;
@@ -100,22 +101,22 @@
   stroke-linecap: round;
 }
 .medalFace {
-  fill: var(--color-gold-soft);
-  stroke: var(--color-accent-gold);
+  fill: var(--medal-top);
+  stroke: var(--medal-bottom);
   stroke-width: 2;
 }
 .star {
-  fill: var(--color-accent-gold);
+  fill: var(--color-on-medal);
 }
 .flame {
-  fill: var(--mascot-sparkle);
+  fill: var(--color-flame);
   opacity: 0.9;
 }
 .track {
   fill: var(--color-track);
 }
 .fill {
-  fill: var(--color-primary);
+  fill: var(--pillar-screens);
 }
 .miniRing {
   fill: none;
@@ -124,17 +125,17 @@
   opacity: 0.6;
 }
 .miniArea {
-  fill: color-mix(in srgb, var(--color-primary) 22%, transparent);
-  stroke: var(--color-primary);
+  fill: color-mix(in srgb, var(--pillar-meditation) 28%, transparent);
+  stroke: var(--pillar-nature);
   stroke-width: 1.8;
   stroke-linejoin: round;
 }
 .careRing {
   fill: none;
-  stroke: var(--color-accent-gold);
+  stroke: var(--pillar-gratitude);
   stroke-width: 1.4;
   opacity: 0.7;
 }
 .care {
-  fill: var(--color-accent-gold);
+  fill: var(--pillar-gratitude);
 }

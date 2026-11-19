@@ -69,11 +69,18 @@ const LANDING_BACKGROUNDS = [
   "landing-band",
   "landing-cta-top",
   "landing-cta-bottom",
+  "landing-card",
 ];
 /** Every text color the landing page puts on those surfaces. */
 const LANDING_TEXT = ["color-text", "color-text-muted", "color-primary", "color-secondary", "color-accent-gold"];
 /** The outlined secondary button's border and the focus ring on those surfaces: 3:1. */
-const LANDING_UI = ["color-border-strong", "color-focus", "color-primary"];
+const LANDING_UI = [
+  "color-border-strong",
+  "color-focus",
+  "color-primary",
+  // The ten pillar colors tint the icons on the landing cards (an icon always accompanies the color).
+  ...["exercise", "nutrition", "nature", "gratitude", "screens", "lightness", "meditation", "active-lifestyle", "reading", "family"].map((p) => `pillar-${p}`),
+];
 
 describe.each(Object.entries(THEMES))("%s theme landing page", (_name, t) => {
   it.each(LANDING_TEXT.flatMap((fg) => LANDING_BACKGROUNDS.map((bg) => [fg, bg] as const)))(

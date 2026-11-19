@@ -1,11 +1,13 @@
-/* The page canvas: a night sky gradient behind the header and hero (both stops are
-   contrast-tested), then the plain background. */
+/* The page canvas: the app's petrol-to-indigo night (both stops are contrast-tested) over the
+   whole page, with two soft glows (the wheel glow and a violet echo). */
 .page {
   min-height: 100vh;
   overflow-x: clip;
   background:
-    linear-gradient(180deg, var(--landing-sky-top) 0, var(--landing-sky-bottom) 52rem) no-repeat,
-    var(--color-bg);
+    radial-gradient(60rem 36rem at 85% 4rem, color-mix(in srgb, var(--landing-glow) 80%, transparent), transparent 70%),
+    radial-gradient(48rem 30rem at -5% 70rem, color-mix(in srgb, var(--landing-glow) 55%, transparent), transparent 70%),
+    linear-gradient(175deg, var(--landing-sky-top), var(--landing-sky-bottom));
+  background-color: var(--landing-sky-bottom);
 }
 /* Smooth anchor scrolling on this page only, and never with reduced motion. */
 @media (prefers-reduced-motion: no-preference) {

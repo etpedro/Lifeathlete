@@ -1,6 +1,6 @@
 // Renders the landing page's share image public/landing/og.png (1200x630, dark theme) with
 // the preinstalled Chromium (Playwright): the headline next to the dragonfly floating over
-// the Wheel of Life, like the hero. Colors are the dark tokens of src/styles/tokens.css and
+// the Wheel of Life, like the hero. Colors (the "Crepúsculo vivo" night, pillar colors for the dots) are the dark tokens of src/styles/tokens.css and
 // the copy comes from the message files. Run when the hero changes:
 //   node scripts/generate-og-image.mjs
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -34,7 +34,9 @@ const point = (i, score, r = C.r) => {
 };
 const poly = (scores, r) => scores.map((s, i) => point(i, s, r).map((n) => n.toFixed(1)).join(",")).join(" ");
 const SCORES = [80, 66, 72, 88, 58, 70, 62, 76, 84, 68];
-const TONES = [t["color-primary"], t["mascot-wing-a"], t["color-secondary"], t["mascot-sparkle"]];
+// One color per pillar, in the Wheel's order (the hero's dots).
+const PILLARS = ["exercise", "nutrition", "nature", "gratitude", "screens", "lightness", "meditation", "active-lifestyle", "reading", "family"];
+const TONES = PILLARS.map((p) => t[`pillar-${p}`]);
 const rings = [25, 50, 75, 100].map((s) => `<polygon points="${poly(Array(10).fill(s))}" fill="none" stroke="${t["landing-ring"]}" stroke-width="1.2"/>`).join("");
 const axes = Array.from({ length: 10 }, (_, i) => {
   const [x, y] = point(i, 100);
@@ -42,7 +44,7 @@ const axes = Array.from({ length: 10 }, (_, i) => {
 }).join("");
 const dots = SCORES.map((s, i) => {
   const [x, y] = point(i, s);
-  return `<circle cx="${x}" cy="${y}" r="6.5" fill="${TONES[i % 4]}" stroke="${t["color-bg"]}" stroke-width="2.5"/>`;
+  return `<circle cx="${x}" cy="${y}" r="6.5" fill="${TONES[i]}" stroke="${t["color-bg"]}" stroke-width="2.5"/>`;
 }).join("");
 const beads = Array.from({ length: 10 }, (_, i) => {
   const [x, y] = point(i, 100, C.r + 30);
@@ -72,15 +74,17 @@ const mascot = `
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   * { box-sizing: border-box; margin: 0; }
   body { width: ${WIDTH}px; height: ${HEIGHT}px; overflow: hidden; font-family: ${t["font-sans"]};
-    background: linear-gradient(180deg, ${t["landing-sky-top"]}, ${t["landing-sky-bottom"]}); color: ${t["color-text"]}; }
+    background: radial-gradient(60% 80% at 80% 30%, ${t["landing-glow"]}, transparent 70%), linear-gradient(175deg, ${t["landing-sky-top"]}, ${t["landing-sky-bottom"]}); color: ${t["color-text"]}; }
   .copy { position: absolute; left: 80px; top: 0; bottom: 0; width: 560px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
   .brand { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 600; }
-  h1 { font-size: 76px; line-height: 1.02; font-weight: 650; letter-spacing: -0.035em; }
+  h1 { font-size: 76px; line-height: 1.02; font-weight: 750; letter-spacing: -0.035em; }
   .en { font-size: 34px; color: ${t["color-text-muted"]}; font-weight: 500; letter-spacing: -0.01em; }
   .promise { font-size: 25px; white-space: nowrap; color: ${t["color-primary"]}; font-weight: 500; }
-  .art { position: absolute; right: 10px; top: -20px; width: 600px; height: 660px; }
+  .art { position: absolute; right: 10px; top: 4px; width: 600px; height: 660px; }
   .glow { position: absolute; left: 70px; top: 150px; width: 460px; height: 460px; border-radius: 50%;
     background: radial-gradient(closest-side, ${t["landing-glow"]}, transparent); }
+  .cta { align-self: flex-start; padding: 12px 30px; border-radius: 999px; font-size: 24px; font-weight: 600; color: ${t["color-on-primary"]};
+    background: linear-gradient(135deg, ${t["pillar-nature"]}, ${t["color-primary"]}); }
   .art > svg { position: absolute; inset: 0; }
   .art > svg.fly { position: absolute; inset: auto; left: 190px; top: -4px; width: 220px; height: 220px;
     filter: drop-shadow(0 0 10px color-mix(in srgb, ${t["color-accent-gold"]} 55%, transparent)) saturate(1.2); }
@@ -96,6 +100,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
     <h1>${esc(pt.landing.hero.title)}</h1>
     <p class="en">${esc(en.landing.hero.title)}</p>
     <p class="promise">${esc(pt.landing.hero.subtitle)}</p>
+    <span class="cta">${esc(pt.landing.hero.cta)}</span>
   </div>
   <div class="art">
     <div class="glow"></div>
@@ -103,7 +108,8 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
       ${stars}
       <circle cx="${C.cx}" cy="${C.cy}" r="${C.r + 30}" fill="none" stroke="${t["landing-ring"]}" stroke-dasharray="2 7"/>
       ${rings}${axes}
-      <polygon points="${poly(SCORES)}" fill="color-mix(in srgb, ${t["color-primary"]} 20%, transparent)" stroke="${t["color-primary"]}" stroke-width="3" stroke-linejoin="round"/>
+      <defs><linearGradient id="area" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t["pillar-nature"]}" stop-opacity="0.42"/><stop offset="1" stop-color="${t["pillar-meditation"]}" stop-opacity="0.34"/></linearGradient></defs>
+      <polygon points="${poly(SCORES)}" fill="url(#area)" stroke="${t["pillar-nature"]}" stroke-width="3" stroke-linejoin="round"/>
       ${dots}${beads}
     </svg>
     <svg class="fly" viewBox="0 0 120 120">${mascot}</svg>

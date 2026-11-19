@@ -3,7 +3,7 @@
   padding: clamp(3.5rem, 2.5rem + 5vw, 6.5rem) var(--gutter);
 }
 .band {
-  background: var(--landing-band);
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--landing-band) 78%, transparent) 18%, color-mix(in srgb, var(--landing-band) 78%, transparent) 82%, transparent);
 }
 .inner {
   width: 100%;
@@ -19,8 +19,8 @@
 }
 .title {
   font-size: clamp(1.75rem, 1.35rem + 1.8vw, 2.5rem);
-  font-weight: var(--weight-semibold);
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
 .lead {
   color: var(--color-text-muted);

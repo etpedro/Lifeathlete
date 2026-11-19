@@ -1,12 +1,22 @@
 /* Two phone frames: side by side on desktop, overlapping (the second lower) on phones. */
 .phones {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding-bottom: var(--space-8);
 }
+.phones::before {
+  content: "";
+  position: absolute;
+  inset: 6% 8% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--pillar-meditation) 28%, transparent), transparent);
+  pointer-events: none;
+}
 .figure {
   margin: 0;
+  position: relative;
   width: min(48%, 17.5rem);
   display: grid;
   justify-items: center;

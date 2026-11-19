@@ -19,7 +19,7 @@ export function Hero() {
           <p className={styles.subtitle}>{t("subtitle")}</p>
           <div className={styles.actions}>
             <CtaLink label={t("cta")} />
-            <a href={`#${HOW_IT_WORKS_ID}`} className={`${cta.button} ${cta.secondary}`}>
+            <a href={`#${HOW_IT_WORKS_ID}`} className={cta.secondary}>
               {t("more")}
             </a>
           </div>

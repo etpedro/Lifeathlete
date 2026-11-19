@@ -1,9 +1,9 @@
+import type { CSSProperties } from "react";
 import { useTranslations } from "next-intl";
+import { pillarColor } from "@/lib/pillars";
 import { PILLAR_SLUGS, PillarIcon } from "../ui/PillarIcon";
 import styles from "./pillars.module.css";
 import section from "./section.module.css";
-
-const TONES = ["primary", "secondary", "gold"] as const;
 
 /** The 10 pillars, numbered like the Wheel's axes, with their names and descriptions. */
 export function PillarsSection() {
@@ -20,7 +20,7 @@ export function PillarsSection() {
         </div>
         <ul className={styles.grid}>
           {PILLAR_SLUGS.map((slug, i) => (
-            <li key={slug} className={`${styles.card} ${styles[TONES[i % TONES.length]]}`}>
+            <li key={slug} className={styles.card} style={{ "--pillar": pillarColor(slug) } as CSSProperties}>
               <span className={styles.badge}>
                 <PillarIcon slug={slug} className={styles.icon} />
               </span>

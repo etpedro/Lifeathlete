@@ -17,29 +17,17 @@
   align-content: start;
   padding: var(--space-4);
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  background: var(--landing-card);
   border: var(--border-width) solid var(--color-border);
+  border-top: 3px solid var(--pillar);
+  box-shadow: var(--shadow-card);
   transition:
     border-color var(--duration) ease,
-    background-color var(--duration) ease,
     transform var(--duration) ease;
 }
 .card:hover {
-  border-color: var(--tone);
-  background: var(--color-surface-raised);
+  border-color: var(--pillar);
   transform: translateY(-2px);
-}
-.primary {
-  --tone: var(--color-primary);
-  --tone-soft: var(--color-primary-soft);
-}
-.secondary {
-  --tone: var(--color-secondary);
-  --tone-soft: var(--color-secondary-soft);
-}
-.gold {
-  --tone: var(--color-accent-gold);
-  --tone-soft: var(--color-gold-soft);
 }
 .badge {
   display: grid;
@@ -47,8 +35,9 @@
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 50%;
-  background: var(--tone-soft);
-  color: var(--tone);
+  border: var(--border-width) solid color-mix(in srgb, var(--pillar) 45%, transparent);
+  background: color-mix(in srgb, var(--pillar) 18%, transparent);
+  color: var(--pillar);
   grid-row: span 2;
 }
 .icon {

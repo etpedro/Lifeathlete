@@ -1,5 +1,7 @@
 import { Mascot } from "@/components/mascot/Mascot";
 import { polygonPoints, radarPoint, type Circle } from "@/components/wheel/geometry";
+import { pillarColor } from "@/lib/pillars";
+import { PILLAR_SLUGS } from "../ui/PillarIcon";
 import styles from "./heroArt.module.css";
 
 const SIZE = 400;
@@ -8,7 +10,6 @@ const AXES = 10;
 const RINGS = [25, 50, 75, 100];
 /** An illustrative, fairly balanced wheel (not anyone's data). */
 const SCORES = [80, 66, 72, 88, 58, 70, 62, 76, 84, 68];
-const DOT_TONES = ["toneA", "toneB", "toneC", "toneD"] as const;
 const STARS: [number, number, number][] = [
   [34, 58, 1.6],
   [88, 22, 1.1],
@@ -36,6 +37,12 @@ export function HeroArt({ mascotLabel }: { mascotLabel: string }) {
         {STARS.map(([x, y, r], i) => (
           <circle key={`${x}-${y}`} className={i % 3 === 0 ? `${styles.star} ${styles.twinkle}` : styles.star} cx={x} cy={y} r={r} />
         ))}
+        <defs>
+          <linearGradient id="hero-wheel-fill" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" style={{ stopColor: "var(--pillar-nature)", stopOpacity: 0.42 }} />
+            <stop offset="1" style={{ stopColor: "var(--pillar-meditation)", stopOpacity: 0.34 }} />
+          </linearGradient>
+        </defs>
         <circle className={styles.halo} cx={WHEEL.cx} cy={WHEEL.cy} r={WHEEL.radius + 22} />
         {RINGS.map((r) => (
           <polygon key={r} className={styles.ring} points={ring(r)} />
@@ -44,10 +51,10 @@ export function HeroArt({ mascotLabel }: { mascotLabel: string }) {
           const end = radarPoint(i, AXES, 100, WHEEL);
           return <line key={i} className={styles.axis} x1={WHEEL.cx} y1={WHEEL.cy} x2={end.x} y2={end.y} />;
         })}
-        <polygon className={styles.area} points={polygonPoints(SCORES, WHEEL)} />
+        <polygon className={styles.area} fill="url(#hero-wheel-fill)" points={polygonPoints(SCORES, WHEEL)} />
         {SCORES.map((s, i) => {
           const p = radarPoint(i, AXES, s, WHEEL);
-          return <circle key={i} className={`${styles.dot} ${styles[DOT_TONES[i % DOT_TONES.length]]}`} cx={p.x} cy={p.y} r={5} />;
+          return <circle key={i} className={styles.dot} style={{ fill: pillarColor(PILLAR_SLUGS[i]) }} cx={p.x} cy={p.y} r={5.5} />;
         })}
         {Array.from({ length: AXES }, (_, i) => {
           const p = radarPoint(i, AXES, 100, { ...WHEEL, radius: WHEEL.radius + 22 });

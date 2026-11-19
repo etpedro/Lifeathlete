@@ -1,7 +1,9 @@
 /* The closing call to action on a soft gradient (both stops are contrast-tested). */
 .final {
   padding: clamp(3.5rem, 2.5rem + 5vw, 6.5rem) var(--gutter);
-  background: linear-gradient(180deg, var(--landing-cta-top), var(--landing-cta-bottom));
+  background:
+    radial-gradient(34rem 18rem at 50% 0, color-mix(in srgb, var(--pillar-nature) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--landing-cta-top), var(--landing-cta-bottom));
 }
 .inner {
   max-width: 36rem;
@@ -13,8 +15,8 @@
 }
 .title {
   font-size: clamp(1.75rem, 1.35rem + 1.8vw, 2.5rem);
-  font-weight: var(--weight-semibold);
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
 .body {

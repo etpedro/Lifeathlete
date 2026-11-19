@@ -1,5 +1,13 @@
-/* The landing's two link styles: the filled "Entrar" and the outlined secondary link. */
-.button {
+/* The landing's two link styles: the filled "Entrar" and the outlined secondary link. Each is ONE
+   class composed from the shared button base + variant (see ui/ui.module.css). */
+.primary {
+  composes: btn btnPrimary from "../ui/ui.module.css";
+}
+.secondary {
+  composes: btn btnSecondary from "../ui/ui.module.css";
+}
+.primary,
+.secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -7,7 +15,7 @@
   min-height: 3rem;
   min-width: var(--touch-target);
   padding: 0 var(--space-8);
-  border-radius: var(--radius-pill);
+  border: var(--border-width) solid transparent;
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   text-decoration: none;
@@ -17,28 +25,32 @@
     color var(--duration) ease,
     transform var(--duration) ease;
 }
-.primary {
-  background: var(--color-primary);
+a.primary {
+  background: linear-gradient(135deg, var(--pillar-nature), var(--color-primary));
+  border-color: transparent;
   color: var(--color-on-primary);
-  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--color-primary) 70%, transparent);
+  box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--pillar-nature) 75%, transparent);
 }
-.primary:hover {
-  background: var(--color-primary-hover);
+a.primary:hover {
+  background: linear-gradient(135deg, var(--pillar-nature), var(--color-primary-hover));
   color: var(--color-on-primary);
 }
-.secondary {
-  border: var(--border-width) solid var(--color-border-strong);
+a.secondary {
+  background: var(--glass);
+  border-color: var(--color-border-strong);
   color: var(--color-text);
-  background: transparent;
 }
-.secondary:hover {
+a.secondary:hover {
+  background: var(--color-surface-hover);
   border-color: var(--color-primary);
   color: var(--color-text);
 }
-.button:active {
+.primary:active,
+.secondary:active {
   transform: translateY(1px);
 }
-.button:focus-visible {
+.primary:focus-visible,
+.secondary:focus-visible {
   outline: var(--focus-ring);
   outline-offset: 3px;
 }

@@ -86,6 +86,26 @@ describe.each(["pt", "en"] as const)("landing page (%s)", (locale) => {
     expect(count(html, /data-pillar-icon=/g)).toBe(10);
   });
 
+  it("tints each pillar card with its own pillar color (--pillar), alongside the icon", () => {
+    for (const slug of PILLAR_SLUGS) {
+      expect(html).toMatch(new RegExp(`<li[^>]*style="--pillar:var\\(--pillar-${slug}\\)"[^>]*>(?:(?!</li>).)*data-pillar-icon="${slug}"`));
+    }
+  });
+
+  it("the calls to action are single-class buttons composed from the shared ui button base", () => {
+    for (const [tag] of html.matchAll(/<a[^>]*data-cta="login"[^>]*>/g)) {
+      expect(/class="([^"]*)"/.exec(tag)![1].trim().split(/\s+/)).toHaveLength(1);
+    }
+    const css = readFileSync(join(process.cwd(), "src/components/landing/cta.module.css"), "utf8");
+    for (const [cls, variant] of [["primary", "btnPrimary"], ["secondary", "btnSecondary"]]) {
+      const m = css.match(new RegExp(`^\\.${cls} \\{\\s*composes: ([^;]+) from "\\.\\./ui/ui\\.module\\.css";`, "m"));
+      expect(m, cls).not.toBeNull();
+      expect(m![1].split(/\s+/)).toEqual(expect.arrayContaining(["btn", variant]));
+    }
+    const hero = readFileSync(join(process.cwd(), "src/components/landing/Hero.tsx"), "utf8");
+    expect(hero).not.toMatch(/cta\.button/);
+  });
+
   it("has the 3 steps", () => {
     expect(count(html, /data-step="/g)).toBe(3);
     for (const step of ["checkin", "progress", "balance"] as const) {

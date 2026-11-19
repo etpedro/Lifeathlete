@@ -39,26 +39,13 @@
   stroke-width: 1;
 }
 .area {
-  fill: color-mix(in srgb, var(--color-primary) 20%, transparent);
-  stroke: var(--color-primary);
+  stroke: var(--pillar-nature);
   stroke-width: 2.5;
   stroke-linejoin: round;
 }
 .dot {
   stroke: var(--color-bg);
   stroke-width: 2;
-}
-.toneA {
-  fill: var(--color-primary);
-}
-.toneB {
-  fill: var(--mascot-wing-a);
-}
-.toneC {
-  fill: var(--color-secondary);
-}
-.toneD {
-  fill: var(--mascot-sparkle);
 }
 .bead {
   fill: var(--landing-ring);

@@ -1,0 +1,93 @@
+<!doctype html><html lang="pt"><head><meta charset="utf-8"><title>Maqueta restyling</title>
+<style>
+:root{--bg1:#08202b;--bg2:#17143d;--ink:#eef6f3;--mut:#a9bdb8;--gold:#ffd166;--card:rgba(255,255,255,.07);--line:rgba(255,255,255,.12);
+--c-ex:#ff8a5c;--c-nu:#a6e86a;--c-na:#3ddc97;--c-gr:#ffcf5c;--c-sc:#5cc8ff;--c-li:#c0a0ff;--c-me:#8c9bff;--c-ac:#ff6b9a;--c-re:#5ce1e6;--c-fa:#ffa987}
+*{box-sizing:border-box}body{margin:0;background:#05090c;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);display:flex;gap:28px;padding:28px;width:max-content}
+.phone{width:390px;height:844px;border-radius:38px;overflow:hidden;position:relative;background:radial-gradient(120% 60% at 80% -10%,#25326e 0%,transparent 60%),radial-gradient(90% 50% at -10% 20%,#0f4a4a 0%,transparent 55%),linear-gradient(170deg,var(--bg1),var(--bg2));border:1px solid var(--line)}
+.scroll{padding:22px 18px 110px;height:100%;overflow:hidden}
+h1{font-size:26px;margin:0;font-weight:700;letter-spacing:-.02em}.sub{color:var(--mut);font-size:14px;margin-top:2px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.glass{background:var(--card);border:1px solid var(--line);border-radius:22px;backdrop-filter:blur(8px)}
+.hero{padding:18px;display:flex;gap:16px;align-items:center;position:relative;box-shadow:0 0 0 1px rgba(255,209,102,.18),0 12px 40px rgba(90,110,255,.18);background:linear-gradient(135deg,rgba(255,255,255,.1),rgba(255,255,255,.04))}
+.ring{width:112px;height:112px;flex:none;position:relative}.ring b{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-size:28px;line-height:1}.ring small{display:block;font-size:11px;color:var(--mut);font-weight:500;margin-top:4px}
+.hs{flex:1;min-width:0}.lvl{display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px}.badge{background:linear-gradient(135deg,#ffd166,#ff9f4a);color:#2a1a00;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800}
+.xp{height:8px;border-radius:9px;background:rgba(255,255,255,.12);margin:10px 0 6px;overflow:hidden}.xp i{display:block;height:100%;width:42%;background:linear-gradient(90deg,#ffd166,#ff9f4a);border-radius:9px}
+.mut{color:var(--mut);font-size:12.5px}.streak{margin-top:8px;display:flex;gap:6px;align-items:center;font-weight:600;font-size:14px}
+.days{display:flex;gap:8px;margin:16px 0 4px}.day{flex:1;text-align:center;padding:10px 0;border-radius:16px;border:1px solid var(--line);color:var(--mut);font-size:14px;font-weight:600}.day.on{background:linear-gradient(135deg,#3ddc97,#2aa9a0);color:#04221d;border-color:transparent;box-shadow:0 6px 20px rgba(61,220,151,.35)}
+.pil{margin-top:14px;padding:14px}.ph{display:flex;align-items:center;gap:10px;margin-bottom:10px}.ico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none}
+.ph b{flex:1;font-size:16px}.dots{display:flex;gap:4px}.dots i{width:8px;height:8px;border-radius:9px;background:rgba(255,255,255,.18)}
+.row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:rgba(255,255,255,.05);margin-top:8px;position:relative;overflow:hidden}
+.row:before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:4px;background:var(--c)}
+.chk{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.3);flex:none;display:grid;place-items:center}.done .chk{background:var(--c);border-color:var(--c);color:#0a1a16}
+.row .t{flex:1;font-size:15px;font-weight:600}.row .t small{display:block;color:var(--mut);font-weight:400;font-size:12px;margin-top:2px}
+.bar{height:6px;border-radius:6px;background:rgba(255,255,255,.12);margin-top:7px;overflow:hidden}.bar i{display:block;height:100%;border-radius:6px;background:var(--c)}
+.val{font-size:13px;color:var(--mut);font-weight:600}
+nav{position:absolute;left:14px;right:14px;bottom:14px;height:68px;border-radius:26px;display:flex;background:rgba(10,20,30,.78);border:1px solid var(--line);backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+nav div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:var(--mut);font-weight:600}nav .on{color:#7ff0c1}nav .on span{background:rgba(61,220,151,.16);border-radius:14px;padding:5px 16px}nav span{padding:5px 16px;display:grid;place-items:center}
+.stage{display:grid;place-items:center;padding:8px 0 4px;position:relative}.glow{position:absolute;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(127,240,193,.35),transparent 65%);top:-10px}
+.tiles{display:flex;gap:12px;margin-top:14px}.tile{flex:1;padding:14px;display:flex;gap:12px;align-items:center}.tile b{display:block;font-size:20px}.tile .ico{width:42px;height:42px;border-radius:14px}
+.share{margin-top:14px;padding:15px;text-align:center;font-weight:700;background:linear-gradient(135deg,#8c9bff,#5c6bff);border-radius:20px;box-shadow:0 10px 28px rgba(92,107,255,.4)}
+.medals{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.medal{padding:14px;text-align:center}.medal .m{width:62px;height:62px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-size:28px}
+.gold{background:radial-gradient(circle at 30% 25%,#fff2b8,#ffd166 45%,#e0912a);box-shadow:0 6px 22px rgba(255,209,102,.45)}.lock{background:rgba(255,255,255,.08);filter:grayscale(1);opacity:.6}
+.medal b{font-size:14px;display:block}.medal small{color:var(--mut);font-size:11.5px}
+h2{font-size:18px;margin:18px 0 0}
+.chart{padding:10px;margin-top:10px}.two{display:flex;gap:12px;margin-top:12px}.two .glass{flex:1;padding:14px;font-size:13px}.two b{display:block;font-size:14px;margin:6px 0 2px}
+.cap{position:absolute;top:-24px;left:6px;font-size:12px;color:#7a8a86}
+</style></head><body>
+<!-- ===== HOJE ===== -->
+<div class="phone"><div class="scroll">
+ <div class="top"><div><div class="sub">Quinta-feira, 19 de novembro</div><h1>Bom dia, Pedro</h1></div>
+  <svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="22" fill="rgba(127,240,193,.14)" stroke="rgba(127,240,193,.4)"/><g transform="translate(23 24)"><ellipse cx="-8" cy="-3" rx="9" ry="3.6" fill="#7fc8ff" opacity=".8" transform="rotate(-18 -8 -3)"/><ellipse cx="8" cy="-3" rx="9" ry="3.6" fill="#7fc8ff" opacity=".8" transform="rotate(18 8 -3)"/><ellipse cx="-7" cy="2" rx="8" ry="3" fill="#b9a0ff" opacity=".8" transform="rotate(18 -7 2)"/><ellipse cx="7" cy="2" rx="8" ry="3" fill="#b9a0ff" opacity=".8" transform="rotate(-18 7 2)"/><rect x="-1.6" y="-8" width="3.2" height="17" rx="1.6" fill="#7ff0c1"/><circle cy="-9" r="3.4" fill="#7ff0c1"/></g></svg></div>
+ <div class="glass hero">
+  <div class="ring"><svg viewBox="0 0 112 112" width="112" height="112"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3ddc97"/><stop offset="1" stop-color="#5cc8ff"/></linearGradient></defs><circle cx="56" cy="56" r="47" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="12"/><circle cx="56" cy="56" r="47" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-dasharray="295" stroke-dashoffset="118" transform="rotate(-90 56 56)"/></svg><b><span>4<small>de 10 hoje</small></span></b></div>
+  <div class="hs"><div class="lvl"><span class="badge">NÍVEL 4</span> Praticante</div><div class="xp"><i></i></div><div class="mut">337 / 800 XP · faltam 463</div>
+   <div class="streak"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-10z" fill="#ff9f4a"/></svg> 12 dias seguidos</div></div>
+ </div>
+ <div class="days"><div class="day on">Hoje</div><div class="day">Ontem</div><div class="day">Há 2 dias</div></div>
+ <div class="glass pil"><div class="ph"><div class="ico" style="background:rgba(255,138,92,.18);color:var(--c-ex)"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 10h2v4H3zm3-2h2v8H6zm4 3h4v2h-4zm6-3h2v8h-2zm3 2h2v4h-2z"/></svg></div><b>Exercício regular</b><div class="dots"><i style="background:var(--c-ex)"></i><i></i></div></div>
+  <div class="row done" style="--c:var(--c-ex)"><div class="chk"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div><div class="t">Treino 30 min<small>via Health Connect</small></div><div class="val">30 / 30</div></div>
+  <div class="row" style="--c:var(--c-ex)"><div class="chk"></div><div class="t">Alongamentos</div><div class="val">Por fazer</div></div></div>
+ <div class="glass pil"><div class="ph"><div class="ico" style="background:rgba(166,232,106,.16);color:var(--c-nu)"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4c2 0 3 1 3 3-2 0-3-1-3-3zM7 8c3-1 6 0 6 3v8c-4 1-8-2-8-6 0-2 0-4 2-5z"/></svg></div><b>Alimentação saudável</b><div class="dots"><i></i><i></i></div></div>
+  <div class="row" style="--c:var(--c-nu)"><div class="t">Fruta e legumes<div class="bar"><i style="width:60%"></i></div></div><div class="val">3 / 5</div></div>
+  <div class="row" style="--c:var(--c-nu)"><div class="t">Beber 2 L de água<div class="bar"><i style="width:75%"></i></div></div><div class="val">1,5 / 2</div></div></div>
+</div>
+<nav><div class="on"><span><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg></span>Hoje</div><div><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg></span>Roda</div><div><span><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4h10v4a5 5 0 0 1-10 0zM10 15h4v3h3v2H7v-2h3z"/></svg></span>Conquistas</div><div><span><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6z"/></svg></span>Perfil</div></nav></div>
+<!-- ===== CONQUISTAS ===== -->
+<div class="phone"><div class="scroll">
+ <div class="top"><h1>Conquistas</h1></div>
+ <div class="glass hero" style="flex-direction:column;text-align:center;gap:6px;padding:20px 18px">
+  <div class="stage"><div class="glow"></div>
+   <svg width="190" height="170" viewBox="-60 -50 120 110"><defs><linearGradient id="w1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fd4ff"/><stop offset="1" stop-color="#6a8dff"/></linearGradient><linearGradient id="w2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d2b8ff"/><stop offset="1" stop-color="#9a7bff"/></linearGradient></defs>
+   <ellipse cx="-27" cy="-14" rx="30" ry="9" fill="url(#w1)" opacity=".85" transform="rotate(-16 -27 -14)"/><ellipse cx="27" cy="-14" rx="30" ry="9" fill="url(#w1)" opacity=".85" transform="rotate(16 27 -14)"/><ellipse cx="-24" cy="3" rx="26" ry="8" fill="url(#w2)" opacity=".85" transform="rotate(16 -24 3)"/><ellipse cx="24" cy="3" rx="26" ry="8" fill="url(#w2)" opacity=".85" transform="rotate(-16 24 3)"/>
+   <rect x="-4" y="-26" width="8" height="64" rx="4" fill="#7ff0c1"/><circle cy="-28" r="9" fill="#7ff0c1"/><circle cx="-3" cy="-30" r="1.6" fill="#08202b"/><circle cx="3" cy="-30" r="1.6" fill="#08202b"/>
+   <path d="M-40 -42l2 4 4 2-4 2-2 4-2-4-4-2 4-2z M42 -36l1.6 3 3 1.6-3 1.6-1.6 3-1.6-3-3-1.6 3-1.6z" fill="#ffd166"/></svg></div>
+  <div><span class="badge" style="font-size:13px">NÍVEL 4</span></div><div style="font-size:20px;font-weight:700">Praticante</div>
+  <div class="xp" style="width:100%"><i></i></div><div class="mut">337 / 800 XP para o próximo nível</div></div>
+ <div class="tiles"><div class="glass tile"><div class="ico" style="background:rgba(255,159,74,.18)"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-10z" fill="#ff9f4a"/></svg></div><div><span class="mut">Sequência</span><b>12 dias</b></div></div>
+  <div class="glass tile"><div class="ico" style="background:rgba(255,209,102,.18)"><svg width="22" height="22" viewBox="0 0 24 24" fill="#ffd166"><path d="M7 4h10v4a5 5 0 0 1-10 0zM10 15h4v3h3v2H7v-2h3z"/></svg></div><div><span class="mut">Melhor</span><b>21 dias</b></div></div></div>
+ <div class="share">Partilhar a minha roda</div>
+ <h2>Medalhas</h2>
+ <div class="medals"><div class="glass medal"><div class="m gold">🏅</div><b>Primeiro passo</b><small>Desbloqueada</small></div><div class="glass medal"><div class="m gold">🔥</div><b>7 dias seguidos</b><small>Desbloqueada</small></div>
+  <div class="glass medal"><div class="m lock">🌿</div><b>Mês de natureza</b><small>12 de 30 dias</small></div><div class="glass medal"><div class="m lock">📚</div><b>Leitor assíduo</b><small>3 de 21 dias</small></div></div>
+</div>
+<nav><div><span><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg></span>Hoje</div><div><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg></span>Roda</div><div class="on"><span><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4h10v4a5 5 0 0 1-10 0zM10 15h4v3h3v2H7v-2h3z"/></svg></span>Conquistas</div><div><span><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6z"/></svg></span>Perfil</div></nav></div>
+<!-- ===== RODA ===== -->
+<div class="phone"><div class="scroll">
+ <div class="top"><div><h1>Roda da Vida</h1><div class="sub">Os teus 10 pilares nos últimos 30 dias</div></div></div>
+ <div class="glass chart" id="rc"></div>
+ <div class="two"><div class="glass"><span class="mut">Pilar mais forte</span><b style="color:var(--c-na)">Carregar baterias</b>92% · a brilhar</div><div class="glass"><span class="mut">À espera de carinho</span><b style="color:var(--c-re)">Ler mais</b>31% · um passo chega</div></div>
+ <div class="glass" style="margin-top:12px;padding:14px;font-size:14px">💡 Lê uma página, só uma, e vê como corre.</div>
+</div>
+<nav><div><span><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg></span>Hoje</div><div class="on"><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg></span>Roda</div><div><span><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4h10v4a5 5 0 0 1-10 0zM10 15h4v3h3v2H7v-2h3z"/></svg></span>Conquistas</div><div><span><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6z"/></svg></span>Perfil</div></nav></div>
+<script>
+const cols=['#ff8a5c','#a6e86a','#3ddc97','#ffcf5c','#5cc8ff','#c0a0ff','#8c9bff','#ff6b9a','#5ce1e6','#ffa987'];
+const names=['Exercício','Alimentação','Natureza','Gratidão','Ecrãs','Leveza','Meditação','Estilo ativo','Ler mais','Família'];
+const v=[.7,.55,.92,.6,.48,.66,.4,.74,.31,.85];const S=340,C=S/2,R=118;
+let s=`<svg viewBox="0 0 ${S} ${S}" width="100%"><defs><radialGradient id="rg"><stop offset="0" stop-color="#3ddc97" stop-opacity=".55"/><stop offset="1" stop-color="#8c9bff" stop-opacity=".35"/></radialGradient></defs>`;
+[.25,.5,.75,1].forEach(k=>{s+=`<circle cx="${C}" cy="${C}" r="${R*k}" fill="none" stroke="rgba(255,255,255,.1)"/>`});
+const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/10;return[C+r*Math.cos(a),C+r*Math.sin(a)]};
+for(let i=0;i<10;i++){const[x,y]=pt(i,R);s+=`<line x1="${C}" y1="${C}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,.08)"/>`}
+s+=`<polygon points="${v.map((k,i)=>pt(i,R*k).join(',')).join(' ')}" fill="url(#rg)" stroke="#7ff0c1" stroke-width="2.5" stroke-linejoin="round"/>`;
+v.forEach((k,i)=>{const[x,y]=pt(i,R*k);s+=`<circle cx="${x}" cy="${y}" r="6" fill="${cols[i]}" stroke="#0a1a16" stroke-width="2"/>`;const[lx,ly]=pt(i,R+26);s+=`<text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="11" fill="${cols[i]}" font-weight="700">${names[i]}</text>`});
+document.getElementById('rc').innerHTML=s+'</svg>';
+</script></body></html>

@@ -18,14 +18,18 @@
 :where(html) {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  background: var(--color-bg);
+  background: var(--bg-bottom);
 }
 
 :where(body) {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--color-bg);
+  background:
+    radial-gradient(120% 60% at 80% -10%, var(--bg-glow-b) 0%, transparent 60%),
+    radial-gradient(90% 50% at -10% 20%, var(--bg-glow-a) 0%, transparent 55%),
+    linear-gradient(170deg, var(--bg-top), var(--bg-bottom));
+  background-color: var(--bg-bottom);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: var(--text-base);

@@ -117,3 +117,56 @@ describe.each(Object.entries(THEMES))("%s theme tokens", (_name, t) => {
     expect(contrast(t["color-text"], t["color-bg"])).toBeLessThan(17);
   });
 });
+
+const PILLARS = [
+  "exercise",
+  "nutrition",
+  "nature",
+  "gratitude",
+  "screens",
+  "lightness",
+  "meditation",
+  "active-lifestyle",
+  "reading",
+  "family",
+].map((n) => `pillar-${n}`);
+const PILLAR_BACKGROUNDS = ["color-bg", "color-surface", "color-surface-raised", "bg-top", "bg-bottom"];
+/** The page gradient stops and hero card stops: text sits on every one of them. */
+const PAGE_BACKGROUNDS = ["bg-top", "bg-bottom", "bg-glow-a", "bg-glow-b", "hero-top", "hero-bottom"];
+const PAGE_TEXT = ["color-text", "color-text-muted", "color-primary", "color-accent-gold"];
+
+describe.each(Object.entries(THEMES))("%s theme restyling tokens", (_name, t) => {
+  it("defines every pillar and page token as a hex value", () => {
+    const needed = [
+      ...PILLARS,
+      ...PAGE_BACKGROUNDS,
+      "color-flame",
+      "medal-top",
+      "medal-bottom",
+      "color-on-medal",
+    ];
+    for (const key of needed) expect(t[key], key).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it.each(PILLARS.flatMap((fg) => PILLAR_BACKGROUNDS.map((bg) => [fg, bg] as const)))(
+    "pillar color %s on %s is at least 3:1",
+    (fg, bg) => {
+      expect(contrast(t[fg], t[bg])).toBeGreaterThanOrEqual(3);
+    },
+  );
+
+  it.each(PAGE_TEXT.flatMap((fg) => PAGE_BACKGROUNDS.map((bg) => [fg, bg] as const)))(
+    "text %s on %s is at least 4.5:1",
+    (fg, bg) => {
+      expect(contrast(t[fg], t[bg])).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  it.each(["medal-top", "medal-bottom"])("color-on-medal on %s is at least 4.5:1", (bg) => {
+    expect(contrast(t["color-on-medal"], t[bg])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("color-flame on hero-top is at least 3:1", () => {
+    expect(contrast(t["color-flame"], t["hero-top"])).toBeGreaterThanOrEqual(3);
+  });
+});

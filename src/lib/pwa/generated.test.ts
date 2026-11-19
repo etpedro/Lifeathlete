@@ -29,6 +29,19 @@ describe("generated PWA files", () => {
     expect(page).not.toMatch(/<script/i);
   });
 
+  it.each(["pt", "en"] as const)("the %s offline page uses the restyled look, from inlined tokens only", (locale) => {
+    const page = files[`public/offline/${locale}.html`];
+    expect(page).toContain("--bg-top:");
+    expect(page).toContain("var(--bg-top)");
+    expect(page).toContain("var(--bg-bottom)");
+    expect(page).toMatch(/border-radius: var\(--radius-pill\)/);
+    expect(page).toMatch(/min-height: var\(--touch-target\)/);
+    expect(page).toMatch(/<svg[^>]*aria-hidden="true"/);
+    expect(page.match(/<h1[ >]/g)).toHaveLength(1);
+    expect(page).not.toMatch(/https?:\/\/(?!www\.w3\.org\/2000\/svg)/);
+    expect(page).not.toMatch(/url\(|<img|@import|backdrop-filter/);
+  });
+
   it("sw.js is a classic script that wires install, activate, fetch and message", async () => {
     const sw = files["public/sw.js"];
     expect(sw).not.toMatch(/^\s*(import|export)\s/m);

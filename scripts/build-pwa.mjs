@@ -111,19 +111,29 @@ function offlinePage(locale) {
 <style>
 ${css}
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--space-6) var(--gutter); font-family: var(--font-sans); line-height: var(--leading); background: var(--color-bg); color: var(--color-text); }
-  main { width: 100%; max-width: var(--layout-narrow); padding: var(--space-8) var(--space-6); text-align: center; display: grid; gap: var(--space-4); justify-items: center; background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-lg); }
-  img { width: 88px; height: 88px; border-radius: 22%; }
+  body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--space-6) var(--gutter); font-family: var(--font-sans); line-height: var(--leading); color: var(--color-text); background: var(--bg-bottom); background-image: radial-gradient(60rem 36rem at 12% -6%, var(--bg-glow-a), transparent 70%), radial-gradient(56rem 34rem at 100% 100%, var(--bg-glow-b), transparent 70%), linear-gradient(180deg, var(--bg-top), var(--bg-bottom)); background-attachment: fixed; }
+  main { width: 100%; max-width: var(--layout-narrow); padding: var(--space-8) var(--space-6); text-align: center; display: grid; gap: var(--space-4); justify-items: center; background: linear-gradient(180deg, var(--hero-top), var(--hero-bottom)); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+  .mark { width: 96px; height: 96px; }
+  .wing-a { fill: var(--mascot-wing-a); opacity: 0.85; }
+  .wing-b { fill: var(--mascot-wing-b); opacity: 0.8; }
+  .body { fill: var(--mascot-body); }
   h1 { font-size: var(--text-2xl); font-weight: var(--weight-semibold); line-height: var(--leading-tight); margin: 0; }
   p { margin: 0; color: var(--color-text-muted); }
-  a { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: var(--touch-target); padding: 0 var(--space-5); border-radius: var(--radius-md); background: var(--color-primary); color: var(--color-on-primary); text-decoration: none; font-weight: var(--weight-medium); }
+  a { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: var(--touch-target); padding-block: 0; padding-inline: var(--space-5); border-radius: var(--radius-pill); background: var(--color-primary); color: var(--color-on-primary); text-decoration: none; font-weight: var(--weight-medium); }
   a:hover { background: var(--color-primary-hover); }
   a:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
 </style>
 </head>
 <body>
 <main>
-<img src="/icons/icon-192.png" alt="" width="88" height="88">
+<svg class="mark" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+<ellipse class="wing-a" cx="36" cy="46" rx="26" ry="10" transform="rotate(-18 36 46)"/>
+<ellipse class="wing-a" cx="84" cy="46" rx="26" ry="10" transform="rotate(18 84 46)"/>
+<ellipse class="wing-b" cx="38" cy="64" rx="22" ry="8" transform="rotate(14 38 64)"/>
+<ellipse class="wing-b" cx="82" cy="64" rx="22" ry="8" transform="rotate(-14 82 64)"/>
+<rect class="body" x="56" y="40" width="8" height="62" rx="4"/>
+<circle class="body" cx="60" cy="34" r="9"/>
+</svg>
 <h1>${t("heading")}</h1>
 <p>${t("body")}</p>
 <a href="/${locale}/today">${t("retry")}</a>

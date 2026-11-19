@@ -22,13 +22,42 @@ export type SummaryCardLabels = {
 
 const SIZE = 1080;
 const CX = 540;
-const CY = 670;
-const RADIUS = 230;
+const CY = 705;
+const RADIUS = 215;
 const BRAND = "Lifeathlete · O Atleta da Vida";
 const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-// Self-contained image: literal values mirroring the dark tokens in src/styles/tokens.css
-// (bg, surface, text, text-muted, border, primary). No CSS variables on purpose.
-const C = { bg: "#0e1a18", panel: "#1a2c28", text: "#dfe9e3", muted: "#9cb0a8", grid: "#2f4842", accent: "#7cc79b" };
+// Self-contained image: literal values mirroring the DARK tokens in src/styles/tokens.css
+// (bg-top/bg-bottom/bg-glow-*, hero-*, medal-*, color-flame, color-text(-muted), color-secondary,
+// --pillar-*). No CSS variables on purpose; summary.test.ts fails if they drift from the tokens.
+const C = {
+  bgTop: "#08202b",
+  bgBottom: "#17143d",
+  glowA: "#0d4343",
+  glowB: "#25326e",
+  heroTop: "#1b3a52",
+  heroBottom: "#1f2252",
+  medalTop: "#ffd166",
+  medalBottom: "#e0912a",
+  onMedal: "#2a1a00",
+  flame: "#ff9f4a",
+  text: "#dfe9e3",
+  muted: "#9cb0a8",
+  accent: "#a9aee8",
+  ring: "#dfe9e3", // drawn at low opacity
+};
+const PILLAR_COLORS: Record<string, string> = {
+  exercise: "#ff8a5c",
+  nutrition: "#a6e86a",
+  nature: "#3ddc97",
+  gratitude: "#ffcf5c",
+  screens: "#5cc8ff",
+  lightness: "#c0a0ff",
+  meditation: "#8c9bff",
+  "active-lifestyle": "#ff6b9a",
+  reading: "#5ce1e6",
+  family: "#ffa987",
+};
+const pillarColor = (slug: string) => PILLAR_COLORS[slug] ?? C.accent;
 /** Pillar labels around the wheel: at most this many characters per line, two lines. */
 const LABEL_LINE = 18;
 const LABEL_LINES = 2;
@@ -96,10 +125,10 @@ function point(index: number, total: number, score: number, radius: number): { x
   return { x: CX + r * Math.cos(angle), y: CY + r * Math.sin(angle) };
 }
 
-function wheelShape(entries: { label: string; score: number }[]): string {
+function wheelShape(entries: { slug: string; label: string; score: number }[]): string {
   const n = entries.length;
   const rings = [25, 50, 75, 100]
-    .map((p) => `<circle class="ring" cx="${CX}" cy="${CY}" r="${round((RADIUS * p) / 100)}" fill="none" stroke="${C.grid}" stroke-width="2"/>`)
+    .map((p) => `<circle class="ring" cx="${CX}" cy="${CY}" r="${round((RADIUS * p) / 100)}" fill="none" stroke="${C.ring}" stroke-opacity="0.16" stroke-width="2"/>`)
     .join("");
   if (n === 0) return rings;
   if (n < 3) {
@@ -110,8 +139,8 @@ function wheelShape(entries: { label: string; score: number }[]): string {
         const w = round((760 * e.score) / 100);
         return (
           `<text class="label" x="160" y="${y}" font-size="34" fill="${C.text}">${esc(truncate(e.label, 40))}</text>` +
-          `<rect x="160" y="${y + 16}" width="760" height="28" rx="14" fill="${C.panel}"/>` +
-          `<rect class="bar" x="160" y="${y + 16}" width="${w}" height="28" rx="14" fill="${C.accent}"/>`
+          `<rect x="160" y="${y + 16}" width="760" height="28" rx="14" fill="${C.ring}" fill-opacity="0.12"/>` +
+          `<rect class="bar" x="160" y="${y + 16}" width="${w}" height="28" rx="14" fill="${pillarColor(e.slug)}"/>`
         );
       })
       .join("");
@@ -120,12 +149,14 @@ function wheelShape(entries: { label: string; score: number }[]): string {
   const spokes = entries
     .map((_, i) => {
       const p = point(i, n, 100, RADIUS);
-      return `<line x1="${CX}" y1="${CY}" x2="${round(p.x)}" y2="${round(p.y)}" stroke="${C.grid}" stroke-width="2"/>`;
+      return `<line x1="${CX}" y1="${CY}" x2="${round(p.x)}" y2="${round(p.y)}" stroke="${C.ring}" stroke-opacity="0.16" stroke-width="2"/>`;
     })
     .join("");
   const pts = entries.map((e, i) => point(i, n, e.score, RADIUS));
-  const polygon = `<polygon points="${pts.map((p) => `${round(p.x)},${round(p.y)}`).join(" ")}" fill="${C.accent}" fill-opacity="0.35" stroke="${C.accent}" stroke-width="5" stroke-linejoin="round"/>`;
-  const dots = pts.map((p) => `<circle class="dot" cx="${round(p.x)}" cy="${round(p.y)}" r="9" fill="${C.accent}"/>`).join("");
+  const polygon = `<polygon points="${pts.map((p) => `${round(p.x)},${round(p.y)}`).join(" ")}" fill="${C.accent}" fill-opacity="0.28" stroke="${C.accent}" stroke-width="5" stroke-linejoin="round"/>`;
+  const dots = pts
+    .map((p, i) => `<circle class="dot" cx="${round(p.x)}" cy="${round(p.y)}" r="12" fill="${pillarColor(entries[i].slug)}" stroke="${C.bgBottom}" stroke-width="4"/>`)
+    .join("");
   const labels = entries
     .map((e, i) => {
       const p = point(i, n, 100, RADIUS + 28);
@@ -151,6 +182,7 @@ export function buildSummaryCard(stats: SummaryCardStats, labels: SummaryCardLab
   const streak = count(stats?.streak, 0, 99999);
   const pillarNames = labels.pillars ?? {};
   const entries = Object.entries(stats?.scores ?? {}).map(([slug, score]) => ({
+    slug,
     label: typeof pillarNames[slug] === "string" && pillarNames[slug] !== "" ? pillarNames[slug] : slug,
     score: clampScore(score),
   }));
@@ -163,12 +195,24 @@ export function buildSummaryCard(stats: SummaryCardStats, labels: SummaryCardLab
     `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" role="img" aria-labelledby="card-title card-desc" font-family="${FONT}">` +
     `<title id="card-title">${esc(labels.title)}</title>` +
     `<desc id="card-desc">${esc(desc)}</desc>` +
-    `<rect width="${SIZE}" height="${SIZE}" fill="${C.bg}"/>` +
-    `<text x="${CX}" y="110" text-anchor="middle" font-size="52" font-weight="700" fill="${C.text}">${esc(truncate(labels.title, 40))}</text>` +
-    `<text x="300" y="290" text-anchor="middle" font-size="150" font-weight="700" fill="${C.accent}">${level}</text>` +
-    `<text x="300" y="350" text-anchor="middle" font-size="40" fill="${C.muted}">${esc(truncate(labels.level, 20))}</text>` +
-    `<text x="780" y="290" text-anchor="middle" font-size="150" font-weight="700" fill="${C.accent}">${streak}</text>` +
-    `<text x="780" y="350" text-anchor="middle" font-size="40" fill="${C.muted}">${esc(truncate(`${labels.streak} · ${labels.days}`, 30))}</text>` +
+    `<defs>` +
+    `<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.bgTop}"/><stop offset="1" stop-color="${C.bgBottom}"/></linearGradient>` +
+    `<radialGradient id="glow-a"><stop offset="0" stop-color="${C.glowA}"/><stop offset="1" stop-color="${C.glowA}" stop-opacity="0"/></radialGradient>` +
+    `<radialGradient id="glow-b"><stop offset="0" stop-color="${C.glowB}"/><stop offset="1" stop-color="${C.glowB}" stop-opacity="0"/></radialGradient>` +
+    `<linearGradient id="hero" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.heroTop}"/><stop offset="1" stop-color="${C.heroBottom}"/></linearGradient>` +
+    `<linearGradient id="medal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.medalTop}"/><stop offset="1" stop-color="${C.medalBottom}"/></linearGradient>` +
+    `</defs>` +
+    `<rect width="${SIZE}" height="${SIZE}" fill="url(#bg)"/>` +
+    `<circle cx="140" cy="120" r="520" fill="url(#glow-a)"/>` +
+    `<circle cx="960" cy="980" r="560" fill="url(#glow-b)"/>` +
+    `<text x="${CX}" y="105" text-anchor="middle" font-size="50" font-weight="700" fill="${C.text}">${esc(truncate(labels.title, 40))}</text>` +
+    `<rect x="70" y="150" width="940" height="260" rx="44" fill="url(#hero)"/>` +
+    `<circle cx="300" cy="248" r="76" fill="url(#medal)"/>` +
+    `<text x="300" y="283" text-anchor="middle" font-size="94" font-weight="700" fill="${C.onMedal}">${level}</text>` +
+    `<text x="300" y="378" text-anchor="middle" font-size="38" fill="${C.muted}">${esc(truncate(labels.level, 20))}</text>` +
+    `<path d="M50 6C54 26 78 36 78 62a28 28 0 0 1-56 0c0-14 8-22 14-30 2 8 6 12 10 14C44 32 42 18 50 6Z" transform="translate(742 168) scale(0.76)" fill="${C.flame}"/>` +
+    `<text x="780" y="318" text-anchor="middle" font-size="94" font-weight="700" fill="${C.flame}">${streak}</text>` +
+    `<text x="780" y="378" text-anchor="middle" font-size="38" fill="${C.muted}">${esc(truncate(`${labels.streak} · ${labels.days}`, 30))}</text>` +
     `<g aria-label="${esc(labels.wheel)}">${wheelShape(entries)}</g>` +
     `<text x="${CX}" y="1046" text-anchor="middle" font-size="28" fill="${C.muted}">${esc(BRAND)}</text>` +
     `</svg>`;

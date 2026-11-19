@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import en from "../../../src/messages/en.json";
 import pt from "../../../src/messages/pt.json";
@@ -93,7 +95,8 @@ describe("buildSummaryCard", () => {
     // the XML namespace declaration is the only URL allowed (needed to rasterize standalone)
     expect(svg.replace('xmlns="http://www.w3.org/2000/svg"', "")).not.toMatch(/http/i);
     expect(svg).not.toMatch(/href/i);
-    expect(svg).not.toContain("url(");
+    // only in-document gradient references (url(#id)) are allowed
+    expect(svg.replace(/url\(#[\w-]+\)/g, "")).not.toContain("url(");
   });
 
   it("clamps scores and sanitizes level and streak", () => {
@@ -203,5 +206,35 @@ describe("wrapLabel", () => {
     expect(svg).not.toContain("<b>");
     expect(svg).toContain("&lt;b&gt;bold&lt;/b&gt;");
     assertWellFormed(svg);
+  });
+});
+
+describe("share card palette", () => {
+  // The card cannot read CSS variables, so its hex constants must equal the DARK tokens.
+  const css = readFileSync(join(process.cwd(), "src/styles/tokens.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const dark = css.slice(0, css.indexOf("@media (prefers-color-scheme: light)"));
+  const token: Record<string, string> = {};
+  for (const m of dark.matchAll(/--([\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) token[m[1]] = m[2].toLowerCase();
+  const allSlugs = Object.keys(en.pillars);
+  const full = svgOf({ level: 7, streak: 12, scores: Object.fromEntries(allSlugs.map((s, i) => [s, 30 + i * 6])) });
+
+  it("uses only hex colors that are dark token values", () => {
+    const used = new Set([...full.matchAll(/#[0-9a-fA-F]{6}\b/g)].map((m) => m[0].toLowerCase()));
+    expect(used.size).toBeGreaterThan(8);
+    const allowed = new Set(Object.values(token));
+    for (const hex of used) expect(allowed, hex).toContain(hex);
+  });
+
+  it("paints the gradient background, gold level badge, flame streak and per-pillar dots from tokens", () => {
+    for (const name of ["bg-top", "bg-bottom", "medal-top", "medal-bottom", "color-on-medal", "color-flame"]) {
+      expect(full).toContain(token[name]);
+    }
+    const dots = [...full.matchAll(/<circle class="dot"[^>]*fill="(#[0-9a-f]{6})"/g)].map((m) => m[1]);
+    expect(dots).toEqual(allSlugs.map((s) => token[`pillar-${s}`]));
+  });
+
+  it("keeps the old flat petrol background out", () => {
+    expect(full).not.toContain("#0e1a18");
+    expect(full).toContain("<linearGradient");
   });
 });

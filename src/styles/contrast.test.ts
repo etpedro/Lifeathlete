@@ -110,6 +110,17 @@ describe.each(Object.entries(THEMES))("%s theme tokens", (_name, t) => {
     expect(contrast(t[fg], t[bg])).toBeGreaterThanOrEqual(min);
   });
 
+  it.each(Object.keys(t).filter((k) => k.startsWith("pillar-")))(
+    "done check glyph (color-on-primary) on the %s fill is at least 3:1",
+    (pillar) => {
+      expect(contrast(t["color-on-primary"], t[pillar])).toBeGreaterThanOrEqual(3);
+    },
+  );
+
+  it("defines the 10 pillar colors", () => {
+    expect(Object.keys(t).filter((k) => k.startsWith("pillar-"))).toHaveLength(10);
+  });
+
   it("keeps text soft: no pure white on black, no pure black on white", () => {
     expect(t["color-text"]).not.toBe("#ffffff");
     expect(t["color-bg"]).not.toBe("#000000");

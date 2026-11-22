@@ -10,7 +10,7 @@ export type Locale = (typeof routing.locales)[number];
 export const PATHNAME_HEADER = "x-lifeathlete-pathname";
 
 /** Paths (after the locale) reachable without a session. */
-const PUBLIC_PREFIXES = ["/login", "/auth"];
+const PUBLIC_PREFIXES = ["/login", "/auth", "/privacy"];
 
 export function splitLocale(pathname: string): { locale: Locale; rest: string } | null {
   const match = /^\/([^/]+)(\/.*)?$/.exec(pathname);

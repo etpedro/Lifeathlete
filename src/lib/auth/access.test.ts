@@ -16,6 +16,11 @@ describe("splitLocale", () => {
 });
 
 describe("proxyRedirect", () => {
+  it("lets signed-out users read the public health privacy page", () => {
+    expect(proxyRedirect("/pt/privacy/health", false)).toBeNull();
+    expect(proxyRedirect("/en/privacy/health", false)).toBeNull();
+    expect(proxyRedirect("/pt/today", false)).toBe("/pt/login");
+  });
   it("sends unauthenticated users on protected routes to the login page of the same locale", () => {
     expect(proxyRedirect("/pt/today", false)).toBe("/pt/login");
     expect(proxyRedirect("/en/onboarding", false)).toBe("/en/login");

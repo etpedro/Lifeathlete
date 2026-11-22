@@ -534,5 +534,22 @@
       "tagline": "Free, installable on your phone, in Portuguese and English.",
       "language": "Language"
     }
+  },
+  "privacyHealth": {
+    "title": "Health data and privacy",
+    "intro": "Lifeathlete can read data from your phone's Health Connect to fill your habits. This page explains what happens to that data. It only applies if you choose to connect it.",
+    "headings": {
+      "reads": "What we read",
+      "stores": "What we send and store",
+      "kept": "How long it is kept",
+      "unverified": "Where the numbers come from",
+      "control": "Your control"
+    },
+    "reads": "Only the categories you choose (steps, exercise, sleep, mindfulness), as one total or duration per day. Lifeathlete only reads; it never writes to Health Connect.",
+    "stores": "One number per day and category. Each sync sends the last 7 days. The values are stored even if you have not chosen a habit to fill yet.",
+    "kept": "They are kept while your account exists, including after you disconnect.",
+    "unverified": "The numbers come from your phone and are not verified by Lifeathlete.",
+    "control": "You can disconnect at any time in Integrations, in your profile; the history already imported is kept.",
+    "back": "Back to Lifeathlete"
   }
 }

@@ -534,5 +534,22 @@
       "tagline": "Grátis, instalável no telemóvel, em português e inglês.",
       "language": "Idioma"
     }
+  },
+  "privacyHealth": {
+    "title": "Dados de saúde e privacidade",
+    "intro": "O Lifeathlete pode ler dados do Health Connect do teu telemóvel para preencher os teus hábitos. Esta página explica o que acontece a esses dados. Só se aplica se escolheres ligá-los.",
+    "headings": {
+      "reads": "O que lemos",
+      "stores": "O que enviamos e guardamos",
+      "kept": "Durante quanto tempo ficam guardados",
+      "unverified": "De onde vêm os números",
+      "control": "O teu controlo"
+    },
+    "reads": "Apenas as categorias que escolheres (passos, exercício, sono, mindfulness), como um total ou uma duração por dia. O Lifeathlete só lê; nunca escreve no Health Connect.",
+    "stores": "Um número por dia e por categoria. Cada sincronização envia os últimos 7 dias. Os valores são guardados mesmo que ainda não tenhas escolhido nenhum hábito para preencher.",
+    "kept": "Ficam guardados enquanto a tua conta existir, incluindo depois de desligares.",
+    "unverified": "Os números vêm do teu telemóvel e não são verificados pelo Lifeathlete.",
+    "control": "Podes desligar a qualquer momento em Integrações, no teu perfil; o histórico já importado é mantido.",
+    "back": "Voltar ao Lifeathlete"
   }
 }

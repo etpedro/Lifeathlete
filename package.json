@@ -13,7 +13,8 @@
     "test:db": "bash supabase/tests/run.sh",
     "test:e2e": "playwright test",
     "test:e2e:pwa": "playwright test -c playwright.pwa.config.ts pwa.spec.ts",
-    "test:e2e:landing": "playwright test -c playwright.pwa.config.ts landing.spec.ts"
+    "test:e2e:landing": "playwright test -c playwright.pwa.config.ts landing.spec.ts",
+    "android:sync": "cap sync android"
   },
   "dependencies": {
     "@capacitor/core": "^8.6.0",
@@ -25,6 +26,8 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
     "@playwright/test": "^1.65.0",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",

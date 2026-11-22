@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="robots" content="noindex">
+<title>Lifeathlete</title>
+<style>
+  :root {
+    color-scheme: dark light;
+    --bg-top: #08202b;
+    --bg-bottom: #17143d;
+    --bg-glow-a: #0c3a3d;
+    --bg-glow-b: #222b62;
+    --hero-top: #1b3a52;
+    --hero-bottom: #1f2252;
+    --color-border: #263a35;
+    --color-text: #dfe9e3;
+    --color-text-muted: #a6b9b1;
+    --color-primary: #7cc79b;
+    --color-primary-hover: #93d4ad;
+    --color-on-primary: #0c1a15;
+    --color-focus: #9cc6f2;
+    --mascot-body: #7cc79b;
+    --mascot-wing-a: #8cc7e6;
+    --mascot-wing-b: #a99ce8;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg-top: #f7f1e5;
+      --bg-bottom: #ebe6f2;
+      --bg-glow-a: #dcefe3;
+      --bg-glow-b: #e1e2f6;
+      --hero-top: #e6efe6;
+      --hero-bottom: #e4e3f4;
+      --color-border: #e0d9cb;
+      --color-text: #1c2a26;
+      --color-text-muted: #4f5f59;
+      --color-primary: #2b6b4a;
+      --color-primary-hover: #235a3e;
+      --color-on-primary: #f8f5ee;
+      --color-focus: #2f5fb8;
+      --mascot-body: #2f7a52;
+      --mascot-wing-a: #3d8fbf;
+      --mascot-wing-b: #7a62c9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 1.5rem 1rem; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.5; color: var(--color-text); background: var(--bg-bottom); background-image: radial-gradient(60rem 36rem at 12% -6%, var(--bg-glow-a), transparent 70%), radial-gradient(56rem 34rem at 100% 100%, var(--bg-glow-b), transparent 70%), linear-gradient(180deg, var(--bg-top), var(--bg-bottom)); background-attachment: fixed; }
+  main { width: 100%; max-width: 28rem; padding: 2rem 1.5rem; text-align: center; display: grid; gap: 1rem; justify-items: center; background: linear-gradient(180deg, var(--hero-top), var(--hero-bottom)); border: 1px solid var(--color-border); border-radius: 1rem; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28); }
+  .mark { width: 96px; height: 96px; }
+  .wing-a { fill: var(--mascot-wing-a); opacity: 0.85; }
+  .wing-b { fill: var(--mascot-wing-b); opacity: 0.8; }
+  .body { fill: var(--mascot-body); }
+  h1 { font-size: 1.5rem; font-weight: 600; line-height: 1.25; margin: 0; }
+  p { margin: 0; color: var(--color-text-muted); }
+  .en { display: grid; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border); width: 100%; }
+  .en h2 { font-size: 1.125rem; font-weight: 600; line-height: 1.25; margin: 0; }
+  a.retry { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; padding-block: 0; padding-inline: 20px; border-radius: 999px; background: var(--color-primary); color: var(--color-on-primary); text-decoration: none; font-weight: 500; }
+  a.retry:hover { background: var(--color-primary-hover); }
+  a.retry:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+</style>
+</head>
+<body>
+  <main>
+    <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+      <ellipse class="wing-a" cx="36" cy="46" rx="26" ry="10" transform="rotate(-18 36 46)"/>
+      <ellipse class="wing-a" cx="84" cy="46" rx="26" ry="10" transform="rotate(18 84 46)"/>
+      <ellipse class="wing-b" cx="38" cy="64" rx="22" ry="8" transform="rotate(14 38 64)"/>
+      <ellipse class="wing-b" cx="82" cy="64" rx="22" ry="8" transform="rotate(-14 82 64)"/>
+      <rect class="body" x="56" y="40" width="8" height="62" rx="4"/>
+      <circle class="body" cx="60" cy="34" r="9"/>
+    </svg>
+    <h1>Estás sem ligação</h1>
+    <p>A Lifeathlete precisa de ligação à internet na primeira abertura. Verifica a rede e tenta novamente.</p>
+    <a class="retry" href="https://lifeathlete.vercel.app/?source=pwa">Tentar novamente</a>
+    <div class="en" lang="en">
+      <h2>You are offline</h2>
+      <p>Lifeathlete needs a connection the first time it opens. Check your network and try again.</p>
+      <a class="retry" href="https://lifeathlete.vercel.app/?source=pwa">Try again</a>
+    </div>
+  </main>
+</body>
+</html>

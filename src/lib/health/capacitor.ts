@@ -18,6 +18,50 @@ export type HealthConnectBridgePlugin = {
 
 type DayMetrics = { date: string; metrics: Partial<Record<AutoMetric, number>> };
 
+/** idle = not checked (browser, or not started yet); pending = asking the plugin; ready = bridge registered. */
+export type NativeStatus = "idle" | "pending" | "ready" | "unavailable";
+export type DeviceState = "pending" | "none" | "present" | "needsHealthConnect";
+
+let nativeStatus: NativeStatus = "idle";
+const statusListeners = new Set<() => void>();
+
+function setNativeStatus(next: NativeStatus): void {
+  if (nativeStatus === next) return;
+  nativeStatus = next;
+  for (const listener of [...statusListeners]) {
+    try {
+      listener();
+    } catch {
+      // A failing subscriber must not stop the others.
+    }
+  }
+}
+
+export const getNativeStatus = (): NativeStatus => nativeStatus;
+
+export function subscribeNativeStatus(listener: () => void): () => void {
+  statusListeners.add(listener);
+  return () => {
+    statusListeners.delete(listener);
+  };
+}
+
+/**
+ * What the integrations card shows. `bridge` undefined = not known yet (server). In the
+ * Android shell a missing bridge is only "Health Connect missing/outdated" once the
+ * native check settled as unavailable; before that it is still being checked.
+ */
+export function deviceState(o: {
+  bridge: HealthBridge | null | undefined;
+  nativeShell: boolean;
+  status: NativeStatus;
+}): DeviceState {
+  if (o.bridge === undefined) return "pending";
+  if (o.bridge?.isAvailable()) return "present";
+  if (!o.nativeShell) return "none";
+  return o.status === "unavailable" ? "needsHealthConnect" : "pending";
+}
+
 /** True when running inside the Capacitor (Android) shell. */
 export function isNativeShell(): boolean {
   try {
@@ -80,14 +124,23 @@ export function createCapacitorHealthBridge(
 export async function registerNativeHealthBridge(
   deps: { isNative?: () => boolean; plugin?: HealthConnectBridgePlugin } = {},
 ): Promise<boolean> {
-  if (!(deps.isNative ?? isNativeShell)()) return false;
+  if (!(deps.isNative ?? isNativeShell)()) {
+    setNativeStatus("idle");
+    return false;
+  }
+  setNativeStatus("pending");
   try {
     const plugin = deps.plugin ?? registerPlugin<HealthConnectBridgePlugin>("HealthConnectBridge");
     const { available, unavailableCategories } = await plugin.isAvailable();
-    if (!available) return false;
+    if (!available) {
+      setNativeStatus("unavailable");
+      return false;
+    }
     registerHealthBridge(createCapacitorHealthBridge(plugin, knownMetrics(unavailableCategories)));
+    setNativeStatus("ready");
     return true;
   } catch {
+    setNativeStatus("unavailable");
     return false;
   }
 }

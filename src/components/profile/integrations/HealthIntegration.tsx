@@ -9,7 +9,7 @@ import {
   type HealthConnection,
 } from "@/lib/data/integrations";
 import { getHealthBridge, subscribeHealthBridge, type HealthBridge } from "@/lib/health/bridge";
-import { isNativeShell } from "@/lib/health/capacitor";
+import { deviceState, getNativeStatus, isNativeShell, subscribeNativeStatus } from "@/lib/health/capacitor";
 import { healthErrorKey, type IntegrationErrorKey } from "@/lib/health/messages";
 import type { AutoMetric } from "@/lib/health/metrics";
 import { connectAndSync, runHealthSync, type HealthSyncOutcome } from "@/lib/health/sync";
@@ -53,9 +53,11 @@ export function HealthIntegration({ timezone, initial }: Props) {
   const busyRef = useRef(false);
   const db = useCallback(() => (dbRef.current ??= createClient()), []);
 
-  // Client only (the server never reports the shell); device is "pending" on the server anyway.
-  const nativeShell = isNativeShell();
-  const device = bridge === undefined ? "pending" : bridge?.isAvailable() ? "present" : "none";
+  const nativeStatus = useSyncExternalStore(subscribeNativeStatus, getNativeStatus, () => "idle" as const);
+  const state = deviceState({ bridge, nativeShell: bridge === undefined ? false : isNativeShell(), status: nativeStatus });
+  // The view shows the install message for a shell whose Health Connect is missing or outdated.
+  const nativeShell = state === "needsHealthConnect";
+  const device = state === "needsHealthConnect" ? "none" : state;
 
   // The truthful connected categories after a reload (best effort: the card still works without).
   useEffect(() => {

@@ -21,3 +21,12 @@ describe("HealthIntegration bridge subscription", () => {
     expect(src).not.toMatch(/const subscribe = \(\) => \(\) => \{\}/);
   });
 });
+
+describe("HealthIntegration device decision (guard)", () => {
+  it("uses the pure deviceState and the native status subscription", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(new URL("./HealthIntegration.tsx", import.meta.url), "utf8");
+    expect(src).toMatch(/deviceState\(\{/);
+    expect(src).toMatch(/useSyncExternalStore\(subscribeNativeStatus, getNativeStatus/);
+  });
+});

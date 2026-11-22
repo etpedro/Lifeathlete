@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getHealthBridge, registerHealthBridge } from "./bridge";
-import { createCapacitorHealthBridge, registerNativeHealthBridge, type HealthConnectBridgePlugin } from "./capacitor";
+import { getHealthBridge, registerHealthBridge, type HealthBridge } from "./bridge";
+import {
+  createCapacitorHealthBridge,
+  deviceState,
+  getNativeStatus,
+  registerNativeHealthBridge,
+  subscribeNativeStatus,
+  type HealthConnectBridgePlugin,
+} from "./capacitor";
 import type { AutoMetric } from "./metrics";
 
 type Day = { date: string; metrics: Partial<Record<AutoMetric, number>> };
@@ -111,5 +118,62 @@ describe("createCapacitorHealthBridge", () => {
     const bridge = createCapacitorHealthBridge(plugin, []);
     await expect(bridge.requestPermission(["steps"])).rejects.toThrow("denied");
     await expect(bridge.readMetrics(7, ["steps"])).rejects.toThrow("read");
+  });
+});
+
+describe("native registration status", () => {
+  const native = { isNative: () => true };
+  it("is pending while the plugin is asked, then ready", async () => {
+    let release!: (v: { available: boolean; unavailableCategories: AutoMetric[] }) => void;
+    const plugin = fakePlugin({ isAvailable: () => new Promise((r) => (release = r)) });
+    const seen: string[] = [];
+    const off = subscribeNativeStatus(() => seen.push(getNativeStatus()));
+    const done = registerNativeHealthBridge({ ...native, plugin });
+    expect(getNativeStatus()).toBe("pending");
+    release({ available: true, unavailableCategories: [] });
+    await done;
+    expect(getNativeStatus()).toBe("ready");
+    expect(seen).toEqual(["pending", "ready"]);
+    off();
+  });
+
+  it("ends unavailable when Health Connect is missing", async () => {
+    const plugin = fakePlugin({ isAvailable: async () => ({ available: false, unavailableCategories: [] }) });
+    await registerNativeHealthBridge({ ...native, plugin });
+    expect(getNativeStatus()).toBe("unavailable");
+  });
+
+  it("ends unavailable when isAvailable rejects", async () => {
+    const plugin = fakePlugin({ isAvailable: async () => Promise.reject(new Error("x")) });
+    await registerNativeHealthBridge({ ...native, plugin });
+    expect(getNativeStatus()).toBe("unavailable");
+  });
+
+  it("stays idle outside the native shell", async () => {
+    await registerNativeHealthBridge({ isNative: () => false, plugin: fakePlugin() });
+    expect(getNativeStatus()).toBe("idle");
+  });
+});
+
+describe("deviceState", () => {
+  const present: HealthBridge = { isAvailable: () => true, requestPermission: async () => [], readMetrics: async () => [] };
+  const statuses = ["idle", "pending", "ready", "unavailable"] as const;
+  it("server (bridge unknown) is pending", () => {
+    expect(deviceState({ bridge: undefined, nativeShell: false, status: "idle" })).toBe("pending");
+  });
+  it("browser: bridge decides, never the install message", () => {
+    for (const status of statuses) {
+      expect(deviceState({ bridge: null, nativeShell: false, status })).toBe("none");
+      expect(deviceState({ bridge: present, nativeShell: false, status })).toBe("present");
+    }
+  });
+  it("native: a registered bridge is present whatever the status", () => {
+    for (const status of statuses) expect(deviceState({ bridge: present, nativeShell: true, status })).toBe("present");
+  });
+  it("native without a bridge: pending until settled, install message only when unavailable", () => {
+    expect(deviceState({ bridge: null, nativeShell: true, status: "idle" })).toBe("pending");
+    expect(deviceState({ bridge: null, nativeShell: true, status: "pending" })).toBe("pending");
+    expect(deviceState({ bridge: null, nativeShell: true, status: "ready" })).toBe("pending");
+    expect(deviceState({ bridge: null, nativeShell: true, status: "unavailable" })).toBe("needsHealthConnect");
   });
 });

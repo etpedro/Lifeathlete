@@ -80,3 +80,12 @@ describe("native/www/offline.html", () => {
     for (const [k, v] of Object.entries(pLight)) expect(tLight[k], `light ${k}`).toBe(v);
   });
 });
+
+describe("capacitor package versions", () => {
+  it("pins core, cli and android to exactly 8.6.0 (lockstep, no ranges)", () => {
+    const pkg = JSON.parse(read("package.json")) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+    const all = { ...pkg.dependencies, ...pkg.devDependencies };
+    const versions = ["@capacitor/core", "@capacitor/cli", "@capacitor/android"].map((n) => all[n]);
+    expect(versions).toEqual(["8.6.0", "8.6.0", "8.6.0"]);
+  });
+});

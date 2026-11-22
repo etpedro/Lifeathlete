@@ -26,10 +26,26 @@ export type HealthBridge = {
 };
 
 let registered: HealthBridge | null = null;
+const listeners = new Set<() => void>();
 
 /** Installs (or removes, with null) the native implementation. Also used by tests. */
 export function registerHealthBridge(bridge: HealthBridge | null): void {
   registered = bridge;
+  for (const listener of [...listeners]) {
+    try {
+      listener();
+    } catch {
+      // A failing subscriber must not stop the others.
+    }
+  }
+}
+
+/** Calls `listener` whenever the registered bridge changes (also to null). Returns the unsubscribe. */
+export function subscribeHealthBridge(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 /** The native bridge, or null when there is none (browser, PWA, server). */

@@ -8,7 +8,7 @@ import {
   HealthError,
   type HealthConnection,
 } from "@/lib/data/integrations";
-import { getHealthBridge, type HealthBridge } from "@/lib/health/bridge";
+import { getHealthBridge, subscribeHealthBridge, type HealthBridge } from "@/lib/health/bridge";
 import { healthErrorKey, type IntegrationErrorKey } from "@/lib/health/messages";
 import type { AutoMetric } from "@/lib/health/metrics";
 import { connectAndSync, runHealthSync, type HealthSyncOutcome } from "@/lib/health/sync";
@@ -21,11 +21,9 @@ import {
   type StatusMessage,
 } from "./HealthIntegrationView";
 
-const subscribe = () => () => {};
-
 /** The native bridge on the client; undefined while server rendering (not known yet). */
 function useHealthBridge(): HealthBridge | null | undefined {
-  return useSyncExternalStore(subscribe, getHealthBridge, () => undefined);
+  return useSyncExternalStore(subscribeHealthBridge, getHealthBridge, () => undefined);
 }
 
 type Props = {

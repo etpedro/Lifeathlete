@@ -168,8 +168,9 @@ class HealthConnectBridgePlugin : Plugin() {
                         date.plusDays(1).atStartOfDay(zone).toInstant(),
                     )
                     readDailyAggregates(client, filter, readable, metrics)
-                    if (readable.contains(MINDFUL)) readMindfulMinutes(client, filter, metrics)
                 }
+
+                if (readable.contains(MINDFUL) && dates.isNotEmpty()) readMindfulMinutes(client, dates, zone, values)
 
                 if (readable.contains(SLEEP) && dates.isNotEmpty()) {
                     // Padded by one day before the oldest date so a night ending on it is included.
@@ -219,28 +220,49 @@ class HealthConnectBridgePlugin : Plugin() {
     }
 
     /**
-     * MINDFULNESS (library 1.2.0-alpha line): its own request so a failure only drops this
-     * metric. To remove mindfulness, delete this function and its call, and make
-     * isMindfulnessSupported return false.
+     * MINDFULNESS: minutes of mindfulness sessions per local day, from the records clipped to each
+     * day. Records, not MINDFULNESS_DURATION_TOTAL: in connect-client 1.2.0-alpha01 that aggregate
+     * is not mapped on the Android 14+ platform path (fixed only in 1.2.0-alpha03, which this
+     * toolchain cannot use). A failure only drops this metric. To remove mindfulness, delete this
+     * function and its call, and make isMindfulnessSupported return false.
      */
     private suspend fun readMindfulMinutes(
         client: HealthConnectClient,
-        filter: TimeRangeFilter,
-        metrics: MutableMap<String, Double>,
+        dates: List<LocalDate>,
+        zone: ZoneId,
+        values: Map<LocalDate, MutableMap<String, Double>>,
     ) {
-        val duration: Duration? =
-            try {
-                client.aggregate(
-                    AggregateRequest(
-                        metrics = setOf(MindfulnessSessionRecord.MINDFULNESS_DURATION_TOTAL),
-                        timeRangeFilter = filter,
+        val sessions = ArrayList<Pair<Instant, Instant>>()
+        try {
+            // Padded by one day before the oldest date so a session crossing its midnight is seen.
+            val from = dates.last().minusDays(1).atStartOfDay(zone).toInstant()
+            val to = dates.first().plusDays(1).atStartOfDay(zone).toInstant()
+            var pageToken: String? = null
+            var pages = 0
+            do {
+                val response = client.readRecords(
+                    ReadRecordsRequest(
+                        recordType = MindfulnessSessionRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(from, to),
+                        pageToken = pageToken,
                     ),
-                )[MindfulnessSessionRecord.MINDFULNESS_DURATION_TOTAL]
-            } catch (e: Exception) {
-                null
-            }
-        val minutes = minutesOf(duration)
-        if (minutes > 0) metrics[MINDFUL] = minutes.toDouble()
+                )
+                for (record in response.records) sessions.add(Pair(record.startTime, record.endTime))
+                pageToken = response.pageToken
+                pages++
+            } while (pageToken != null && pages < MAX_RECORD_PAGES)
+        } catch (e: Exception) {
+            return
+        }
+        for (date in dates) {
+            val metrics = values[date] ?: continue
+            val dayStart = date.atStartOfDay(zone).toInstant()
+            val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
+            var seconds = 0L
+            for ((start, end) in sessions) seconds += DailyMath.overlapSeconds(start, end, dayStart, dayEnd)
+            val minutes = DailyMath.roundMinutes(seconds)
+            if (minutes > 0) metrics[MINDFUL] = minutes.toDouble()
+        }
     }
 
     /** Sleep sessions in [from, to), all pages, with their awake stages summed (clipped to the session). */
@@ -277,7 +299,7 @@ class HealthConnectBridgePlugin : Plugin() {
             }
             pageToken = response.pageToken
             pages++
-        } while (pageToken != null && pages < MAX_SLEEP_PAGES)
+        } while (pageToken != null && pages < MAX_RECORD_PAGES)
         return sessions
     }
 
@@ -369,6 +391,6 @@ class HealthConnectBridgePlugin : Plugin() {
 
         const val DEFAULT_DAYS = 7
         const val MAX_DAYS = 31
-        const val MAX_SLEEP_PAGES = 20
+        const val MAX_RECORD_PAGES = 20
     }
 }

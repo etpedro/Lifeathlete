@@ -147,6 +147,24 @@ class DailyMathTest {
         assertEquals(0, DailyMath.roundMinutes(-120))
     }
 
+    // --- overlapSeconds ---
+
+    @Test
+    fun overlapSecondsClipsSessionsToTheDay() {
+        val dayStart = at(2026, 1, 15, 0, 0)
+        val dayEnd = at(2026, 1, 16, 0, 0)
+        // fully inside: 10:00 -> 10:20 = 1200 s
+        assertEquals(1200L, DailyMath.overlapSeconds(at(2026, 1, 15, 10, 0), at(2026, 1, 15, 10, 20), dayStart, dayEnd))
+        // crosses the start: 14 Jan 23:50 -> 15 Jan 00:10 = 600 s on 15 Jan
+        assertEquals(600L, DailyMath.overlapSeconds(at(2026, 1, 14, 23, 50), at(2026, 1, 15, 0, 10), dayStart, dayEnd))
+        // crosses the end: 15 Jan 23:45 -> 16 Jan 00:15 = 900 s on 15 Jan
+        assertEquals(900L, DailyMath.overlapSeconds(at(2026, 1, 15, 23, 45), at(2026, 1, 16, 0, 15), dayStart, dayEnd))
+        // outside, touching the end, and reversed: 0
+        assertEquals(0L, DailyMath.overlapSeconds(at(2026, 1, 16, 8, 0), at(2026, 1, 16, 8, 30), dayStart, dayEnd))
+        assertEquals(0L, DailyMath.overlapSeconds(at(2026, 1, 16, 0, 0), at(2026, 1, 16, 0, 30), dayStart, dayEnd))
+        assertEquals(0L, DailyMath.overlapSeconds(at(2026, 1, 15, 11, 0), at(2026, 1, 15, 10, 0), dayStart, dayEnd))
+    }
+
     // --- windowDates ---
 
     @Test

@@ -64,9 +64,12 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
-    // Health Connect (read-only use). 1.2.0-alpha06 is the version the official get-started guide pins;
-    // it includes the 1.2.0-alpha03 fix that maps the mindfulness aggregate on Android 14+.
-    implementation "androidx.health.connect:connect-client:1.2.0-alpha06"
+    // Health Connect (read-only use). Pinned to 1.2.0-alpha01: the toolchain is fixed by the
+    // Capacitor 8.6 template (AGP 8.13.0, compileSdk 36). 1.2.0-alpha04+ is built with compileSdk 37,
+    // so its AAR metadata requires compileSdk 37 and AGP 9.1.0; alpha02/alpha03 declare
+    // compileSdkExtension 19. alpha01 has compileSdk 36 (minAgpVersion 8.9.1) and keeps the
+    // mindfulness record. Guarded by src/lib/native/android-health-connect.test.ts.
+    implementation "androidx.health.connect:connect-client:1.2.0-alpha01"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"

@@ -42,6 +42,14 @@ object DailyMath {
         return ((seconds + 30L) / 60L).toInt()
     }
 
+    /** Seconds of [start, end) that fall inside [from, to); 0 when they do not overlap. */
+    fun overlapSeconds(start: Instant, end: Instant, from: Instant, to: Instant): Long {
+        val clippedStart = if (start.isAfter(from)) start else from
+        val clippedEnd = if (end.isBefore(to)) end else to
+        val seconds = Duration.between(clippedStart, clippedEnd).seconds
+        return if (seconds > 0L) seconds else 0L
+    }
+
     /** The last `days` local dates, newest first, today included. */
     fun windowDates(today: LocalDate, days: Int): List<LocalDate> {
         val dates = ArrayList<LocalDate>()

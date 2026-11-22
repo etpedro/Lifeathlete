@@ -27,6 +27,8 @@ export type HealthView = HealthConnection & { categories: AutoMetric[] | null; c
 
 export type HealthViewProps = {
   device: DeviceState;
+  /** Running inside the Android shell (so a missing bridge means Health Connect is missing or outdated). */
+  nativeShell: boolean;
   /** null = the connection status could not be loaded. */
   connection: HealthView | null;
   /** The profile's IANA timezone (the last sync time is shown in it). */
@@ -54,7 +56,7 @@ export function HealthIntegrationView(props: HealthViewProps) {
   const format = useFormatter();
   const headingId = useId();
   const pickOneId = useId();
-  const { device, connection, busy, status, error } = props;
+  const { device, nativeShell, connection, busy, status, error } = props;
   const working = busy !== null;
 
   const statusText = status
@@ -73,8 +75,14 @@ export function HealthIntegrationView(props: HealthViewProps) {
   } else if (device === "none") {
     content = (
       <div className={styles.note}>
-        <p>{t("unavailable")}</p>
-        <p className={styles.hint}>{t("unavailableIos")}</p>
+        {nativeShell ? (
+          <p>{t("needsHealthConnect")}</p>
+        ) : (
+          <>
+            <p>{t("unavailable")}</p>
+            <p className={styles.hint}>{t("unavailableIos")}</p>
+          </>
+        )}
       </div>
     );
   } else if (connection === null) {

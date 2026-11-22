@@ -308,6 +308,7 @@
       "phoneTitle": "Phone health data",
       "loading": "Checking this device…",
       "unavailable": "Automatic collection (steps, workouts, sleep and meditation) is available in the Lifeathlete Android app, through Health Connect. In this browser you can keep logging everything by hand in Today.",
+      "needsHealthConnect": "Install or update Health Connect from the Play Store, then reopen the app.",
       "unavailableIos": "iPhone (Apple Health) is not supported yet.",
       "consent": {
         "title": "Before you connect",

@@ -308,6 +308,7 @@
       "phoneTitle": "Dados do telemóvel",
       "loading": "A verificar este dispositivo…",
       "unavailable": "A recolha automática (passos, treino, sono e meditação) está disponível na app Android do Lifeathlete, através do Health Connect. Neste navegador continuas a poder registar tudo à mão em Hoje.",
+      "needsHealthConnect": "Instala ou atualiza o Health Connect na Play Store e volta a abrir a app.",
       "unavailableIos": "O iPhone (Apple Saúde) ainda não é suportado.",
       "consent": {
         "title": "Antes de ligares",

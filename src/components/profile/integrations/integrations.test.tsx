@@ -30,6 +30,7 @@ const view = (over: Partial<HealthViewProps> = {}, locale: "pt" | "en" = "pt") =
   render(
     <HealthIntegrationView
       device="none"
+      nativeShell={false}
       connection={{ status: "none", lastSyncedAt: null, categories: null, consentCurrent: null }}
       timezone="Europe/Lisbon"
       busy={null}
@@ -56,6 +57,15 @@ describe("HealthIntegrationView", () => {
     expect(html).toContain(tt.unavailableIos);
     expect(html).not.toContain("<button");
     expect(html).toContain('role="status"');
+  });
+
+  it("in the Android shell without a usable Health Connect: asks to install or update it", () => {
+    const html = view({ nativeShell: true });
+    expect(html).toContain(tt.needsHealthConnect);
+    expect(html).not.toContain(tt.unavailable);
+    expect(html).toMatch(/class="[^"]*note[^"]*"/);
+    expect(view({ nativeShell: true }, "en")).toContain(en.profile.integrations.needsHealthConnect);
+    expect(view({ nativeShell: false })).toContain(tt.unavailable);
   });
 
   it("is the same in the browser even if a connection exists (no buttons that do nothing)", () => {

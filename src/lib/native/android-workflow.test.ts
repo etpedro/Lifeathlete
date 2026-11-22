@@ -47,14 +47,45 @@ describe("android workflow", () => {
     expect(workflow).toContain("lifeathlete-debug-apk");
   });
 
-  it("guards every release step on the keystore secret", () => {
+  it("guards every release step on HAS_KEYSTORE", () => {
     const releaseSteps = workflow
       .split(/\n\s+- (?=name:)/)
-      .filter((s) => /assembleRelease|release\.keystore|name: lifeathlete\.apk|apksigner/.test(s));
-    expect(releaseSteps.length).toBeGreaterThanOrEqual(3);
+      .filter((s) => /assembleRelease|release\.keystore|name: Upload release APK|apksigner/.test(s));
+    expect(releaseSteps.length).toBeGreaterThanOrEqual(4);
     for (const step of releaseSteps) {
-      expect(step).toMatch(/if: (always\(\) && )?env\.ANDROID_KEYSTORE_BASE64 != ''/);
+      expect(step).toMatch(/if: (always\(\) && )?env\.HAS_KEYSTORE == ['"]true['"]/);
     }
+  });
+
+  it("detects the keystore in an early step without echoing it", () => {
+    const detect = workflow.indexOf("HAS_KEYSTORE=true");
+    expect(detect).toBeGreaterThan(-1);
+    expect(detect).toBeLessThan(workflow.indexOf("npm ci"));
+    expect(workflow).toContain('[ -n "$ANDROID_KEYSTORE_BASE64" ]');
+  });
+
+  it("has no pull_request or pull_request_target trigger", () => {
+    expect(workflow).not.toMatch(/pull_request/);
+  });
+
+  it("uses secrets only as step-level env mapping lines", () => {
+    const lines = workflow.split("\n");
+    let count = 0;
+    lines.forEach((line, i) => {
+      if (!line.includes("${{ secrets.")) return;
+      count++;
+      expect(line).toMatch(/^ {10}([A-Z0-9_]+): \$\{\{ secrets\.\1 \}\}$/);
+      const indent = line.length - line.trimStart().length;
+      let j = i - 1;
+      while (j >= 0 && (lines[j].trim() === "" || lines[j].length - lines[j].trimStart().length >= indent)) j--;
+      expect(lines[j]).toMatch(/^ {8}env:$/);
+    });
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it("has no workflow-level or job-level env map", () => {
+    expect(workflow).not.toMatch(/^env:/m);
+    expect(workflow).not.toMatch(/^ {4}env:/m);
   });
 
   it("uses exactly the four expected secret names and never echoes them", () => {

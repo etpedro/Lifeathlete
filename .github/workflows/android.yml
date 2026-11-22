@@ -22,13 +22,16 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    env:
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Detect release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "HAS_KEYSTORE=true" >> "$GITHUB_ENV"
+          fi
 
       - uses: actions/setup-node@v4
         with:
@@ -71,18 +74,24 @@ jobs:
           if-no-files-found: ignore
 
       - name: Decode release keystore
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           base64 -d <<< "$ANDROID_KEYSTORE_BASE64" > "$RUNNER_TEMP/release.keystore"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
 
       - name: Build signed release APK
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        if: env.HAS_KEYSTORE == 'true'
         working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Verify release APK signature
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        if: env.HAS_KEYSTORE == 'true'
         run: |
           BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
           APK=android/app/build/outputs/apk/release/app-release.apk
@@ -90,7 +99,7 @@ jobs:
           cp "$APK" lifeathlete.apk
 
       - name: Upload release APK
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        if: env.HAS_KEYSTORE == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: lifeathlete.apk
@@ -99,5 +108,5 @@ jobs:
           if-no-files-found: error
 
       - name: Remove decoded keystore
-        if: always() && env.ANDROID_KEYSTORE_BASE64 != ''
+        if: always() && env.HAS_KEYSTORE == 'true'
         run: rm -f "$RUNNER_TEMP/release.keystore"

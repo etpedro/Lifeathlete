@@ -30,7 +30,7 @@ Supabase
   Edge Functions              recalculate      rebuilds XP, level, streaks, pillar scores,
                                                achievements and mascot from habit_logs
                               weekly-summary   share card SVG for the caller
-                              health-sync      daily steps from the Android app (Health Connect)
+                              health-sync      daily metrics from the Android app (Health Connect)
   supabase/functions/_shared/engine/   the pure gamification engine (XP, levels, streaks,
                                        achievements, wheel, mascot), unit-tested with Vitest
 ```
@@ -128,6 +128,8 @@ browser where the reset was requested.
 | `npm run test:e2e` | Playwright against `npm run dev`. It needs a running Supabase stack with email confirmation off and `NEXT_PUBLIC_SUPABASE_*` set. `e2e/language.spec.ts` and the signed-in part of `e2e/pwa.spec.ts` are skipped unless `E2E_SUPABASE=1`. |
 | `npm run test:e2e:pwa` | Playwright against a production build (`next build && next start`): manifest, service worker, offline pages. The signed-in offline Hoje case needs `E2E_SUPABASE=1`. |
 | `npm run test:e2e:landing` | Playwright against a production build: the landing page (`/` → `/pt`, the Entrar links, `/en`, the `/?source=pwa` launch redirect, no horizontal overflow at 360/1280 px, reduced motion, lazy images). Needs no Supabase (placeholder settings). |
+
+The Android project is built and unit-tested by its own workflow (`.github/workflows/android.yml`, see "App Android").
 
 CI (`.github/workflows/ci.yml`) runs `npm ci`, `npm test`, `npx tsc --noEmit`,
 `npm run lint`, `npm run build` and `npm run test:db`. It installs PostgreSQL 16 with apt.
@@ -252,11 +254,11 @@ and **cannot be verified** by the server. A modified client can send any number 
 the limits above. This is the same trust level as a manual log, which is self-reported
 too.
 
-**Not built yet:** the native Android shell (a Capacitor plugin over Health Connect that
-registers a `HealthBridge`), the Huawei Health Kit cloud adapter (which will write
-`huawei_health` rows through `upsert_provider_activity`), and Apple Health (not
-supported: the function answers `unsupported_source`). Nothing is published to an app
-store.
+**Native app:** the Android shell (a Capacitor plugin over Health Connect that registers
+the `HealthBridge`) is described in "App Android" below. **Not built yet:** the Huawei Health
+Kit cloud adapter (which will write `huawei_health` rows through `upsert_provider_activity`)
+and Apple Health (not supported: the function answers `unsupported_source`). Nothing is
+published to an app store.
 
 **Deploy order:** apply migration 0012 first, then deploy the new function (`npx supabase
 functions deploy health-sync --project-ref <ref>`). Health-sync v1 keeps working during the
@@ -269,6 +271,111 @@ erase the other metrics of every day it syncs.
 **Changing a habit's metric** (or turning it off) leaves the automatic logs already
 written for that habit as they are. They keep the unit of the old metric, and the user
 can correct them by hand.
+
+## App Android (Capacitor + Health Connect)
+
+`android/` is a Capacitor 8.6.0 project (appId `app.lifeathlete.android`, appName
+Lifeathlete). Its WebView opens the production site `https://lifeathlete.vercel.app/?source=pwa`
+and navigation is restricted to that host (other links open in the phone browser). If the
+site cannot be reached on open, the local page `native/www/offline.html` is shown, with a
+retry button. UI changes ship with the website, with no new APK. Only changes under
+`android/`, `native/` or `capacitor.config.ts` need a new APK.
+
+A native Kotlin plugin, `HealthConnectBridge`
+(`android/app/src/main/java/app/lifeathlete/android/`), reads Health Connect, **read-only**,
+with four permissions: steps, exercise, sleep and mindfulness. The web adapter
+`src/lib/health/capacitor.ts` registers the `HealthBridge` described above. Sync runs when
+the app opens and with "Sincronizar agora" (no background sync in this phase). The data
+goes through the existing `health-sync` Edge Function.
+
+**Versions.** Capacitor core/cli/android are pinned to exactly 8.6.0; AGP 8.13.0, Gradle
+8.14.3, compileSdk/targetSdk 36, minSdk 26, JDK 21, Kotlin Gradle plugin 2.4.21. The Health
+Connect client is `androidx.health.connect:connect-client:1.2.0-alpha01`, pinned on purpose:
+1.2.0-alpha04..06 need compileSdk 37 and AGP 9.1 (CI rejected alpha06), so do not bump it
+without upgrading the Capacitor template toolchain. `src/lib/native/android-health-connect.test.ts`
+enforces the pin. Mindful minutes are computed from the session records, because the alpha01
+aggregate does not work on Android 14+. If Health Connect misbehaves, the fallback is
+connect-client 1.1.0 plus removing the code marked `MINDFULNESS` (mindful minutes then
+report unavailable).
+
+### Build
+
+Nothing under `android/` can be built in the cloud dev environment (no Android SDK). The
+workflow `.github/workflows/android.yml` (name "Android") runs on pushes that touch
+`android/**`, `native/**`, `capacitor.config.ts`, `package.json`, `package-lock.json` or the
+workflow file, and manually with "Run workflow". It runs `npm ci`, `npx cap sync android`
+(the sync outputs are gitignored) and `./gradlew testDebugUnitTest assembleDebug` (Temurin
+JDK 21), then uploads the artifact `lifeathlete-debug-apk` (14 days). Only when the signing
+secrets exist, it also uploads a signed release `lifeathlete.apk` (30 days), verified with
+`apksigner` first.
+
+Locally, with Android Studio / the SDK: `npm ci && npx cap sync android && cd android &&
+./gradlew assembleDebug`.
+
+### Signing
+
+Add four repository secrets (Settings → Secrets and variables → Actions → New repository
+secret): `ANDROID_KEYSTORE_BASE64` (the keystore file, base64), `ANDROID_KEYSTORE_PASSWORD`,
+`ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`. They are only visible to the
+keystore-detection step and the release steps. Never commit the key. Use the same key for
+every release APK, so that an update installs over the previous one; if the key is lost,
+users must uninstall and reinstall. Debug APKs are signed with a throw-away key generated on
+the runner, so each debug APK has a different signature: uninstall the previous one before
+installing the next debug build.
+
+### Install on a Samsung phone
+
+1. GitHub → repository → Actions → the latest successful "Android" run → Artifacts →
+   download `lifeathlete.apk` (or `lifeathlete-debug-apk`). It is a zip containing the APK:
+   unzip it, for example with the My Files app.
+2. Open the APK from My Files / Downloads. When asked, allow "Install unknown apps" for the
+   app you opened it with (Settings → Apps → that app → Install unknown apps).
+3. Play Protect may warn about an app from an unknown developer: this is a personal
+   sideload, not published to a store.
+4. Health Connect is part of Android 14+ (on Samsung One UI: Settings → Security and
+   privacy → Privacy → Health Connect). Older Android needs the Health Connect app from
+   Google Play.
+
+### Huawei Watch GT 2
+
+Third-party chain, **not confirmed by Huawei; to be verified on the phone**: Watch → Huawei
+Health app → a bridge app such as "Health Sync" (third party, may be paid) → Health Connect
+→ Lifeathlete. Lifeathlete only reads Health Connect. Open Huawei Health daily so the watch
+syncs, and set Health Sync to write the metrics to Health Connect. Which metrics arrive
+depends on that chain (for example, meditation may not).
+
+### Phone checklist
+
+1. Install the APK and open it. The Lifeathlete login appears; sign in.
+2. Perfil → Integrações shows "Ligar dados do telemóvel" (not the browser note). If Health
+   Connect is missing, it says to install or update it.
+3. Tick the categories you want and press connect. The Health Connect permission dialog
+   lists exactly those categories (read only).
+4. After granting, "Última sincronização" appears and "Sincronizar agora" reports the days
+   synced.
+5. Perfil → Gerir hábitos: choose "Preencher automaticamente" on a value habit (steps,
+   workout minutes, sleep hours or meditation minutes) and set a target in the metric's
+   unit. Sync again.
+6. Hoje shows that habit filled, with source "via Health Connect".
+7. Log the same habit/day by hand: the manual value stays after the next sync.
+8. Disconnect in Integrações: sync stops and the history is kept.
+9. External links open in the phone browser, not inside the app.
+10. Airplane mode, force close, open: the offline page appears with the retry button. Turn
+    the network on and tap retry.
+11. In Health Connect's app permissions screen, the rationale/privacy link opens
+    `https://lifeathlete.vercel.app/<pt|en>/privacy/health` in the browser.
+12. Update test: install a newer signed APK over the previous one (same key) and confirm you
+    stay signed in and nothing is lost.
+
+### Known limits
+
+- No background sync.
+- No Play Store or App Store release.
+- The privacy page is a short health-data notice; the full privacy policy is the owner's
+  responsibility.
+- The Health Connect client is an alpha.
+- The web code that registers the bridge must be deployed to production (merge to `main`)
+  before the app shows the integration.
 
 ## Landing page
 
@@ -334,8 +441,8 @@ this README.
 - The Roda screen does not have the weekly and monthly history from the spec yet.
 - Medal progress bars are shown only for global-streak achievements. Other achievements
   show locked or unlocked.
-- Provider integrations (Strava, Fitbit, Garmin, Oura, Huawei) and the native app (phase 6)
-  are not built.
+- Provider integrations (Strava, Fitbit, Garmin, Oura, Huawei cloud) are not built. The
+  Android app only reads Health Connect (see "App Android").
 - The e2e specs were written and type-checked, but they were never run against a live
   Supabase stack in the original implementation environment (no Docker there). The Edge
   Functions' Deno adapters were never executed there either. Their logic is covered by
